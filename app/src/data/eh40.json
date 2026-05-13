@@ -1,0 +1,2608 @@
+{
+  "source": "HSE EH40/2005 Workplace Exposure Limits",
+  "version": "Extracted 2026-05-13 from eh40.pdf",
+  "license": "Contains public sector information published by the Health and Safety Executive and licensed under the Open Government Licence v3.0.",
+  "notes": "Heuristically extracted from PDF Table 1. Spot-check entries before relying on values for risk assessment.",
+  "entries": [
+    {
+      "name": "Acetaldehyde",
+      "cas": "75-07-0",
+      "twa": "20 ppm (37 mg/m³)",
+      "stel": "50 ppm (92 mg/m³)",
+      "notes": "Carc"
+    },
+    {
+      "name": "Acetic acid",
+      "cas": "64-19-7",
+      "twa": "10 ppm (25 mg/m³)",
+      "stel": "20 ppm (50 mg/m³)"
+    },
+    {
+      "name": "Acetic anhydride",
+      "cas": "108-24-7",
+      "twa": "0.5 ppm (2.5 mg/m³)",
+      "stel": "2 ppm (10 mg/m³)"
+    },
+    {
+      "name": "Acetone",
+      "cas": "67-64-1",
+      "twa": "500 ppm (1210 mg/m³)",
+      "stel": "1500 ppm (3620 mg/m³)"
+    },
+    {
+      "name": "Acetonitrile",
+      "cas": "75-05-8",
+      "twa": "40 ppm (68 mg/m³)",
+      "stel": "60 ppm (102 mg/m³)"
+    },
+    {
+      "name": "o -Acetylsalicylic acid",
+      "cas": "50-78-2",
+      "twa": "5 mg/m³"
+    },
+    {
+      "name": "Acrylaldehyde (Acrolein)",
+      "cas": "107-02-8",
+      "twa": "0.02 ppm (0.05 mg/m³)",
+      "stel": "0.05 ppm (0.12 mg/m³)"
+    },
+    {
+      "name": "Acrylamide",
+      "cas": "79-06-1",
+      "twa": "0.1 mg/m³",
+      "notes": "Carc, Sk"
+    },
+    {
+      "name": "Acrylic acid",
+      "twa": "10 ppm (29 mg/m³)",
+      "stel": "20* ppm (59* mg/m³)",
+      "notes": "*STEL in relation to a 1-minute"
+    },
+    {
+      "name": "Acrylonitrile",
+      "cas": "107-13-1",
+      "twa": "2 ppm (4.4 mg/m³)",
+      "notes": "Carc, Sk"
+    },
+    {
+      "name": "Allyl alcohol",
+      "cas": "107-18-6",
+      "twa": "2 ppm (4.8 mg/m³)",
+      "stel": "4 ppm (9.7 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Aluminium alkyl compounds",
+      "twa": "2 mg/m³"
+    },
+    {
+      "name": "Aluminium metal, inhalable dust",
+      "cas": "7429-90-5",
+      "twa": "10 mg/m³"
+    },
+    {
+      "name": "Aluminium metal, respirable dust",
+      "cas": "7429-90-5",
+      "twa": "4 mg/m³"
+    },
+    {
+      "name": "Aluminium oxides, inhalable dust",
+      "cas": "1344-28-1",
+      "twa": "10 mg/m³"
+    },
+    {
+      "name": "Aluminium oxides, respirable dust",
+      "cas": "1344-28-1",
+      "twa": "4 mg/m³"
+    },
+    {
+      "name": "Aluminium salts, soluble",
+      "twa": "2 mg/m³"
+    },
+    {
+      "name": "2-Aminoethanol",
+      "cas": "141-43-5",
+      "twa": "1 ppm (2.5 mg/m³)",
+      "stel": "3 ppm (7.6 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Amitrole",
+      "cas": "61-82-5",
+      "twa": "0.2 mg/m³"
+    },
+    {
+      "name": "Ammonia, anhydrous",
+      "cas": "7664-41-7",
+      "twa": "25 ppm (18 mg/m³)",
+      "stel": "35 ppm (25 mg/m³)"
+    },
+    {
+      "name": "Ammonium chloride, fume",
+      "cas": "12125-02-9",
+      "twa": "10 mg/m³",
+      "stel": "20 mg/m³"
+    },
+    {
+      "name": "Ammonium sulphamidate",
+      "cas": "7773-06-0",
+      "twa": "10 mg/m³",
+      "stel": "20 mg/m³"
+    },
+    {
+      "name": "Aniline",
+      "cas": "62-53-3",
+      "twa": "1 ppm (4 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Antimony and compounds except",
+      "twa": "0.5 mg/m³"
+    },
+    {
+      "name": "r -Aramid respirable fibres",
+      "cas": "26125-61-1",
+      "twa": "0.5 fibres/ ml"
+    },
+    {
+      "name": "Arsenic and arsenic compounds",
+      "twa": "0.1 mg/m³",
+      "notes": "Carc"
+    },
+    {
+      "name": "Arsine",
+      "cas": "7784-42-1",
+      "twa": "0.05 ppm (0.16 mg/m³)"
+    },
+    {
+      "name": "Asphalt, petroleum fumes",
+      "cas": "8052-42-4",
+      "twa": "5 mg/m³",
+      "stel": "10 mg/m³"
+    },
+    {
+      "name": "Azodicarbonamide",
+      "cas": "123-77-3",
+      "twa": "1.0 mg/m³",
+      "stel": "3.0 mg/m³",
+      "notes": "Sen"
+    },
+    {
+      "name": "Barium compounds, soluble (as Ba)",
+      "twa": "0.5 mg/m³"
+    },
+    {
+      "name": "Barium sulphate, inhalable dust",
+      "cas": "7727-43-7",
+      "twa": "10 mg/m³"
+    },
+    {
+      "name": "Barium sulphate, respirable dust",
+      "cas": "7727-43-7",
+      "twa": "4 mg/m³"
+    },
+    {
+      "name": "Benzene",
+      "cas": "71-43-2",
+      "twa": "1 ppm (3.25 mg/m³)",
+      "notes": "Carc, Sk"
+    },
+    {
+      "name": "Benzyl butyl phthalate",
+      "cas": "85-68-7",
+      "twa": "5 mg/m³"
+    },
+    {
+      "name": "Benzyl chloride",
+      "cas": "100-44-7",
+      "twa": "0.5 ppm (2.6 mg/m³)",
+      "stel": "1.5 ppm (7.9 mg/m³)",
+      "notes": "Carc"
+    },
+    {
+      "name": "Beryllium and beryllium compounds",
+      "twa": "0.002 mg/m³",
+      "notes": "Carc"
+    },
+    {
+      "name": "Bis(2-ethylhexyl) phthalate",
+      "cas": "117-81-7",
+      "twa": "5 mg/m³",
+      "stel": "10 mg/m³"
+    },
+    {
+      "name": "Bis(chloromethyl) ether",
+      "cas": "542-88-1",
+      "twa": "0.001 ppm (0.005 mg/m³)",
+      "notes": "Carc"
+    },
+    {
+      "name": "Bisphenol A",
+      "cas": "80-05-7",
+      "twa": "2 mg/m³"
+    },
+    {
+      "name": "Bornan-2-one",
+      "cas": "77-22-2",
+      "twa": "2 ppm (13 mg/m³)",
+      "stel": "3 ppm (19 mg/m³)"
+    },
+    {
+      "name": "Boron tribromide",
+      "cas": "10294-33-4",
+      "stel": "1 ppm (10 mg/m³)"
+    },
+    {
+      "name": "Bromacil (ISO)",
+      "cas": "314-40-9",
+      "twa": "1 ppm (11 mg/m³)",
+      "stel": "2 ppm (22 mg/m³)"
+    },
+    {
+      "name": "Bromine",
+      "cas": "7726-95-6",
+      "twa": "0.1 ppm (0.66 mg/m³)",
+      "stel": "0.2 ppm (1.3 mg/m³)"
+    },
+    {
+      "name": "Bromoethylene",
+      "cas": "593-60-2",
+      "twa": "1 ppm (4.4 mg/m³)",
+      "notes": "Carc"
+    },
+    {
+      "name": "Bromomethane",
+      "cas": "74-83-9",
+      "twa": "5 ppm (20 mg/m³)",
+      "stel": "15 ppm (59 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Butane",
+      "cas": "106-97-8",
+      "twa": "600 ppm (1450 mg/m³)",
+      "stel": "750 ppm (1810 mg/m³)",
+      "notes": "Carc, (only applies if Butane"
+    },
+    {
+      "name": "But-2-yne-1,4-diol",
+      "cas": "110-65-6",
+      "twa": "0.5 mg/m³"
+    },
+    {
+      "name": "Buta-1,3-diene",
+      "cas": "106-99-0",
+      "twa": "1 ppm (2.2 mg/m³)",
+      "notes": "Carc"
+    },
+    {
+      "name": "Butan-1-ol",
+      "cas": "71-36-3",
+      "stel": "50 ppm (154 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Butan-2-ol",
+      "cas": "78-92-2",
+      "twa": "100 ppm (308 mg/m³)",
+      "stel": "150 ppm (462 mg/m³)"
+    },
+    {
+      "name": "Butan-2-one",
+      "cas": "78-93-3",
+      "twa": "200 ppm (600 mg/m³)",
+      "stel": "300 ppm (899 mg/m³)",
+      "notes": "Sk, BMGV"
+    },
+    {
+      "name": "2-Butoxyethanol",
+      "cas": "111-76-2",
+      "twa": "25 ppm (123 mg/m³)",
+      "stel": "50 ppm (246 mg/m³)",
+      "notes": "Sk, BMGV"
+    },
+    {
+      "name": "2-(2-Butoxyethoxy) ethanol",
+      "cas": "112-34-5",
+      "twa": "10 ppm (67.5 mg/m³)",
+      "stel": "15 ppm (101.2 mg/m³)"
+    },
+    {
+      "name": "2-Butoxyethyl acetate",
+      "cas": "112-07-2",
+      "twa": "20 ppm (133 mg/m³)",
+      "stel": "50 ppm (332 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "n -Butyl acrylate",
+      "cas": "141-32-2",
+      "twa": "1 ppm (5 mg/m³)",
+      "stel": "5 ppm (26 mg/m³)"
+    },
+    {
+      "name": "n -Butyl chloroformate",
+      "cas": "592-34-7",
+      "twa": "1 ppm (5.7 mg/m³)"
+    },
+    {
+      "name": "sec -Butyl acetate",
+      "cas": "105-46-4",
+      "twa": "200 ppm (966 mg/m³)",
+      "stel": "250 ppm (1210 mg/m³)"
+    },
+    {
+      "name": "tert -Butyl acetate",
+      "cas": "540-88-5",
+      "twa": "200 ppm (966 mg/m³)",
+      "stel": "250 ppm (1210 mg/m³)"
+    },
+    {
+      "name": "Butyl acetate",
+      "cas": "123-86-4",
+      "twa": "150 ppm (724 mg/m³)",
+      "stel": "200 ppm (966 mg/m³)"
+    },
+    {
+      "name": "Butyl lactate",
+      "cas": "138-22-7",
+      "twa": "5 ppm (30 mg/m³)"
+    },
+    {
+      "name": "2- sec -Butylphenol",
+      "cas": "89-72-5",
+      "twa": "5 ppm (31 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Cadmium and cadmium compounds",
+      "twa": "0.025 mg/m³",
+      "notes": "Carc (cadmium metal,"
+    },
+    {
+      "name": "Cadmium oxide fume (as Cd)",
+      "cas": "1306-19-0",
+      "twa": "0.025 mg/m³",
+      "stel": "0.05 mg/m³",
+      "notes": "Carc"
+    },
+    {
+      "name": "Cadmium sulphide and cadmium",
+      "twa": "0.03 mg/m³",
+      "notes": "Carc (cadmium sulphide)"
+    },
+    {
+      "name": "Caesium hydroxide",
+      "cas": "21351-79-1",
+      "twa": "2 mg/m³"
+    },
+    {
+      "name": "Calcium carbonate, inhalable dust",
+      "cas": "1317-65-3",
+      "twa": "10 mg/m³"
+    },
+    {
+      "name": "Calcium carbonate, respirable",
+      "cas": "1317-65-3",
+      "twa": "4 mg/m³"
+    },
+    {
+      "name": "Calcium cyanamide",
+      "cas": "156-62-7",
+      "twa": "0.5 mg/m³",
+      "stel": "1 mg/m³"
+    },
+    {
+      "name": "Calcium hydroxide",
+      "cas": "1305-62-0",
+      "twa": "5 mg/m³"
+    },
+    {
+      "name": "Calcium oxide",
+      "cas": "1305-78-8",
+      "twa": "2 mg/m³"
+    },
+    {
+      "name": "Calcium silicate, inhalable dust",
+      "cas": "1344-95-2",
+      "twa": "10 mg/m³"
+    },
+    {
+      "name": "Calcium silicate, respirable",
+      "cas": "1344-95-2",
+      "twa": "4 mg/m³"
+    },
+    {
+      "name": "Captan (ISO)",
+      "cas": "133-06-2",
+      "twa": "5 mg/m³",
+      "stel": "15 mg/m³"
+    },
+    {
+      "name": "Carbon black",
+      "cas": "1333-86-4",
+      "twa": "3.5 mg/m³",
+      "stel": "7 mg/m³"
+    },
+    {
+      "name": "Carbon dioxide",
+      "cas": "124-38-9",
+      "twa": "5000 ppm (9150 mg/m³)",
+      "stel": "15000 ppm (27400 mg/m³)"
+    },
+    {
+      "name": "Carbon disulphide",
+      "cas": "75-15-0",
+      "twa": "5 ppm (15 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Carbon monoxide",
+      "cas": "630-08-0",
+      "twa": "20 ppm (23 mg/m³)",
+      "stel": "100 ppm (117 mg/m³)",
+      "notes": "BMGV"
+    },
+    {
+      "name": "Carbon tetrachloride",
+      "cas": "56-23-5",
+      "twa": "1 ppm (6.4 mg/m³)",
+      "stel": "5 ppm (32 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Cellulose, inhalable dust",
+      "cas": "9004-34-6",
+      "twa": "10 mg/m³",
+      "stel": "20 mg/m³"
+    },
+    {
+      "name": "Cellulose, respirable",
+      "cas": "9004-34-6",
+      "twa": "4 mg/m³"
+    },
+    {
+      "name": "Chlorine",
+      "cas": "7782-50-5",
+      "stel": "0.5 ppm (1.5 mg/m³)"
+    },
+    {
+      "name": "Chlorine dioxide",
+      "cas": "10049-04-4",
+      "twa": "0.1 ppm (0.28 mg/m³)",
+      "stel": "0.3 ppm (0.84 mg/m³)"
+    },
+    {
+      "name": "Chloroacetaldehyde",
+      "cas": "107-20-0",
+      "stel": "1 ppm (3.3 mg/m³)"
+    },
+    {
+      "name": "2-Chloroacetophenone",
+      "cas": "532-27-4",
+      "twa": "0.05 ppm (0.32 mg/m³)"
+    },
+    {
+      "name": "Chlorobenzene",
+      "cas": "108-90-7",
+      "twa": "1 ppm (4.7 mg/m³)",
+      "stel": "3 ppm (14 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Chlorodifluoromethane",
+      "cas": "75-45-6",
+      "twa": "1000 ppm (3590 mg/m³)"
+    },
+    {
+      "name": "Chloroethane",
+      "cas": "75-00-3",
+      "twa": "50 ppm (134 mg/m³)"
+    },
+    {
+      "name": "2-Chloroethanol",
+      "cas": "107-07-3",
+      "stel": "1 ppm (3.4 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "1-Chloro-2,3epoxypropane",
+      "cas": "106-89-8",
+      "twa": "0.5 ppm (1.9 mg/m³)",
+      "stel": "1.5 ppm (5.8 mg/m³)",
+      "notes": "Carc"
+    },
+    {
+      "name": "Chloroform",
+      "cas": "67-66-3",
+      "twa": "2 ppm (9.9 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Chloromethane",
+      "cas": "74-87-3",
+      "twa": "50 ppm (105 mg/m³)",
+      "stel": "100 ppm (210 mg/m³)"
+    },
+    {
+      "name": "1-Chloro-4-nitrobenzene",
+      "cas": "100-00-5",
+      "twa": "1 mg/m³",
+      "stel": "2 mg/m³",
+      "notes": "Sk"
+    },
+    {
+      "name": "Chlorosulphonic acid",
+      "cas": "7790-94-5",
+      "twa": "1 mg/m³"
+    },
+    {
+      "name": "Chlorpyrifos (ISO)",
+      "cas": "2921-88-2",
+      "twa": "0.2 mg/m³",
+      "stel": "0.6 mg/m³",
+      "notes": "Sk"
+    },
+    {
+      "name": "Chromium",
+      "cas": "7440-47-3",
+      "twa": "0.5 mg/m³"
+    },
+    {
+      "name": "Chromium (II) compounds (as Cr)",
+      "twa": "0.5 mg/m³"
+    },
+    {
+      "name": "Chromium (III) compounds (as Cr)",
+      "twa": "0.5 mg/m³"
+    },
+    {
+      "name": "Chromium (VI) compounds (as Cr)",
+      "twa": "0.01 mg/m³",
+      "notes": "Carc, sen,"
+    },
+    {
+      "name": "Cobalt and Cobalt compounds (as Co)",
+      "twa": "0.1 mg/m³",
+      "notes": "Carc (cobalt dichloride and"
+    },
+    {
+      "name": "Copper fume (as Cu)",
+      "cas": "7440-50-8",
+      "twa": "0.2 mg/m³"
+    },
+    {
+      "name": "Copper and compounds: dust and",
+      "twa": "1 mg/m³",
+      "stel": "2 mg/m³"
+    },
+    {
+      "name": "Cotton dust",
+      "twa": "2.5 mg/m³",
+      "notes": "(see paras"
+    },
+    {
+      "name": "Cryofluorane (INN)",
+      "cas": "76-14-2",
+      "twa": "1000 ppm (7110 mg/m³)",
+      "stel": "1250 ppm (8890 mg/m³)"
+    },
+    {
+      "name": "Cumene",
+      "cas": "98-82-8",
+      "twa": "25 ppm (125 mg/m³)",
+      "stel": "50 ppm (250 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Cyanamide",
+      "cas": "420-04-2",
+      "twa": "0.58 ppm (1 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Cyanides, except HCN, cyanogen and",
+      "twa": "5 mg/m³",
+      "notes": "Sk"
+    },
+    {
+      "name": "Cyanogen chloride",
+      "cas": "506-77-4",
+      "stel": "0.3 ppm (0.77 mg/m³)"
+    },
+    {
+      "name": "Cyclohexane",
+      "cas": "110-82-7",
+      "twa": "100 ppm (350 mg/m³)",
+      "stel": "300 ppm (1050 mg/m³)"
+    },
+    {
+      "name": "Cyclohexanol",
+      "cas": "108-93-0",
+      "twa": "50 ppm (208 mg/m³)"
+    },
+    {
+      "name": "Cyclohexanone",
+      "cas": "108-94-1",
+      "twa": "10 ppm (41 mg/m³)",
+      "stel": "20 ppm (82 mg/m³)",
+      "notes": "Sk, BMGV"
+    },
+    {
+      "name": "Cyclohexylamine",
+      "cas": "108-91-8",
+      "twa": "10 ppm (41 mg/m³)"
+    },
+    {
+      "name": "2,4-D (ISO)",
+      "cas": "94-75-7",
+      "twa": "10 mg/m³",
+      "stel": "20 mg/m³"
+    },
+    {
+      "name": "Diacetyl",
+      "cas": "431-03-8",
+      "twa": "0.02 ppm (0.07 mg/m³)",
+      "stel": "0.1 ppm (0.36 mg/m³)"
+    },
+    {
+      "name": "Dialkyl 79 phthalate",
+      "cas": "83968-18-7",
+      "twa": "5 mg/m³"
+    },
+    {
+      "name": "Diallyl phthalate",
+      "cas": "131-17-9",
+      "twa": "5 mg/m³"
+    },
+    {
+      "name": "Diatomaceous earth, natural,",
+      "cas": "61790-53-2",
+      "twa": "1.2 mg/m³"
+    },
+    {
+      "name": "Dibenzoyl peroxide",
+      "cas": "94-36-0",
+      "twa": "5 mg/m³"
+    },
+    {
+      "name": "Dibismuth tritelluride",
+      "cas": "1304-82-1",
+      "twa": "10 mg/m³",
+      "stel": "20 mg/m³"
+    },
+    {
+      "name": "Diboron trioxide",
+      "cas": "1303-86-2",
+      "twa": "10 mg/m³",
+      "stel": "20 mg/m³"
+    },
+    {
+      "name": "1,2-Dibromoethane",
+      "cas": "106-93-4",
+      "twa": "0.5 ppm (3.9 mg/m³)",
+      "notes": "Carc, Sk"
+    },
+    {
+      "name": "Dibutyl hydrogen phosphate",
+      "cas": "107-66-4",
+      "twa": "1 ppm (8.7 mg/m³)",
+      "stel": "2 ppm (17 mg/m³)"
+    },
+    {
+      "name": "Dibutyl phthalate",
+      "cas": "84-74-2",
+      "twa": "5 mg/m³",
+      "stel": "10 mg/m³"
+    },
+    {
+      "name": "Dichloroacetylene",
+      "cas": "7572-29-4",
+      "stel": "0.1 ppm (0.39 mg/m³)"
+    },
+    {
+      "name": "1,2-Dichlorobenzene",
+      "cas": "95-50-1",
+      "twa": "25 ppm (153 mg/m³)",
+      "stel": "50 ppm (306 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "1,4 Dichlorobenzene",
+      "cas": "106-46-7",
+      "twa": "2 ppm (12 mg/m³)",
+      "stel": "10 ppm (60 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "1,3-Dichloro-5,5-dimethylhydantoin",
+      "cas": "118-52-5",
+      "twa": "0.2 mg/m³",
+      "stel": "0.4 mg/m³"
+    },
+    {
+      "name": "1,1-Dichloroethane",
+      "cas": "75-34-3",
+      "twa": "100 ppm",
+      "notes": "Sk"
+    },
+    {
+      "name": "1,2-Dichloroethane",
+      "cas": "107-06-2",
+      "twa": "5 ppm (21 mg/m³)",
+      "notes": "Carc, Sk"
+    },
+    {
+      "name": "1,2-Dichloroethylene, cis:trans",
+      "cas": "540-59-0",
+      "twa": "200 ppm (806 mg/m³)",
+      "stel": "250 ppm (1010 mg/m³)"
+    },
+    {
+      "name": "Dichlorofluoromethane",
+      "cas": "75-43-4",
+      "twa": "10 ppm (43 mg/m³)"
+    },
+    {
+      "name": "Dichloromethane",
+      "cas": "75-09-2",
+      "twa": "100 ppm (353 mg/m³)",
+      "stel": "200 ppm (706 mg/m³)",
+      "notes": "BMGV, Sk"
+    },
+    {
+      "name": "2,2’-Dichloro-4,4’methylene dianiline",
+      "cas": "101-14-4",
+      "twa": "0.005 mg/m³",
+      "notes": "Carc, Sk, BMGV"
+    },
+    {
+      "name": "Dicyclohexyl phthalate",
+      "cas": "84-61-7",
+      "twa": "5 mg/m³"
+    },
+    {
+      "name": "Dicyclopentadiene",
+      "cas": "77-73-6",
+      "twa": "5 ppm (27 mg/m³)"
+    },
+    {
+      "name": "Diethylamine",
+      "cas": "109-89-7",
+      "twa": "5 ppm (15 mg/m³)",
+      "stel": "10 ppm (30 mg/m³)"
+    },
+    {
+      "name": "Diethyl ether",
+      "cas": "60-29-7",
+      "twa": "100 ppm (310 mg/m³)",
+      "stel": "200 ppm (620 mg/m³)"
+    },
+    {
+      "name": "Diethyl phthalate",
+      "cas": "84-66-2",
+      "twa": "5 mg/m³",
+      "stel": "10 mg/m³"
+    },
+    {
+      "name": "Diethyl sulphate",
+      "cas": "64-67-5",
+      "twa": "0.05 ppm (0.32 mg/m³)",
+      "notes": "Carc, Sk"
+    },
+    {
+      "name": "Dihydrogen selenide (as Se)",
+      "cas": "7783-07-5",
+      "twa": "0.02 ppm (0.07 mg/m³)",
+      "stel": "0.05 ppm (0.17 mg/m³)"
+    },
+    {
+      "name": "Diisobutyl phthalate",
+      "cas": "84-69-5",
+      "twa": "5 mg/m³"
+    },
+    {
+      "name": "Diisodecyl phthalate",
+      "cas": "26761-40-0",
+      "twa": "5 mg/m³"
+    },
+    {
+      "name": "Diisononyl phthalate",
+      "cas": "28553-12-0",
+      "twa": "5 mg/m³"
+    },
+    {
+      "name": "Diisooctyl phthalate",
+      "cas": "27554-26-3",
+      "twa": "5 mg/m³"
+    },
+    {
+      "name": "Diisopropylamine",
+      "cas": "108-18-9",
+      "twa": "5 ppm (21 mg/m³)"
+    },
+    {
+      "name": "Diisopropyl ether",
+      "cas": "108-20-3",
+      "twa": "250 ppm (1060 mg/m³)",
+      "stel": "310 ppm (1310 mg/m³)"
+    },
+    {
+      "name": "N,N -Dimethylacetamide",
+      "cas": "127-19-5",
+      "twa": "10 ppm (36 mg/m³)",
+      "stel": "20 ppm (72 mg/m³)",
+      "notes": "Sk, BMGV"
+    },
+    {
+      "name": "N,N -Dimethylaniline",
+      "cas": "121-69-7",
+      "twa": "5 ppm (25 mg/m³)",
+      "stel": "10 ppm (50 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "N,N -Dimethylethylamine",
+      "cas": "598-56-1",
+      "twa": "10 ppm (30 mg/m³)",
+      "stel": "15 ppm (46 mg/m³)"
+    },
+    {
+      "name": "Dimethoxymethane",
+      "cas": "109-87-5",
+      "twa": "1000 ppm (3160 mg/m³)",
+      "stel": "1250 ppm (3950 mg/m³)"
+    },
+    {
+      "name": "Dimethylamine",
+      "cas": "124-40-3",
+      "twa": "2 ppm (3.8 mg/m³)",
+      "stel": "6 ppm (11 mg/m³)"
+    },
+    {
+      "name": "2-Dimethylaminoethanol",
+      "cas": "108-01-0",
+      "twa": "2 ppm (7.4 mg/m³)",
+      "stel": "6 ppm (22 mg/m³)"
+    },
+    {
+      "name": "Dimethyl ether",
+      "cas": "115-10-6",
+      "twa": "400 ppm (766 mg/m³)",
+      "stel": "500 ppm (958 mg/m³)"
+    },
+    {
+      "name": "N,N -Dimethylformamide",
+      "cas": "68-12-2",
+      "twa": "5 ppm (15 mg/m³)",
+      "stel": "10 ppm (30 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "2,6-Dimethylheptan-4-one",
+      "cas": "108-83-8",
+      "twa": "25 ppm (148 mg/m³)"
+    },
+    {
+      "name": "Dimethyl phthalate",
+      "cas": "131-11-3",
+      "twa": "5 mg/m³",
+      "stel": "10 mg/m³"
+    },
+    {
+      "name": "Dimethyl sulphate",
+      "cas": "77-78-1",
+      "twa": "0.05 ppm (0.26 mg/m³)",
+      "notes": "Carc, Sk"
+    },
+    {
+      "name": "Dinitrobenzene, all isomers",
+      "cas": "25154-54-5",
+      "twa": "0.15 ppm (1 mg/m³)",
+      "stel": "0.5 ppm (3.5 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Dinonyl phthalate",
+      "cas": "84-76-4",
+      "twa": "5 mg/m³"
+    },
+    {
+      "name": "1,4-Dioxane",
+      "cas": "123-91-1",
+      "twa": "20 ppm (73 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Diphenylamine",
+      "cas": "122-39-4",
+      "twa": "10 mg/m³",
+      "stel": "20 mg/m³"
+    },
+    {
+      "name": "Diphenyl ether",
+      "cas": "101-84-8",
+      "twa": "1 ppm (7 mg/m³)",
+      "stel": "2 ppm (14 mg/m³)"
+    },
+    {
+      "name": "Diphosphorus pentasulphide",
+      "cas": "1314-80-3",
+      "twa": "1 mg/m³",
+      "stel": "2 mg/m³"
+    },
+    {
+      "name": "Disphosphorus pentoxide",
+      "cas": "1314-56-3",
+      "twa": "1 mg/m³",
+      "stel": "2 mg/m³"
+    },
+    {
+      "name": "Diquat dibromide (ISO)",
+      "cas": "85-00-7",
+      "twa": "0.5 mg/m³",
+      "stel": "1 mg/m³"
+    },
+    {
+      "name": "Disodium disulphite",
+      "cas": "7681-57-4",
+      "twa": "5 mg/m³"
+    },
+    {
+      "name": "Disodium tetraborate, anhydrous",
+      "cas": "1330-43-4",
+      "twa": "1 mg/m³"
+    },
+    {
+      "name": "Disodium tetraborate, decahydrate",
+      "cas": "1330-96-4",
+      "twa": "5 mg/m³"
+    },
+    {
+      "name": "Disodium tetraborate, pentahydrate",
+      "cas": "11130-12-4",
+      "twa": "1 mg/m³"
+    },
+    {
+      "name": "Disulphur dichloride",
+      "cas": "10025-67-9",
+      "stel": "1 ppm (5.6 mg/m³)"
+    },
+    {
+      "name": "2,6-Di- tert- butyl- p -cresol",
+      "cas": "128-37-0",
+      "twa": "10 mg/m³"
+    },
+    {
+      "name": "6,6’-Di- tert -butyl-4,4’thiodi- m -cresol",
+      "cas": "96-69-5",
+      "twa": "10 mg/m³",
+      "stel": "20 mg/m³"
+    },
+    {
+      "name": "Diuron (ISO)",
+      "cas": "330-54-1",
+      "twa": "10 mg/m³"
+    },
+    {
+      "name": "Emery, inhalable dust",
+      "cas": "1302-74-5",
+      "twa": "10 mg/m³"
+    },
+    {
+      "name": "Emery, respirable",
+      "cas": "1302-74-5",
+      "twa": "4 mg/m³"
+    },
+    {
+      "name": "Endosulfan (ISO)",
+      "cas": "115-29-7",
+      "twa": "0.1 mg/m³",
+      "stel": "0.3 mg/m³",
+      "notes": "Sk"
+    },
+    {
+      "name": "Enflurane",
+      "cas": "13838-16-9",
+      "twa": "50 ppm (383 mg/m³)"
+    },
+    {
+      "name": "particulate",
+      "twa": "10 mg/m³"
+    },
+    {
+      "name": "particulate, vapour",
+      "twa": "20 ppm (52 mg/m³)",
+      "stel": "40 ppm (104 mg/m³)"
+    },
+    {
+      "name": "Ethanethiol",
+      "cas": "75-08-1",
+      "twa": "0.5 ppm (1.3 mg/m³)",
+      "stel": "2 ppm (5.2 mg/m³)"
+    },
+    {
+      "name": "Ethanol",
+      "cas": "64-17-5",
+      "twa": "1000 ppm (1920 mg/m³)"
+    },
+    {
+      "name": "2-Ethoxyethanol",
+      "cas": "110-80-5",
+      "twa": "2 ppm (8 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "2-Ethoxyethyl acetate",
+      "cas": "111-15-9",
+      "twa": "2 ppm (11 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "2-ethylhexan-1-ol",
+      "cas": "104-76-7",
+      "twa": "1 ppm (5.4 mg/m³)"
+    },
+    {
+      "name": "2-Ethylhexyl chloroformate",
+      "cas": "24468-13-1",
+      "twa": "1 ppm (8 mg/m³)"
+    },
+    {
+      "name": "Ethyl acetate",
+      "cas": "141-78-6",
+      "twa": "200 ppm (734 mg/m³)",
+      "stel": "400 ppm (1468 mg/m³)"
+    },
+    {
+      "name": "Ethyl acrylate",
+      "cas": "140-88-5",
+      "twa": "5 ppm (21 mg/m³)",
+      "stel": "10 ppm (42 mg/m³)"
+    },
+    {
+      "name": "Ethylamine",
+      "cas": "75-04-7",
+      "twa": "2 ppm (3.8 mg/m³)",
+      "stel": "6 ppm (11 mg/m³)"
+    },
+    {
+      "name": "Ethylbenzene",
+      "cas": "100-41-4",
+      "twa": "100 ppm (441 mg/m³)",
+      "stel": "125 ppm (552 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Ethyl chloroformate",
+      "cas": "541-41-3",
+      "twa": "1 ppm (4.5 mg/m³)"
+    },
+    {
+      "name": "Ethyl cyanoacrylate",
+      "cas": "7085-85-0",
+      "stel": "0.3 ppm (1.5 mg/m³)"
+    },
+    {
+      "name": "Ethyl formate",
+      "cas": "109-94-4",
+      "twa": "100 ppm (308 mg/m³)",
+      "stel": "150 ppm (462 mg/m³)"
+    },
+    {
+      "name": "Ethylene oxide",
+      "cas": "75-21-8",
+      "twa": "1 ppm (1.8 mg/m³)",
+      "notes": "Carc, Sk"
+    },
+    {
+      "name": "4-Ethylmorpholine",
+      "cas": "100-74-3",
+      "twa": "5 ppm (24 mg/m³)",
+      "stel": "20 ppm (96 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Ferrous foundry particulate, inhalable dust",
+      "twa": "10 mg/m³",
+      "notes": "20-22"
+    },
+    {
+      "name": "Ferrous foundry particulate, respirable dust",
+      "twa": "4 mg/m³"
+    },
+    {
+      "name": "Flour dust",
+      "twa": "10 mg/m³",
+      "stel": "30 mg/m³",
+      "notes": "See para 23, Sen"
+    },
+    {
+      "name": "Fluoride (inorganic as F)",
+      "cas": "16984-48-8",
+      "twa": "2.5 mg/m³"
+    },
+    {
+      "name": "Fluorine",
+      "cas": "7782-41-4",
+      "twa": "1 ppm (1.6 mg/m³)",
+      "stel": "1 ppm (1.6 mg/m³)"
+    },
+    {
+      "name": "Formaldehyde",
+      "cas": "50-00-0",
+      "twa": "2 ppm (2.5 mg/m³)",
+      "stel": "2 ppm (2.5 mg/m³)",
+      "notes": "Carc"
+    },
+    {
+      "name": "Formamide",
+      "cas": "75-12-7",
+      "twa": "20 ppm (37 mg/m³)",
+      "stel": "30 ppm (56 mg/m³)"
+    },
+    {
+      "name": "Formic acid",
+      "cas": "64-18-6",
+      "twa": "5 ppm (9.6 mg/m³)"
+    },
+    {
+      "name": "2-Furaldehyde (furfural)",
+      "cas": "98-01-1",
+      "twa": "2 ppm (8 mg/m³)",
+      "stel": "5 ppm (20 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Germane",
+      "cas": "7782-65-2",
+      "twa": "0.2 ppm (0.64 mg/m³)",
+      "stel": "0.6 ppm (1.9 mg/m³)"
+    },
+    {
+      "name": "Glutaraldehyde",
+      "cas": "111-30-8",
+      "twa": "0.05 ppm (0.2 mg/m³)",
+      "stel": "0.05 ppm (0.2 mg/m³)",
+      "notes": "Sen"
+    },
+    {
+      "name": "Glycerol, mist",
+      "cas": "56-81-5",
+      "twa": "10 mg/m³"
+    },
+    {
+      "name": "Glycerol trinitrate",
+      "cas": "55-63-0",
+      "twa": "0.01 ppm (0.095 mg/m³)",
+      "stel": "0.02 ppm (0.19 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Grain dust",
+      "twa": "10 mg/m³",
+      "notes": "See para 24, Sen"
+    },
+    {
+      "name": "Graphite, inhalable dust",
+      "cas": "7440-44-0",
+      "twa": "10 mg/m³"
+    },
+    {
+      "name": "Graphite, respirable",
+      "cas": "7440-44-0",
+      "twa": "4 mg/m³"
+    },
+    {
+      "name": "Gypsum, inhalable dust",
+      "cas": "10101-41-4",
+      "twa": "10 mg/m³"
+    },
+    {
+      "name": "Gypsum, respirable",
+      "cas": "10101-41-4",
+      "twa": "4 mg/m³"
+    },
+    {
+      "name": "Halogeno-platinum compounds",
+      "twa": "0.002 mg/m³",
+      "notes": "See paras, Sen"
+    },
+    {
+      "name": "Halothane",
+      "cas": "151-67-7",
+      "twa": "10 ppm (82 mg/m³)"
+    },
+    {
+      "name": "Hardwood dust (inhalable fraction)",
+      "twa": "3 mg/m³",
+      "notes": "See paras, Carc, Sen,"
+    },
+    {
+      "name": "n -Heptane",
+      "cas": "142-82-5",
+      "twa": "500 ppm (2085 mg/m³)"
+    },
+    {
+      "name": "Heptan-2-one",
+      "cas": "110-43-0",
+      "twa": "50 ppm (237 mg/m³)",
+      "stel": "100 ppm (475 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Heptan-3-one",
+      "cas": "106-35-4",
+      "twa": "35 ppm (166 mg/m³)",
+      "stel": "100 ppm (475 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "n -Hexane",
+      "cas": "110-54-3",
+      "twa": "20 ppm (72 mg/m³)"
+    },
+    {
+      "name": "1,6-Hexanolactam, dust only",
+      "cas": "105-60-2",
+      "twa": "1 mg/m³",
+      "stel": "3 mg/m³"
+    },
+    {
+      "name": "1,6-Hexanolactam, dust and vapour",
+      "cas": "105-60-2",
+      "twa": "10 mg/m³",
+      "stel": "20 mg/m³"
+    },
+    {
+      "name": "Hexan-2-one",
+      "cas": "591-78-6",
+      "twa": "5 ppm (21 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Hydrazine",
+      "cas": "302-01-2",
+      "twa": "0.01 ppm (0.013 mg/m³)",
+      "stel": "0.1 ppm (0.13 mg/m³)",
+      "notes": "Carc, Sk"
+    },
+    {
+      "name": "Hydrogen bromide",
+      "cas": "10035-10-6",
+      "stel": "3 ppm (10 mg/m³)"
+    },
+    {
+      "name": "Hydrogen chloride",
+      "cas": "7647-01-0",
+      "twa": "1 ppm (2 mg/m³)",
+      "stel": "5 ppm (8 mg/m³)"
+    },
+    {
+      "name": "Hydrogen cyanide",
+      "cas": "74-90-8",
+      "twa": "0.9 ppm (1 mg/m³)",
+      "stel": "4.5 ppm (5 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Hydrogen fluoride (as F)",
+      "cas": "7664-39-3",
+      "twa": "1.8 ppm (1.5 mg/m³)",
+      "stel": "3 ppm (2.5 mg/m³)"
+    },
+    {
+      "name": "Hydrogen peroxide",
+      "cas": "7722-84-1",
+      "twa": "1 ppm (1.4 mg/m³)",
+      "stel": "2 ppm (2.8 mg/m³)"
+    },
+    {
+      "name": "Hydrogen sulphide",
+      "cas": "7783-06-4",
+      "twa": "5 ppm (7 mg/m³)",
+      "stel": "10 ppm (14 mg/m³)"
+    },
+    {
+      "name": "Hydroquinone",
+      "cas": "123-31-9",
+      "twa": "0.5 mg/m³"
+    },
+    {
+      "name": "4-Hydroxy-4methylpentan-2-one",
+      "cas": "123-42-2",
+      "twa": "50 ppm (241 mg/m³)",
+      "stel": "75 ppm (362 mg/m³)"
+    },
+    {
+      "name": "2-Hydroxypropyl acrylate",
+      "cas": "999-61-1",
+      "twa": "0.5 ppm (2.7 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "2,2’-Iminodi(ethylamine)",
+      "cas": "111-40-0",
+      "twa": "1 ppm (4.3 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Indene",
+      "cas": "95-13-6",
+      "twa": "10 ppm (48 mg/m³)",
+      "stel": "15 ppm (72 mg/m³)"
+    },
+    {
+      "name": "Indium and compounds",
+      "twa": "0.1 mg/m³",
+      "stel": "0 ppm (0.3 mg/m³)"
+    },
+    {
+      "name": "Iodine",
+      "cas": "7553-56-2",
+      "stel": "0.1 ppm (1.1 mg/m³)"
+    },
+    {
+      "name": "Iodoform",
+      "cas": "75-47-8",
+      "twa": "0.6 ppm (9.8 mg/m³)",
+      "stel": "1 ppm (16 mg/m³)"
+    },
+    {
+      "name": "Iodomethane",
+      "cas": "74-88-4",
+      "twa": "2 ppm (12 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Iron oxide, fume (as Fe)",
+      "cas": "1309-37-1",
+      "twa": "5 mg/m³",
+      "stel": "10 mg/m³"
+    },
+    {
+      "name": "Iron salts (as Fe)",
+      "twa": "1 mg/m³",
+      "stel": "2 mg/m³"
+    },
+    {
+      "name": "Isobutyl acetate",
+      "cas": "110-19-0",
+      "twa": "150 ppm (724 mg/m³)",
+      "stel": "187 ppm (903 mg/m³)"
+    },
+    {
+      "name": "Isocyanates, all (as –NCO)",
+      "twa": "0.02 mg/m³",
+      "stel": "0.07 mg/m³",
+      "notes": "Sen"
+    },
+    {
+      "name": "Isoflurane",
+      "cas": "26675-46-7",
+      "twa": "50 ppm (383 mg/m³)"
+    },
+    {
+      "name": "Isoocytl alcohol (mixed isomers)",
+      "cas": "26952-21-6",
+      "twa": "50 ppm (271 mg/m³)"
+    },
+    {
+      "name": "Isopentane",
+      "cas": "78-78-4",
+      "twa": "600 ppm (1800 mg/m³)"
+    },
+    {
+      "name": "Isopropyl acetate",
+      "cas": "108-21-4",
+      "stel": "200 ppm (849 mg/m³)"
+    },
+    {
+      "name": "Isopropyl chloroformate",
+      "cas": "108-23-6",
+      "twa": "1 ppm (5.1 mg/m³)"
+    },
+    {
+      "name": "Kaolin, respirable dust",
+      "cas": "1332-58-7",
+      "twa": "2 mg/m³"
+    },
+    {
+      "name": "Ketene",
+      "cas": "463-51-4",
+      "twa": "0.5 ppm (0.87 mg/m³)",
+      "stel": "1.5 ppm (2.6 mg/m³)"
+    },
+    {
+      "name": "Limestone, total inhalable",
+      "cas": "1317-65-3",
+      "twa": "10 mg/m³"
+    },
+    {
+      "name": "Limestone, respirable",
+      "cas": "1317-65-3",
+      "twa": "4 mg/m³"
+    },
+    {
+      "name": "Liquefied petroleum gas",
+      "cas": "68476-85-7",
+      "twa": "1000 ppm (1750 mg/m³)",
+      "stel": "1250 ppm (2180 mg/m³)",
+      "notes": "Carc (only applies if LPG"
+    },
+    {
+      "name": "Lithium hydride",
+      "cas": "7580-67-8",
+      "stel": "0.02 mg/m³"
+    },
+    {
+      "name": "Lithium hydroxide",
+      "cas": "1310-65-2",
+      "stel": "1 mg/m³"
+    },
+    {
+      "name": "Magnesite, inhalable dust",
+      "cas": "546-93-0",
+      "twa": "10 mg/m³"
+    },
+    {
+      "name": "Magnesite, respirable dust",
+      "cas": "546-93-0",
+      "twa": "4 mg/m³"
+    },
+    {
+      "name": "Magnesium oxide (as Mg), inhalable dust fume",
+      "cas": "1309-48-4",
+      "twa": "10 mg/m³"
+    },
+    {
+      "name": "Magnesium oxide (as Mg), respirable dust",
+      "cas": "1309-48-4",
+      "twa": "4 mg/m³"
+    },
+    {
+      "name": "Malathion (ISO)",
+      "cas": "121-75-5",
+      "twa": "10 mg/m³",
+      "notes": "Sk"
+    },
+    {
+      "name": "Maleic anhydride",
+      "cas": "108-31-6",
+      "twa": "1 mg/m³",
+      "stel": "3 mg/m³",
+      "notes": "Sen"
+    },
+    {
+      "name": "Manganese and its inorganic",
+      "twa": "0.2 mg/m³",
+      "notes": "Inhalable fraction"
+    },
+    {
+      "name": "Marble, total inhalable",
+      "cas": "1317-65-3",
+      "twa": "10 mg/m³"
+    },
+    {
+      "name": "Marble, respirable",
+      "cas": "1317-65-3",
+      "twa": "4 mg/m³"
+    },
+    {
+      "name": "Mercaptoacetic acid",
+      "cas": "68-11-1",
+      "twa": "1 ppm (3.8 mg/m³)"
+    },
+    {
+      "name": "Mercury and divalent inorganic",
+      "twa": "0.02 mg/m³"
+    },
+    {
+      "name": "Methacrylic acid",
+      "cas": "79-41-4",
+      "twa": "20 ppm (72 mg/m³)",
+      "stel": "40 ppm (143 mg/m³)"
+    },
+    {
+      "name": "Methacrylonitrile",
+      "cas": "126-98-7",
+      "twa": "1 ppm (2.8 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Methanethiol",
+      "cas": "74-93-1",
+      "twa": "0.5 ppm (1.0 mg/m³)"
+    },
+    {
+      "name": "Methanol",
+      "cas": "67-56-1",
+      "twa": "200 ppm (266 mg/m³)",
+      "stel": "250 ppm (333 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "2-Methoxyethanol",
+      "cas": "109-86-4",
+      "twa": "1 ppm (3 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "2-(2-Methoxyethoxy) ethanol",
+      "cas": "111-77-3",
+      "twa": "10 ppm (50.1 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "2-Methoxyethyl acetate",
+      "cas": "110-49-6",
+      "twa": "1 ppm (5 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "(2-methoxymethylethoxy) propanol",
+      "cas": "34590-94-8",
+      "twa": "50 ppm (308 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "1-Methoxypropan-2-ol",
+      "cas": "107-98-2",
+      "twa": "100 ppm (375 mg/m³)",
+      "stel": "150 ppm (560 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "1-Methoxypropyl acetate",
+      "cas": "108-65-6",
+      "twa": "50 ppm (274 mg/m³)",
+      "stel": "100 ppm (548 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Methyl acetate",
+      "cas": "79-20-9",
+      "twa": "200 ppm (616 mg/m³)",
+      "stel": "250 ppm (770 mg/m³)"
+    },
+    {
+      "name": "Methyl acrylate",
+      "cas": "96-33-3",
+      "twa": "5 ppm (18 mg/m³)",
+      "stel": "10 ppm (36 mg/m³)"
+    },
+    {
+      "name": "3-Methylbutan-1-ol",
+      "cas": "123-51-3",
+      "twa": "100 ppm (366 mg/m³)",
+      "stel": "125 ppm (458 mg/m³)"
+    },
+    {
+      "name": "Methyl cyanoacrylate",
+      "cas": "137-05-3",
+      "stel": "0.3 ppm (1.4 mg/m³)"
+    },
+    {
+      "name": "Methyl formate",
+      "cas": "107-31-3",
+      "twa": "50 ppm (125 mg/m³)",
+      "stel": "100 ppm (250 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "4,4’-Methylenedianiline",
+      "cas": "101-77-9",
+      "twa": "0.01 ppm (0.08 mg/m³)",
+      "notes": "Carc, Sk, BMGV"
+    },
+    {
+      "name": "Methyl ethyl ketone peroxides (MEKP)",
+      "cas": "1338-23-4",
+      "stel": "0.2 ppm (1.5 mg/m³)"
+    },
+    {
+      "name": "Methyl methacrylate",
+      "cas": "80-62-6",
+      "twa": "50 ppm (208 mg/m³)",
+      "stel": "100 ppm (416 mg/m³)"
+    },
+    {
+      "name": "2-Methylcyclohexanone",
+      "cas": "583-60-8",
+      "twa": "50 ppm (233 mg/m³)",
+      "stel": "75 ppm (350 mg/m³)"
+    },
+    {
+      "name": "Methylcyclohexanol",
+      "cas": "25639-42-3",
+      "twa": "50 ppm (237 mg/m³)",
+      "stel": "75 ppm (356 mg/m³)"
+    },
+    {
+      "name": "Methyl isocyanate (as –NCO)",
+      "cas": "624-83-9",
+      "stel": "0.02 ppm",
+      "notes": "Sen"
+    },
+    {
+      "name": "N -Methylaniline",
+      "cas": "100-61-8",
+      "twa": "0.5 ppm (2.2 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "n -Methyl-2-pyrrolidone",
+      "cas": "872-50-4",
+      "twa": "10 ppm (40 mg/m³)",
+      "stel": "20 ppm (80 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "5-Methylheptan-3-one",
+      "cas": "541-85-5",
+      "twa": "10 ppm (53 mg/m³)",
+      "stel": "20 ppm (107 mg/m³)"
+    },
+    {
+      "name": "5-Methylhexan-2-one",
+      "cas": "110-12-3",
+      "twa": "20 ppm (95 mg/m³)",
+      "stel": "100 ppm (475 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "2-Methylpentane-2,4-diol",
+      "cas": "107-41-5",
+      "twa": "25 ppm (123 mg/m³)",
+      "stel": "25 ppm (123 mg/m³)"
+    },
+    {
+      "name": "4-Methylpentan-2-ol",
+      "cas": "108-11-2",
+      "twa": "25 ppm (106 mg/m³)",
+      "stel": "40 ppm (170 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "4-Methylpentan-2-one",
+      "cas": "108-10-1",
+      "twa": "50 ppm (208 mg/m³)",
+      "stel": "100 ppm (416 mg/m³)",
+      "notes": "Sk, BMGV"
+    },
+    {
+      "name": "2-Methylpropan-1-ol",
+      "cas": "78-83-1",
+      "twa": "50 ppm (154 mg/m³)",
+      "stel": "75 ppm (231 mg/m³)"
+    },
+    {
+      "name": "2-Methylpropan-2-ol",
+      "cas": "75-65-0",
+      "twa": "100 ppm (308 mg/m³)",
+      "stel": "150 ppm (462 mg/m³)"
+    },
+    {
+      "name": "Methyl- tert -butyl-ether",
+      "cas": "1634-04-4",
+      "twa": "50 ppm (183.5 mg/m³)",
+      "stel": "100 ppm (367 mg/m³)"
+    },
+    {
+      "name": "Mica, total inhalable",
+      "cas": "12001-26-2",
+      "twa": "10 mg/m³"
+    },
+    {
+      "name": "Mica, respirable",
+      "cas": "12001-26-2",
+      "twa": "0.8 mg/m³"
+    },
+    {
+      "name": "soluble compounds",
+      "twa": "5 mg/m³",
+      "stel": "10 mg/m³"
+    },
+    {
+      "name": "insoluble compounds",
+      "twa": "10 mg/m³",
+      "stel": "20 mg/m³"
+    },
+    {
+      "name": "Monochloroacetic acid",
+      "cas": "79-11-8",
+      "twa": "0.3 ppm (1.2 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Morpholine",
+      "cas": "110-91-8",
+      "twa": "10 ppm (36 mg/m³)",
+      "stel": "20 ppm (72 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Neopentane",
+      "cas": "463-82-1",
+      "twa": "600 ppm (1800 mg/m³)"
+    },
+    {
+      "name": "water-soluble nickel compounds",
+      "twa": "0.1 mg/m³",
+      "notes": "sulphate)"
+    },
+    {
+      "name": "nickel and water-insoluble nickel",
+      "twa": "0.5 mg/m³"
+    },
+    {
+      "name": "Nicotine",
+      "cas": "54-11-5",
+      "twa": "0.5 mg/m³",
+      "stel": "1.5 mg/m³",
+      "notes": "Sk"
+    },
+    {
+      "name": "Nitric acid",
+      "cas": "7697-37-2",
+      "stel": "1 ppm (2.6 mg/m³)"
+    },
+    {
+      "name": "Nitrobenzene",
+      "cas": "98-95-3",
+      "twa": "0.2 ppm (1 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Nitroethane",
+      "cas": "79-24-3",
+      "twa": "20 ppm (62 mg/m³)",
+      "stel": "100 ppm (312 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Nitrogen dioxide*",
+      "cas": "10102-44-0",
+      "twa": "0.5 ppm (0.96 mg/m³)",
+      "stel": "1 ppm (1.91 mg/m³)",
+      "notes": "Does not apply to underground"
+    },
+    {
+      "name": "Nitrogen monoxide*",
+      "cas": "10102-43-9",
+      "twa": "2 ppm (2.5 mg/m³)"
+    },
+    {
+      "name": "Nitromethane",
+      "cas": "75-52-5",
+      "twa": "100 ppm (254 mg/m³)",
+      "stel": "150 ppm (381 mg/m³)"
+    },
+    {
+      "name": "2-Nitropropane",
+      "cas": "79-46-9",
+      "twa": "5 ppm (18 mg/m³)",
+      "notes": "Carc"
+    },
+    {
+      "name": "Nitrous oxide",
+      "cas": "10024-97-2",
+      "twa": "100 ppm (183 mg/m³)"
+    },
+    {
+      "name": "Orthophosphoric acid",
+      "cas": "7664-38-2",
+      "twa": "1 mg/m³",
+      "stel": "2 mg/m³"
+    },
+    {
+      "name": "Osmium tetraoxide (as Os)",
+      "cas": "20816-12-0",
+      "twa": "0.0002 ppm (0.002 mg/m³)",
+      "stel": "0.0006 ppm (0.006 mg/m³)"
+    },
+    {
+      "name": "Oxalic acid",
+      "cas": "144-62-7",
+      "twa": "1 mg/m³",
+      "stel": "2 mg/m³"
+    },
+    {
+      "name": "2,2’-Oxydiethanol",
+      "cas": "111-46-6",
+      "twa": "23 ppm (101 mg/m³)"
+    },
+    {
+      "name": "Ozone",
+      "cas": "10028-15-6",
+      "stel": "0.2 ppm (0.4 mg/m³)"
+    },
+    {
+      "name": "Paracetamol, inhalable dust",
+      "cas": "103-90-2",
+      "twa": "10 mg/m³"
+    },
+    {
+      "name": "Paraffin wax, fume",
+      "cas": "8002-74-2",
+      "twa": "2 mg/m³",
+      "stel": "6 mg/m³"
+    },
+    {
+      "name": "Paraquat dichloride (ISO), respirable",
+      "cas": "1910-42-5",
+      "twa": "0.08 mg/m³"
+    },
+    {
+      "name": "Pentacarbonyliron (as Fe)",
+      "cas": "13463-40-6",
+      "twa": "0.01 ppm (0.08 mg/m³)"
+    },
+    {
+      "name": "Pentaerythritol, inhalable dust",
+      "cas": "115-77-5",
+      "twa": "10 mg/m³",
+      "stel": "20 mg/m³"
+    },
+    {
+      "name": "Pentaerythritol, respirable dust",
+      "cas": "115-77-5",
+      "twa": "4 mg/m³"
+    },
+    {
+      "name": "Pentan-2-one",
+      "cas": "107-87-9",
+      "twa": "200 ppm (716 mg/m³)",
+      "stel": "250 ppm (895 mg/m³)"
+    },
+    {
+      "name": "Pentan-3-one",
+      "cas": "96-22-0",
+      "twa": "200 ppm (716 mg/m³)",
+      "stel": "250 ppm (895 mg/m³)"
+    },
+    {
+      "name": "Pentane",
+      "cas": "109-66-0",
+      "twa": "600 ppm (1800 mg/m³)"
+    },
+    {
+      "name": "Pentyl acetates (all isomers)",
+      "twa": "50 ppm (270 mg/m³)",
+      "stel": "100 ppm (541 mg/m³)"
+    },
+    {
+      "name": "2-Phenylpropene",
+      "cas": "98-83-9",
+      "twa": "50 ppm (246 mg/m³)",
+      "stel": "100 ppm (491 mg/m³)"
+    },
+    {
+      "name": "Phenol",
+      "cas": "108-95-2",
+      "twa": "2 ppm (7.8 mg/m³)",
+      "stel": "4 ppm (16 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "p -Phenylenediamine",
+      "cas": "106-50-3",
+      "twa": "0.1 mg/m³",
+      "notes": "Sk"
+    },
+    {
+      "name": "Phorate (ISO)",
+      "cas": "298-02-2",
+      "twa": "0.05 mg/m³",
+      "stel": "0.2 mg/m³",
+      "notes": "Sk"
+    },
+    {
+      "name": "Phosgene",
+      "cas": "75-44-5",
+      "twa": "0.02 ppm (0.08 mg/m³)",
+      "stel": "0.06 ppm (0.25 mg/m³)"
+    },
+    {
+      "name": "Phosphine",
+      "cas": "7803-51-2",
+      "twa": "0.1 ppm (0.14 mg/m³)",
+      "stel": "0.2 ppm (0.28 mg/m³)"
+    },
+    {
+      "name": "Phosphorus pentachloride",
+      "cas": "10026-13-8",
+      "twa": "0.1 ppm (0.87 mg/m³)",
+      "stel": "0.2 ppm (2 mg/m³)"
+    },
+    {
+      "name": "Phosphorus trichloride",
+      "cas": "7719-12-2",
+      "twa": "0.2 ppm (1.1 mg/m³)",
+      "stel": "0.5 ppm (2.9 mg/m³)"
+    },
+    {
+      "name": "Phosphorus, yellow",
+      "cas": "7723-14-0",
+      "twa": "0.1 mg/m³",
+      "stel": "0.3 mg/m³"
+    },
+    {
+      "name": "Phosphoryl trichloride",
+      "cas": "10025-87-3",
+      "twa": "0.2 ppm (1.3 mg/m³)",
+      "stel": "0.6 ppm (3.8 mg/m³)"
+    },
+    {
+      "name": "Phthalic anhydride",
+      "cas": "85-44-9",
+      "twa": "4 mg/m³",
+      "stel": "12 mg/m³",
+      "notes": "Sen"
+    },
+    {
+      "name": "Picloram (ISO)",
+      "cas": "1918-02-1",
+      "twa": "10 mg/m³",
+      "stel": "20 mg/m³"
+    },
+    {
+      "name": "Picric acid",
+      "cas": "88-89-1",
+      "twa": "0.1 mg/m³",
+      "stel": "0.3 mg/m³"
+    },
+    {
+      "name": "Piperazine",
+      "cas": "110-85-0",
+      "twa": "0.1 mg/m³",
+      "stel": "0.3 mg/m³",
+      "notes": "Sen"
+    },
+    {
+      "name": "Piperazine dihydrochloride",
+      "cas": "142-64-3",
+      "twa": "0.1 mg/m³",
+      "stel": "0.3 mg/m³",
+      "notes": "Sen"
+    },
+    {
+      "name": "Piperidine",
+      "cas": "110-89-4",
+      "twa": "1 ppm (3.5 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Plaster of Paris, inhalable dust",
+      "cas": "26499-65-0",
+      "twa": "10 mg/m³"
+    },
+    {
+      "name": "Plaster of Paris, respirable dust",
+      "cas": "26499-65-0",
+      "twa": "4 mg/m³"
+    },
+    {
+      "name": "Platinum compounds, soluble (except",
+      "twa": "0.002 mg/m³"
+    },
+    {
+      "name": "Platinum metal",
+      "cas": "7440-06-4",
+      "twa": "5 mg/m³"
+    },
+    {
+      "name": "Polychlorinated biphenyls (PCB)",
+      "cas": "1336-36-3",
+      "twa": "0.1 mg/m³",
+      "notes": "Sk"
+    },
+    {
+      "name": "Polyvinyl chlorid, inhalable dust",
+      "cas": "9002-86-2",
+      "twa": "10 mg/m³"
+    },
+    {
+      "name": "Polyvinyl chlorid, respirable dust",
+      "cas": "9002-86-2",
+      "twa": "4 mg/m³"
+    },
+    {
+      "name": "Portland cement, inhalable dust",
+      "cas": "65997-15-1",
+      "twa": "10 mg/m³"
+    },
+    {
+      "name": "Portland cement, respirable dust",
+      "cas": "65997-15-1",
+      "twa": "4 mg/m³"
+    },
+    {
+      "name": "Potassium cyanide (as cyanide)",
+      "cas": "151-50-8",
+      "twa": "1 mg/m³",
+      "stel": "5 mg/m³",
+      "notes": "Sk"
+    },
+    {
+      "name": "Potassium hydroxide",
+      "cas": "1310-58-3",
+      "stel": "2 mg/m³"
+    },
+    {
+      "name": "Propane-1,2-diol, total vapour and particulates",
+      "cas": "57-55-6",
+      "twa": "150 ppm (474 mg/m³)"
+    },
+    {
+      "name": "particulates",
+      "twa": "10 mg/m³"
+    },
+    {
+      "name": "Propan-1-ol",
+      "cas": "71-23-8",
+      "twa": "200 ppm (500 mg/m³)",
+      "stel": "250 ppm (625 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Propan-2-ol",
+      "cas": "67-63-0",
+      "twa": "400 ppm (999 mg/m³)",
+      "stel": "500 ppm (1250 mg/m³)"
+    },
+    {
+      "name": "Propionic acid",
+      "cas": "79-09-4",
+      "twa": "10 ppm (31 mg/m³)",
+      "stel": "15 ppm (46 mg/m³)"
+    },
+    {
+      "name": "Propoxur (ISO)",
+      "cas": "114-26-1",
+      "twa": "0.5 mg/m³",
+      "stel": "2 mg/m³"
+    },
+    {
+      "name": "Propranolol",
+      "cas": "525-66-6",
+      "twa": "2 mg/m³",
+      "stel": "6 mg/m³"
+    },
+    {
+      "name": "n -Propyl acetate",
+      "cas": "109-60-4",
+      "twa": "200 ppm (849 mg/m³)",
+      "stel": "250 ppm (1060 mg/m³)"
+    },
+    {
+      "name": "Propylene oxide",
+      "cas": "75-56-9",
+      "twa": "1 ppm (2.4 mg/m³)",
+      "notes": "Carc"
+    },
+    {
+      "name": "Prop-2-yn-1-ol",
+      "cas": "107-19-7",
+      "twa": "1 ppm (2.3 mg/m³)",
+      "stel": "3 ppm (7 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Pulverised fuel ash, inhalable dust",
+      "twa": "10 mg/m³"
+    },
+    {
+      "name": "Pulverised fuel ash, respirable dust",
+      "twa": "4 mg/m³"
+    },
+    {
+      "name": "Pyrethrum",
+      "cas": "8003-34-7",
+      "twa": "1 mg/m³"
+    },
+    {
+      "name": "Pyridine",
+      "cas": "110-86-1",
+      "twa": "5 ppm (16 mg/m³)",
+      "stel": "10 ppm (33 mg/m³)"
+    },
+    {
+      "name": "2-Pyridylamine",
+      "cas": "504-29-0",
+      "twa": "0.5 ppm (2 mg/m³)",
+      "stel": "2 ppm (7.8 mg/m³)"
+    },
+    {
+      "name": "Pyrocatechol",
+      "cas": "102-80-9",
+      "twa": "5 ppm (23 mg/m³)"
+    },
+    {
+      "name": "Refractory ceramic fibres and special purpose fibres, total inhalable dust",
+      "twa": "5mg/m3"
+    },
+    {
+      "name": "Refractory ceramic fibres and special purpose fibres, respirable fraction",
+      "twa": "0.3 fibre/millilitre"
+    },
+    {
+      "name": "Resorcinol",
+      "cas": "108-46-3",
+      "twa": "10 ppm (46 mg/m³)",
+      "stel": "20 ppm (92 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "metal fume and dust",
+      "twa": "0.1 mg/m³",
+      "stel": "0.3 mg/m³"
+    },
+    {
+      "name": "soluble salts",
+      "twa": "0.001 mg/m³",
+      "stel": "0.003 mg/m³"
+    },
+    {
+      "name": "Rosin-based solder flux fume",
+      "cas": "8050-09-7",
+      "twa": "0.05 mg/m³",
+      "stel": "0.15 mg/m³",
+      "notes": "Sen"
+    },
+    {
+      "name": "Rotenone (ISO)",
+      "cas": "83-79-4",
+      "twa": "5 mg/m³",
+      "stel": "10 mg/m³"
+    },
+    {
+      "name": "Rouge, total inhalable",
+      "cas": "1309-37-1",
+      "twa": "10 mg/m³"
+    },
+    {
+      "name": "Rouge, respirable",
+      "cas": "1309-37-1",
+      "twa": "4 mg/m³"
+    },
+    {
+      "name": "Rubber fume",
+      "twa": "0.6 mg/m³",
+      "notes": "See paras, Carc, limit relates to"
+    },
+    {
+      "name": "Rubber process dust",
+      "twa": "6 mg/m³",
+      "notes": "See paras, Carc"
+    },
+    {
+      "name": "Selenium and compounds, except",
+      "twa": "0.1 mg/m³"
+    },
+    {
+      "name": "Silane",
+      "cas": "7803-62-5",
+      "twa": "0.5 ppm (0.67 mg/m³)",
+      "stel": "1 ppm (1.3 mg/m³)"
+    },
+    {
+      "name": "Silica, amorphous, inhalable dust",
+      "twa": "6 mg/m³"
+    },
+    {
+      "name": "Silica, amorphous, respirable dust",
+      "twa": "2.4 mg/m³"
+    },
+    {
+      "name": "Silica, respirable crystalline",
+      "twa": "0.1 mg/m³",
+      "notes": "Carc (where generated as a"
+    },
+    {
+      "name": "Silica, fused respirable dust",
+      "cas": "60676-86-0",
+      "twa": "0.08 mg/m³"
+    },
+    {
+      "name": "Silicon, inhalable dust",
+      "cas": "7440-21-3",
+      "twa": "10 mg/m³"
+    },
+    {
+      "name": "Silicon, respirable dust",
+      "cas": "7440-21-3",
+      "twa": "4 mg/m³"
+    },
+    {
+      "name": "Silicon carbide (not whiskers) total, inhalable",
+      "cas": "409-21-2",
+      "twa": "10 mg/m³"
+    },
+    {
+      "name": "Silicon carbide (not whiskers) total, respirable",
+      "cas": "409-21-2",
+      "twa": "4 mg/m³"
+    },
+    {
+      "name": "Silver (soluble compounds as Ag)",
+      "twa": "0.01 mg/m³"
+    },
+    {
+      "name": "Silver, metallic",
+      "cas": "7440-22-4",
+      "twa": "0.1 mg/m³"
+    },
+    {
+      "name": "Sodium 2-",
+      "cas": "136-78-7",
+      "twa": "10 mg/m³",
+      "stel": "20 mg/m³"
+    },
+    {
+      "name": "Sodium cyanide (as cyanide)",
+      "cas": "143-33-9",
+      "twa": "1 mg/m³",
+      "stel": "5 mg/m³",
+      "notes": "Sk"
+    },
+    {
+      "name": "Sodium hydrogen sulphite",
+      "cas": "7631-90-5",
+      "twa": "5 mg/m³"
+    },
+    {
+      "name": "Sodium hydroxide",
+      "cas": "1310-73-2",
+      "stel": "2 mg/m³"
+    },
+    {
+      "name": "Softwood dust",
+      "twa": "5 mg/m³",
+      "notes": "See paras, Sen, If softwood dusts are"
+    },
+    {
+      "name": "Starch, total inhalable",
+      "cas": "9005-25-8",
+      "twa": "10 mg/m³"
+    },
+    {
+      "name": "Starch, respirable",
+      "cas": "9005-25-8",
+      "twa": "4 mg/m³"
+    },
+    {
+      "name": "Styrene",
+      "cas": "100-42-5",
+      "twa": "100 ppm (430 mg/m³)",
+      "stel": "250 ppm (1080 mg/m³)"
+    },
+    {
+      "name": "Subtilisins",
+      "cas": "1395-21-7",
+      "twa": "0.00004 mg/m³",
+      "notes": "Sen"
+    },
+    {
+      "name": "Sucrose",
+      "cas": "57-50-1",
+      "twa": "10 mg/m³",
+      "stel": "20 mg/m³"
+    },
+    {
+      "name": "Sulfotep (ISO)",
+      "cas": "3689-24-5",
+      "twa": "0.1 mg/m³",
+      "notes": "Sk"
+    },
+    {
+      "name": "Sulphur dioxide",
+      "cas": "7446-09-5",
+      "twa": "0.5 ppm (1.3 mg/m³)",
+      "stel": "1 ppm (2.7 mg/m³)"
+    },
+    {
+      "name": "Sulphur hexafluoride",
+      "cas": "2551-62-4",
+      "twa": "1000 ppm (6070 mg/m³)",
+      "stel": "1250 ppm (7590 mg/m³)"
+    },
+    {
+      "name": "Sulphuric acid (mist)",
+      "cas": "7664-93-9",
+      "twa": "0.05 mg/m³",
+      "notes": "The mist is defined as the"
+    },
+    {
+      "name": "Sulphuryl difluoride",
+      "cas": "2699-79-8",
+      "twa": "5 ppm (21 mg/m³)",
+      "stel": "10 ppm (42 mg/m³)"
+    },
+    {
+      "name": "Talc, respirable dust",
+      "cas": "14807-96-6",
+      "twa": "1 mg/m³"
+    },
+    {
+      "name": "Tantalum",
+      "cas": "7440-25-7",
+      "twa": "5 mg/m³",
+      "stel": "10 mg/m³"
+    },
+    {
+      "name": "Tellurium and compounds, except",
+      "twa": "0.1 mg/m³"
+    },
+    {
+      "name": "Terphenyls, all isomers",
+      "cas": "26140-60-3",
+      "stel": "0.5 ppm (4.8 mg/m³)"
+    },
+    {
+      "name": "Terphenyl, hydrogenated",
+      "cas": "61788-32-7",
+      "twa": "2 ppm (19 mg/m³)",
+      "stel": "5 ppm (48 mg/m³)"
+    },
+    {
+      "name": "1,1,2,2-Tetrabromoethane",
+      "cas": "79-27-6",
+      "twa": "0.5 ppm (7.2 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Tertiary-butyl-methylether",
+      "cas": "1634-04-4",
+      "twa": "50 ppm (183.5 mg/m³)",
+      "stel": "100 ppm (367 mg/m³)"
+    },
+    {
+      "name": "Tetracarbonylnickel (as Ni)",
+      "cas": "13463-39-3",
+      "stel": "0.1 ppm (0.24 mg/m³)"
+    },
+    {
+      "name": "Tetrachloroethylene",
+      "cas": "127-18-4",
+      "twa": "20 ppm (138 mg/m³)",
+      "stel": "40 ppm (275 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Tetraethyl orthosilicate",
+      "cas": "78-10-4",
+      "twa": "5 ppm (44 mg/m³)"
+    },
+    {
+      "name": "1,1,1,2-Tetrafluoroethane",
+      "cas": "811-97-2",
+      "twa": "1000 ppm (4240 mg/m³)"
+    },
+    {
+      "name": "Tetrahydrofuran",
+      "cas": "109-99-9",
+      "twa": "50 ppm (150 mg/m³)",
+      "stel": "100 ppm (300 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Tetrasodium pyrophosphate",
+      "cas": "7722-88-5",
+      "twa": "5 mg/m³"
+    },
+    {
+      "name": "Thallium, soluble compounds (as TI)",
+      "twa": "0.1 mg/m³",
+      "notes": "Sk"
+    },
+    {
+      "name": "Thionyl chloride",
+      "cas": "7719-09-7",
+      "stel": "1 ppm (4.9 mg/m³)"
+    },
+    {
+      "name": "Tin compounds, inorganic except",
+      "twa": "2 mg/m³",
+      "stel": "4 mg/m³"
+    },
+    {
+      "name": "Tin compounds, organic, except",
+      "twa": "0.1 mg/m³",
+      "stel": "0.2 mg/m³",
+      "notes": "Sk"
+    },
+    {
+      "name": "Titanium dioxide, total inhalable",
+      "cas": "13463-67-7",
+      "twa": "10 mg/m³"
+    },
+    {
+      "name": "Titanium dioxide, respirable",
+      "cas": "13463-67-7",
+      "twa": "4 mg/m³"
+    },
+    {
+      "name": "Toluene",
+      "cas": "108-88-3",
+      "twa": "50 ppm (191 mg/m³)",
+      "stel": "100 ppm (384 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "p -Toluenesulphonyl chloride",
+      "cas": "98-59-9",
+      "stel": "5 mg/m³"
+    },
+    {
+      "name": "o -Toluidine",
+      "cas": "95-53-4",
+      "twa": "0.1 ppm (0.5 mg/m³)",
+      "notes": "Carc, Sk"
+    },
+    {
+      "name": "Tributyl phosphate, all isomers",
+      "cas": "126-73-8",
+      "twa": "5 mg/m³",
+      "stel": "5 mg/m³"
+    },
+    {
+      "name": "1,2,4-Trichlorobenzene",
+      "cas": "120-82-1",
+      "twa": "1 ppm",
+      "stel": "5 ppm",
+      "notes": "Sk"
+    },
+    {
+      "name": "1,1,1-Trichloroethane",
+      "cas": "71-55-6",
+      "twa": "100 ppm (555 mg/m³)",
+      "stel": "200 ppm (1110 mg/m³)"
+    },
+    {
+      "name": "Trichloroethylene",
+      "cas": "79-01-6",
+      "twa": "100 ppm (550 mg/m³)",
+      "stel": "150 ppm (820 mg/m³)",
+      "notes": "Carc, Sk"
+    },
+    {
+      "name": "Trichloronitromethane",
+      "cas": "76-06-2",
+      "twa": "0.1 ppm (0.68 mg/m³)",
+      "stel": "0.3 ppm (2.1 mg/m³)"
+    },
+    {
+      "name": "Triethylamine",
+      "cas": "121-44-8",
+      "twa": "2 ppm (8 mg/m³)",
+      "stel": "4 ppm (17 mg/m³)",
+      "notes": "Sk"
+    },
+    {
+      "name": "Triglycidyl isocyanurate (TGIC)",
+      "cas": "2451-62-9",
+      "twa": "0.1 mg/m³",
+      "notes": "Carc"
+    },
+    {
+      "name": "Trimellitic anhydride",
+      "cas": "552-30-7",
+      "twa": "0.04 mg/m³",
+      "stel": "0.12 mg/m³",
+      "notes": "Sen"
+    },
+    {
+      "name": "Trimethylbenzenes, all isomers",
+      "cas": "25551-13-7",
+      "twa": "25 ppm (125 mg/m³)"
+    },
+    {
+      "name": "3,5,5-trimethylcyclohex-2enone",
+      "cas": "78-59-1",
+      "stel": "5 ppm (29 mg/m³)"
+    },
+    {
+      "name": "Trimethyl phosphite",
+      "cas": "121-45-9",
+      "twa": "2 ppm (10 mg/m³)"
+    },
+    {
+      "name": "2,4,6-Trinitrotoluene",
+      "cas": "118-96-7",
+      "twa": "0.5 mg/m³",
+      "notes": "Sk"
+    },
+    {
+      "name": "Tri- o -tolyl phosphate",
+      "cas": "78-30-8",
+      "twa": "0.1 mg/m³",
+      "stel": "0.3 mg/m³"
+    },
+    {
+      "name": "Triphenyl phosphate",
+      "cas": "115-86-6",
+      "twa": "3 mg/m³",
+      "stel": "6 mg/m³"
+    },
+    {
+      "name": "soluble compounds",
+      "twa": "1 mg/m³",
+      "stel": "3 mg/m³"
+    },
+    {
+      "name": "insoluble compounds and others",
+      "twa": "5 mg/m³",
+      "stel": "10 mg/m³"
+    },
+    {
+      "name": "Turpentine",
+      "cas": "8006-64-2",
+      "twa": "100 ppm (566 mg/m³)",
+      "stel": "150 ppm (850 mg/m³)"
+    },
+    {
+      "name": "Vanadium pentoxide",
+      "cas": "1314-62-1",
+      "twa": "0.05 mg/m³"
+    },
+    {
+      "name": "Vinyl acetate",
+      "cas": "108-05-4",
+      "twa": "5 ppm (17.6 mg/m³)",
+      "stel": "10 ppm (35.2 mg/m³)"
+    },
+    {
+      "name": "Vinyl chloride",
+      "cas": "75-01-4",
+      "twa": "1 ppm (2.6 mg/m³)",
+      "notes": "Carc"
+    },
+    {
+      "name": "Vinylidene chloride",
+      "cas": "75-35-4",
+      "twa": "2 ppm (8 mg/m³)",
+      "stel": "5 ppm (20 mg/m³)"
+    },
+    {
+      "name": "Wool process dust",
+      "twa": "10 mg/m³",
+      "notes": "See para 42"
+    },
+    {
+      "name": "Xylene, o-,m-,p- or mixed isomers",
+      "cas": "1330-20-7",
+      "twa": "50 ppm (220 mg/m³)",
+      "stel": "100 ppm (441 mg/m³)",
+      "notes": "Sk, BMGV"
+    },
+    {
+      "name": "Yttrium",
+      "cas": "7440-65-5",
+      "twa": "1 mg/m³",
+      "stel": "3 mg/m³"
+    },
+    {
+      "name": "Zinc chloride, fume",
+      "cas": "7646-85-7",
+      "twa": "1 mg/m³",
+      "stel": "2 mg/m³"
+    },
+    {
+      "name": "Zinc distearate, inhalable dust",
+      "cas": "557-05-1",
+      "twa": "10 mg/m³",
+      "stel": "20 mg/m³"
+    },
+    {
+      "name": "Zinc distearate, respirable dust",
+      "cas": "557-05-1",
+      "twa": "4 mg/m³"
+    },
+    {
+      "name": "Zirconium compounds (as Zr)",
+      "twa": "5 mg/m³",
+      "stel": "10 mg/m³"
+    }
+  ]
+}

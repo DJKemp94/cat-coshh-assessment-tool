@@ -1,0 +1,11 @@
+.DS_Store
+*.log
+
+# Local assistant/tool settings
+.claude/settings.local.json
+
+# App dependencies and generated output
+app/node_modules/
+app/dist/
+app/tsconfig.tsbuildinfo
+
