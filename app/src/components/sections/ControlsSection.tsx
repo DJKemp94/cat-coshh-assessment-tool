@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Sparkles, AlertTriangle, ExternalLink, ChevronDown, ChevronRight } from 'lucide-react';
+import { Sparkles, AlertTriangle, ExternalLink, ChevronDown, ChevronRight, Lightbulb } from 'lucide-react';
 import clsx from 'clsx';
 import { useAssessment } from '@/store/assessment';
 import { SectionHeader } from '@/components/common/SectionHeader';
@@ -7,113 +7,114 @@ import { SuggestionChips, appendUnique } from '@/components/common/SuggestionChi
 import { SuggestionDisclaimer } from '@/components/common/SuggestionDisclaimer';
 import { suggestControls, OverallSuggestion, SubstanceAnalysis, Approach, APPROACH_LABEL } from '@/services/coshhEssentials';
 
-type ControlKey = 'elimination' | 'substitution' | 'reduction' | 'engineering' | 'administrative';
+const ELIM_SUB_SUGGESTIONS = [
+  'Elimination considered; the substance is required for this activity.',
+  'No suitable lower-hazard substitute has been identified for this task.',
+  'Use the lowest practicable concentration, hazard grade and working quantity.',
+  'Use a pre-diluted or ready-to-use product where this would reduce handling risk.',
+];
 
-interface HierarchyEntry {
-  key: ControlKey;
-  label: string;
-  hint: string;
-  suggestions: string[];
-}
+const REDUCTION_SUGGESTIONS = [
+  'Keep only the minimum effective quantity at the work area.',
+  'Limit the number of people, frequency and duration of exposure.',
+  'Prepare small aliquots instead of handling the parent container where practicable.',
+];
 
-const HIERARCHY: HierarchyEntry[] = [
-  {
-    key: 'elimination',
-    label: 'Elimination',
-    hint: 'Can the hazard be removed entirely?',
-    suggestions: [
-      'Not feasible — substance is essential to the process',
-      'Elimination considered; not reasonably practicable for this activity',
-    ],
-  },
-  {
-    key: 'substitution',
-    label: 'Substitution',
-    hint: 'Replace with a less hazardous substance or process.',
-    suggestions: [
-      'No safer alternative identified for this application',
-      'Substituted with a less hazardous reagent of equivalent performance',
-      'Use the lowest practicable concentration or hazard grade',
-    ],
-  },
-  {
-    key: 'reduction',
-    label: 'Reduction',
-    hint: 'Reduce quantity, concentration or exposure duration.',
-    suggestions: [
-      'Minimum effective quantity used per batch',
-      'Process scale reduced where practicable',
-      'Exposure duration limited by procedure',
-    ],
-  },
-  {
-    key: 'engineering',
-    label: 'Engineering Controls',
-    hint: 'LEV, fume hoods, enclosures, interlocks.',
-    suggestions: [
-      'Use suitable local exhaust ventilation where airborne exposure may occur',
-      'Keep containers closed when not in use',
-      'Use enclosed transfer or dispensing where practicable',
-      'LEV inspection and thorough examination kept in date where LEV is used',
-    ],
-  },
-  {
-    key: 'administrative',
-    label: 'Administrative Controls',
-    hint: 'SOPs, training, permits, signage, rotation.',
-    suggestions: [
-      'SOP or safe working procedure available to users',
-      'COSHH briefing required before first use',
-      'Restricted to trained and authorised personnel',
-      'Work area kept clean; spills reported and cleaned promptly',
-      'Assessment reviewed if substance, quantity or process changes',
-    ],
-  },
+const ENGINEERING_SUGGESTIONS = [
+  'Use suitable capture, extraction or containment where airborne exposure may occur.',
+  'Keep containers closed except during transfer, dispensing or use.',
+  'Use enclosed transfer, splash control or shielding where practicable.',
+  'Inspect and maintain control equipment; keep statutory LEV examination records where LEV is used.',
+];
+
+const ADMIN_SUGGESTIONS = [
+  'Work must follow the approved SOP or safe working procedure.',
+  'Users must be briefed on the COSHH assessment before starting work.',
+  'Restrict the activity to trained and authorised personnel.',
+  'Keep the work area clean; report and clean spills promptly.',
+  'Review the assessment if the substance, quantity, frequency, process or controls change.',
 ];
 
 const PPE_TYPE_SUGGESTIONS = [
-  'Suitable chemical-resistant gloves',
-  'Safety goggles',
-  'Face shield',
-  'Lab coat or protective clothing',
-  'Respiratory protective equipment where exposure cannot be adequately controlled by other means',
-];
-
-const PPE_STANDARD_SUGGESTIONS = [
-  'EN ISO 374-1 (chemical-resistant gloves)',
-  'EN 166 (eye protection)',
-  'RPE selected, face-fit tested and maintained where required',
+  'Chemical-resistant gloves selected for the substance, contact time and task.',
+  'Eye protection suitable for the splash or impact risk.',
+  'Face protection where splash, spray or pressure release could occur.',
+  'Protective clothing appropriate to the contamination risk.',
+  'Respiratory protective equipment only where exposure cannot be adequately controlled by other means.',
 ];
 
 const AIR_MONITORING_SUGGESTIONS = [
-  'Not required where exposure is adequately controlled and no WEL concern is identified',
-  'Personal exposure monitoring against the relevant WEL where exposure may approach the limit',
-  'Monitoring reviewed if process, quantity, duration or controls change',
+  'Routine air monitoring is not required where exposure is demonstrably low and no WEL concern is identified.',
+  'Consider personal exposure monitoring where exposure may approach a WEL or controls are unproven.',
+  'Review monitoring needs if quantity, frequency, duration, temperature or control performance changes.',
 ];
 
 const HEALTH_SURVEILLANCE_SUGGESTIONS = [
-  'Not required where there is no identifiable health-surveillance trigger',
-  'Refer to Occupational Health if sensitiser, carcinogen, mutagen, asthmagen or skin-absorption concern applies',
-  'Users instructed to report symptoms or suspected exposure promptly',
+  'No routine health surveillance trigger has been identified from the current information.',
+  'Refer to Occupational Health where sensitiser, asthmagen, CMR or significant skin exposure concerns apply.',
+  'Users must report symptoms, suspected exposure or PPE/control failures promptly.',
 ];
 
 const asChipSuggestions = (texts: string[]) => texts.map((t) => ({ text: t }));
 
-function SuggestionRow({
-  suggestions,
+function ControlField({
+  label,
+  hint,
   value,
+  suggestions,
+  onChange,
   onAppend,
+  placeholder,
 }: {
-  suggestions: string[];
+  label: string;
+  hint?: string;
   value: string;
+  suggestions: string[];
+  onChange: (next: string) => void;
   onAppend: (s: string) => void;
+  placeholder?: string;
 }) {
+  const [showChips, setShowChips] = useState(false);
+
   return (
-    <SuggestionChips
-      suggestions={asChipSuggestions(suggestions)}
-      value={value}
-      onAppend={onAppend}
-    />
+    <div className="card p-4">
+      <div className="flex items-baseline justify-between gap-2 mb-2">
+        <div className="font-medium text-zinc-900">{label}</div>
+        {hint && <div className="text-[11px] text-zinc-500 hidden md:block">{hint}</div>}
+      </div>
+      {suggestions.length > 0 && (
+        <div className="flex items-center justify-end mb-1.5">
+          <button
+            type="button"
+            onClick={() => setShowChips((v) => !v)}
+            className={clsx(
+              'inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border transition shadow-soft',
+              showChips
+                ? 'bg-accent-600 border-accent-600 text-white hover:bg-accent-700'
+                : 'bg-accent-50 border-accent-300 text-accent-800 hover:bg-accent-100',
+            )}
+            aria-expanded={showChips}
+          >
+            <Lightbulb size={12} />
+            {showChips ? 'Hide' : 'Show'} {suggestions.length} suggestion{suggestions.length === 1 ? '' : 's'}
+            {showChips ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+          </button>
+        </div>
+      )}
+      {showChips && (
+        <SuggestionChips
+          suggestions={asChipSuggestions(suggestions)}
+          value={value}
+          onAppend={onAppend}
+        />
+      )}
+      <textarea
+        className="field-textarea"
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </div>
   );
 }
 
@@ -429,96 +430,84 @@ export function ControlsSection() {
       )}
 
       <div className="space-y-3">
-        {HIERARCHY.map(({ key, label, hint, suggestions }) => (
-          <div key={key} className="card p-4">
-            <div className="flex items-baseline justify-between mb-2">
-              <div className="font-medium text-zinc-900">{label}</div>
-              <div className="text-[11px] text-zinc-500">{hint}</div>
-            </div>
-            <SuggestionRow
-              suggestions={suggestions}
-              value={controls[key]}
-              onAppend={(s) => update({ [key]: append(controls[key], s) } as Partial<typeof controls>)}
-            />
-            <textarea
-              className="field-textarea"
-              value={controls[key]}
-              onChange={(e) => update({ [key]: e.target.value } as Partial<typeof controls>)}
-            />
-          </div>
-        ))}
-
-        <div className="card p-4">
-          <div className="font-medium text-zinc-900 mb-2">PPE</div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label>
-                <span className="field-label">Type</span>
-              </label>
-              <SuggestionRow
-                suggestions={PPE_TYPE_SUGGESTIONS}
-                value={controls.ppe.type}
-                onAppend={(s) =>
-                  update({ ppe: { ...controls.ppe, type: append(controls.ppe.type, s) } })
-                }
-              />
-              <input
-                className="field-input"
-                value={controls.ppe.type}
-                onChange={(e) => update({ ppe: { ...controls.ppe, type: e.target.value } })}
-                placeholder="e.g. nitrile gloves, safety goggles, lab coat"
-              />
-            </div>
-            <div>
-              <label>
-                <span className="field-label">Standard / spec</span>
-              </label>
-              <SuggestionRow
-                suggestions={PPE_STANDARD_SUGGESTIONS}
-                value={controls.ppe.standard}
-                onAppend={(s) =>
-                  update({ ppe: { ...controls.ppe, standard: append(controls.ppe.standard, s) } })
-                }
-              />
-              <input
-                className="field-input"
-                value={controls.ppe.standard}
-                onChange={(e) => update({ ppe: { ...controls.ppe, standard: e.target.value } })}
-                placeholder="e.g. EN 374, EN 166"
-              />
-            </div>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <ControlField
+            label="Elimination / Substitution"
+            hint="Remove or replace with a less hazardous option."
+            suggestions={ELIM_SUB_SUGGESTIONS}
+            value={controls.elimination + (controls.substitution ? '\n' + controls.substitution : '')}
+            onChange={(v) => update({ elimination: v, substitution: '' })}
+            onAppend={(s) =>
+              update({
+                elimination: append(
+                  controls.elimination + (controls.substitution ? '\n' + controls.substitution : ''),
+                  s,
+                ),
+                substitution: '',
+              })
+            }
+            placeholder="Record whether the substance or process can be removed, replaced, pre-diluted, bought ready-to-use, or changed to a lower hazard grade."
+          />
+          <ControlField
+            label="Reduction"
+            hint="Reduce quantity, concentration or duration."
+            suggestions={REDUCTION_SUGGESTIONS}
+            value={controls.reduction}
+            onChange={(v) => update({ reduction: v })}
+            onAppend={(s) => update({ reduction: append(controls.reduction, s) })}
+            placeholder="Record how quantity, concentration, batch size, exposure time, frequency and number of people exposed will be kept as low as practicable."
+          />
         </div>
 
-        <div className="card p-4">
-          <div className="font-medium text-zinc-900 mb-2">Air Monitoring</div>
-          <SuggestionRow
+        <ControlField
+          label="Engineering Controls"
+          hint="LEV, fume hoods, enclosures, interlocks."
+          suggestions={ENGINEERING_SUGGESTIONS}
+          value={controls.engineering}
+          onChange={(v) => update({ engineering: v })}
+          onAppend={(s) => update({ engineering: append(controls.engineering, s) })}
+          placeholder="Record the physical controls used to prevent or capture exposure, such as enclosure, LEV, fume cupboard, shielding, closed transfer, splash control, interlocks, inspection and maintenance."
+        />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <ControlField
+            label="Administrative Controls"
+            hint="SOPs, training, permits, signage."
+            suggestions={ADMIN_SUGGESTIONS}
+            value={controls.administrative}
+            onChange={(v) => update({ administrative: v })}
+            onAppend={(s) => update({ administrative: append(controls.administrative, s) })}
+            placeholder="Record procedural controls such as SOP reference, training, briefing, authorisation, supervision, signage, housekeeping, lone-working limits and review triggers."
+          />
+          <ControlField
+            label="PPE"
+            hint="Last resort — gloves, eye, RPE."
+            suggestions={PPE_TYPE_SUGGESTIONS}
+            value={controls.ppe.type}
+            onChange={(v) => update({ ppe: { ...controls.ppe, type: v } })}
+            onAppend={(s) =>
+              update({ ppe: { ...controls.ppe, type: append(controls.ppe.type, s) } })
+            }
+            placeholder="Record PPE selected for the substance and task: glove material and change frequency, eye/face protection, clothing, footwear and any RPE with fit-test and maintenance requirements."
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <ControlField
+            label="Air Monitoring"
             suggestions={AIR_MONITORING_SUGGESTIONS}
             value={controls.airMonitoring}
-            onAppend={(s) =>
-              update({ airMonitoring: append(controls.airMonitoring, s) })
-            }
+            onChange={(v) => update({ airMonitoring: v })}
+            onAppend={(s) => update({ airMonitoring: append(controls.airMonitoring, s) })}
+            placeholder="Record whether air monitoring is required, why it is or is not needed, relevant WELs, sampling type, review frequency and triggers for reassessment."
           />
-          <textarea
-            className="field-textarea"
-            value={controls.airMonitoring}
-            onChange={(e) => update({ airMonitoring: e.target.value })}
-          />
-        </div>
-
-        <div className="card p-4">
-          <div className="font-medium text-zinc-900 mb-2">Health Surveillance</div>
-          <SuggestionRow
+          <ControlField
+            label="Health Surveillance"
             suggestions={HEALTH_SURVEILLANCE_SUGGESTIONS}
             value={controls.healthSurveillance}
-            onAppend={(s) =>
-              update({ healthSurveillance: append(controls.healthSurveillance, s) })
-            }
-          />
-          <textarea
-            className="field-textarea"
-            value={controls.healthSurveillance}
-            onChange={(e) => update({ healthSurveillance: e.target.value })}
+            onChange={(v) => update({ healthSurveillance: v })}
+            onAppend={(s) => update({ healthSurveillance: append(controls.healthSurveillance, s) })}
+            placeholder="Record any Occupational Health referral, health-surveillance decision, symptom reporting route, exposure records and review triggers."
           />
         </div>
       </div>

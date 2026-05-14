@@ -81,21 +81,56 @@ export function AdditionalSection() {
             </label>
           </div>
 
-          {ta('storage', 'storage', 'Storage requirements')}
-          {ta('incompatibles', 'incompatibles', 'Incompatible substances')}
+          {ta(
+            'storage',
+            'storage',
+            'Storage requirements',
+            'Record where and how substances will be stored, including compatible storage group, segregation, secondary containment, ventilation, security, temperature limits and maximum quantities.',
+          )}
+          {ta(
+            'incompatibles',
+            'incompatibles',
+            'Incompatible substances',
+            'Record substances or storage groups that must be kept apart, including acids/bases, oxidisers/flammables, water-reactives, cyanides/sulphides and any SDS section 10 restrictions.',
+          )}
         </Card>
 
         <Card title="Emergency response" defaultOpen>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {ta('emergencyFirstAid', 'emergencyFirstAid', 'First aid')}
-            {ta('emergencySpills', 'emergencySpills', 'Spills')}
-            {ta('emergencyFire', 'emergencyFire', 'Fire')}
+            {ta(
+              'emergencyFirstAid',
+              'emergencyFirstAid',
+              'First aid',
+              'Record first-aid actions for credible exposure routes, when to seek medical advice, what SDS information must go with the person and how exposure incidents are reported.',
+            )}
+            {ta(
+              'emergencySpills',
+              'emergencySpills',
+              'Spills',
+              'Record spill response for foreseeable quantities, including evacuation or isolation, PPE, ventilation, absorbents, drain protection, waste collection and when to escalate.',
+            )}
+            {ta(
+              'emergencyFire',
+              'emergencyFire',
+              'Fire',
+              'Record relevant fire hazards, suitable extinguishing media from the SDS, substances that must not contact water, toxic fumes, cylinder risks and run-off control.',
+            )}
           </div>
         </Card>
 
         <Card title="Waste & other" defaultOpen>
-          {ta('wasteHandling', 'wasteHandling', 'Waste handling')}
-          {ta('other', null, 'Other')}
+          {ta(
+            'wasteHandling',
+            'wasteHandling',
+            'Waste handling',
+            'Record waste containers, segregation, labelling, incompatible waste streams, temporary storage, collection route and any waste that needs specialist disposal.',
+          )}
+          {ta(
+            'other',
+            null,
+            'Other',
+            'Record additional COSHH requirements that do not fit elsewhere, such as transport, restricted access, local permits, environmental controls or special supervision.',
+          )}
         </Card>
       </div>
     </section>
@@ -204,30 +239,28 @@ function ScrollableChipRow({
   onAppend: (text: string) => void;
 }) {
   return (
-    <div className="relative -mx-1 mb-1.5">
-      <div className="overflow-x-auto px-1 py-1 scrollbar-thin">
-        <div className="flex flex-nowrap gap-1.5 min-w-min">
-          {suggestions.map((s) => {
-            const inUse = value.toLowerCase().includes(s.text.toLowerCase());
-            return (
-              <button
-                key={s.text}
-                type="button"
-                onClick={() => onAppend(s.text)}
-                title={s.hint || (inUse ? 'Already added' : 'Click to add')}
-                className={clsx(
-                  'inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs whitespace-nowrap shrink-0 transition',
-                  inUse
-                    ? 'bg-accent-100 border-accent-300 text-accent-900 cursor-default'
-                    : 'bg-white border-zinc-200 text-zinc-700 hover:bg-accent-50 hover:border-accent-200',
-                )}
-              >
-                {!inUse && <Plus size={11} className="text-zinc-400" />}
-                {s.text}
-              </button>
-            );
-          })}
-        </div>
+    <div className="relative mb-2">
+      <div className="flex flex-wrap gap-1.5">
+        {suggestions.map((s) => {
+          const inUse = value.toLowerCase().includes(s.text.toLowerCase());
+          return (
+            <button
+              key={s.text}
+              type="button"
+              onClick={() => onAppend(s.text)}
+              title={s.hint || (inUse ? 'Already added' : 'Click to add')}
+              className={clsx(
+                'inline-flex items-start gap-1 px-2.5 py-1 rounded-md border text-xs text-left transition max-w-full',
+                inUse
+                  ? 'bg-accent-100 border-accent-300 text-accent-900 cursor-default'
+                  : 'bg-white border-zinc-200 text-zinc-700 hover:bg-accent-50 hover:border-accent-200',
+              )}
+            >
+              {!inUse && <Plus size={11} className="text-zinc-400 mt-0.5 shrink-0" />}
+              {s.text}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

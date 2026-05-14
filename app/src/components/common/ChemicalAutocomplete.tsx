@@ -8,6 +8,7 @@ interface Props {
   onSelect: (selection: PubChemAutocompleteSuggestion) => void;
   placeholder?: string;
   disabled?: boolean;
+  invalid?: boolean;
 }
 
 export function ChemicalAutocomplete({
@@ -16,6 +17,7 @@ export function ChemicalAutocomplete({
   onSelect,
   placeholder,
   disabled,
+  invalid,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -26,8 +28,15 @@ export function ChemicalAutocomplete({
 
   useEffect(() => {
     const trimmed = value.trim();
-    if (!open || trimmed.length < 2 || /^\d{2,7}-\d{2}-\d$/.test(trimmed)) {
+    if (!open || trimmed.length < 2) {
       setItems([]);
+      return;
+    }
+    // CAS pattern: bypass the dictionary autocomplete and offer a single
+    // "look up by CAS" entry — selecting it triggers a direct PubChem RN lookup.
+    if (/^\d{2,7}-\d{2}-\d$/.test(trimmed)) {
+      setItems([{ name: trimmed }]);
+      setActive(0);
       return;
     }
     const handle = window.setTimeout(async () => {
@@ -47,6 +56,8 @@ export function ChemicalAutocomplete({
     }, 200);
     return () => window.clearTimeout(handle);
   }, [value, open]);
+
+  const isCasOnly = /^\d{2,7}-\d{2}-\d$/.test(value.trim());
 
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
@@ -88,7 +99,7 @@ export function ChemicalAutocomplete({
           className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none"
         />
         <input
-          className="field-input pl-8"
+          className={'field-input pl-8' + (invalid ? ' field-missing' : '')}
           value={value}
           disabled={disabled}
           placeholder={placeholder ?? 'Chemical name or CAS number (e.g. 67-64-1)'}
@@ -122,16 +133,29 @@ export function ChemicalAutocomplete({
                 (i === active ? 'bg-accent-50 text-accent-900' : 'text-zinc-800')
               }
             >
-              <span>{item.name}</span>
+              {isCasOnly ? (
+                <span>Look up CAS <span className="font-mono">{item.name}</span></span>
+              ) : (
+                <span>{item.name}</span>
+              )}
               {item.cid && <span className="ml-2 text-[10px] text-zinc-400 font-mono">CID {item.cid}</span>}
             </li>
           ))}
         </ul>
       )}
       {open && !loading && value.trim().length >= 2 && items.length === 0 && (
-        <div className="absolute z-20 left-0 right-0 mt-1 bg-white border border-zinc-200 rounded-md shadow-lg px-3 py-2 text-xs text-zinc-500">
-          No PubChem matches. You can still type a name manually.
-        </div>
+        <ul className="absolute z-20 left-0 right-0 mt-1 bg-white border border-zinc-200 rounded-md shadow-lg text-sm">
+          <li
+            onMouseDown={(e) => {
+              e.preventDefault();
+              pick({ name: value.trim() });
+            }}
+            className="px-3 py-1.5 cursor-pointer text-zinc-800 hover:bg-accent-50"
+          >
+            Look up <span className="font-medium">"{value.trim()}"</span> on PubChem
+            <div className="text-[10px] text-zinc-500">Resolves synonyms (e.g. "wood alcohol" → methanol)</div>
+          </li>
+        </ul>
       )}
     </div>
   );

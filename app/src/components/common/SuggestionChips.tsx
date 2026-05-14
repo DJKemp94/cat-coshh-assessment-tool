@@ -25,13 +25,13 @@ export function SuggestionChips({ suggestions, value, onAppend, className }: Pro
             onClick={() => onAppend(s.text)}
             title={s.hint || (inUse ? 'Already in your response' : 'Click to add to response')}
             className={
-              'inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs transition ' +
+              'inline-flex items-start gap-1 px-2.5 py-1 rounded-md border text-xs text-left transition ' +
               (inUse
                 ? 'bg-accent-100 border-accent-300 text-accent-900 cursor-default'
                 : 'bg-white border-zinc-200 text-zinc-700 hover:bg-accent-50 hover:border-accent-200')
             }
           >
-            {!inUse && <Plus size={11} className="text-zinc-400" />}
+            {!inUse && <Plus size={11} className="text-zinc-400 mt-0.5 shrink-0" />}
             {s.text}
           </button>
         );

@@ -20,9 +20,9 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { id: 'overview', label: 'Complete Assessment', Icon: ClipboardList },
-  { id: 'taskHazards', label: 'Task Hazards', Icon: AlertTriangle },
   { id: 'substances', label: 'Process Steps', Icon: FlaskConical },
   { id: 'controls', label: 'Controls', Icon: ShieldCheck },
+  { id: 'taskHazards', label: 'Non-Chemical Hazards', Icon: AlertTriangle },
   { id: 'additional', label: 'Storage & Emergency', Icon: PackageOpen },
   { id: 'briefing', label: 'Briefing & Sign-off', Icon: Users },
   { id: 'settings', label: 'Settings', Icon: Settings },

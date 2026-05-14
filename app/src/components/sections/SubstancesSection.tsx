@@ -1,6 +1,6 @@
 import {
   Plus, Trash2, RefreshCw, ChevronDown, ChevronRight, ExternalLink, Sparkles,
-  AlertCircle, FlaskConical, Wand2, Loader2,
+  AlertCircle, FlaskConical, Wand2, Loader2, CheckCircle2,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import clsx from 'clsx';
@@ -44,6 +44,32 @@ function formatAutoVolatility(bpC: number): string {
   return 'high';
 }
 
+const UNITS_BY_FORM: Record<SubstanceForm, readonly string[]> = {
+  liquid:  ['mL', 'L', 'µL'],
+  gas:     ['L', 'm³', 'mL'],
+  vapour:  ['L', 'm³', 'mL'],
+  aerosol: ['mL', 'L', 'g'],
+  mist:    ['mL', 'L'],
+  solid:   ['g', 'kg', 'mg'],
+  powder:  ['g', 'kg', 'mg'],
+  other:   ['g', 'mL', 'L', 'kg'],
+};
+
+function defaultUnit(form: SubstanceForm): string {
+  return UNITS_BY_FORM[form][0];
+}
+
+function splitQuantity(raw: string): { value: string; unit: string } {
+  const m = raw.trim().match(/^([0-9.,\s]*)\s*(.*)$/);
+  return { value: (m?.[1] ?? '').trim(), unit: (m?.[2] ?? '').trim() };
+}
+
+function joinQuantity(value: string, unit: string): string {
+  const v = value.trim();
+  if (!v) return '';
+  return unit ? `${v} ${unit}` : v;
+}
+
 export function SubstancesSection() {
   const steps = useAssessment((s) => s.assessment.processSteps);
   const addStep = useAssessment((s) => s.addProcessStep);
@@ -82,6 +108,21 @@ function ProcessStepCard({ step, index }: { step: ProcessStep; index: number }) 
   const addChemical = useAssessment((s) => s.addChemical);
   const [showSuggest, setShowSuggest] = useState(false);
   const [adding, setAdding] = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState(false);
+
+  const incompleteCount = step.chemicals.filter(isChemicalIncomplete).length;
+  const isStepComplete =
+    step.step.trim().length > 0 && step.chemicals.length > 0 && incompleteCount === 0;
+  const aggregatedPictograms = useMemo(() => {
+    const seen = new Set<string>();
+    const out: typeof step.chemicals[number]['ghsPictograms'] = [];
+    for (const c of step.chemicals) {
+      for (const p of c.ghsPictograms) {
+        if (!seen.has(p)) { seen.add(p); out.push(p); }
+      }
+    }
+    return out;
+  }, [step.chemicals]);
 
   const suggestions = useMemo<ExtractMatch[]>(() => {
     if (!step.step.trim()) return [];
@@ -104,7 +145,11 @@ function ProcessStepCard({ step, index }: { step: ProcessStep; index: number }) 
         name: r.name,
         hazardStatements: r.hazardStatements,
         ghsPictograms: r.pictograms,
-        wel: r.wel,
+        wel: {
+          twa: r.wel.twa ?? 'n/a',
+          stel: r.wel.stel ?? 'n/a',
+          source: r.wel.source ?? 'Manual',
+        },
         form: r.form ?? 'liquid',
         sdsUrl: r.sdsUrl,
         sdsSource: r.sdsSource,
@@ -119,6 +164,58 @@ function ProcessStepCard({ step, index }: { step: ProcessStep; index: number }) 
       setAdding(null);
     }
   };
+
+  if (collapsed) {
+    return (
+      <div className="card overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setCollapsed(false)}
+          className="w-full text-left p-3 flex items-center gap-3 hover:bg-zinc-50"
+        >
+          <div
+            className={clsx(
+              'shrink-0 w-7 h-7 rounded-full text-sm font-semibold flex items-center justify-center shadow-soft',
+              STEP_COLOURS[index % STEP_COLOURS.length],
+            )}
+          >
+            {index + 1}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-medium text-zinc-900 truncate">
+                {step.step.trim() || <span className="italic text-zinc-400">No description</span>}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+              <span className="text-[11px] text-zinc-500">
+                {step.chemicals.length} chemical{step.chemicals.length === 1 ? '' : 's'}
+              </span>
+              {aggregatedPictograms.length > 0 && (
+                <>
+                  <span className="text-zinc-300">·</span>
+                  <GhsRow ids={aggregatedPictograms} size={18} />
+                </>
+              )}
+            </div>
+          </div>
+          {isStepComplete ? (
+            <span className="inline-flex items-center gap-1 text-emerald-700 text-[11px] font-medium shrink-0">
+              <CheckCircle2 size={14} /> Complete
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-amber-700 text-[11px] font-medium shrink-0">
+              <AlertCircle size={14} />
+              {!step.step.trim() || step.chemicals.length === 0
+                ? 'Incomplete'
+                : `${incompleteCount} to finish`}
+            </span>
+          )}
+          <ChevronRight size={16} className="text-zinc-400 shrink-0" />
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="card overflow-hidden">
@@ -147,6 +244,14 @@ function ProcessStepCard({ step, index }: { step: ProcessStep; index: number }) 
                   Suggest {suggestions.length} chemical{suggestions.length === 1 ? '' : 's'}
                 </button>
               )}
+              <button
+                type="button"
+                className="btn-ghost text-xs px-2 py-1 text-zinc-600 hover:bg-zinc-100"
+                onClick={() => setCollapsed(true)}
+                title="Collapse step"
+              >
+                <ChevronDown size={14} /> Collapse
+              </button>
               <button
                 className="btn-ghost text-red-600 hover:bg-red-50 !px-2 !py-1"
                 onClick={() => removeStep(step.id)}
@@ -208,8 +313,8 @@ function ProcessStepCard({ step, index }: { step: ProcessStep; index: number }) 
         </div>
         {step.chemicals.length === 0 ? (
           <div className="text-xs text-zinc-400 italic px-1 py-2">
-            No chemicals added yet. Use “Add chemical” or, if you've described the step above, try
-            “Suggest”.
+            No chemicals added yet. Use "Add chemical" or, if you've described the step above, try
+            "Suggest".
           </div>
         ) : (
           <div className="space-y-1.5">
@@ -239,14 +344,19 @@ function ChemicalRow({ stepId, chemical: c }: { stepId: string; chemical: Substa
     setBusy(true); setError(null);
     try {
       const r = await lookupChemical(query, { force });
-      const form = r.form ?? c.form;
-      const bp = r.boilingPointC ?? c.boilingPointC;
+      const isDifferentChemical = c.pubchemCid !== undefined && r.cid !== c.pubchemCid;
+      // When switching to a different compound, clear stale fields from the
+      // previous chemical rather than carrying them over.
+      const form = r.form ?? (isDifferentChemical ? 'liquid' : c.form);
+      const bp = r.boilingPointC ?? (isDifferentChemical ? undefined : c.boilingPointC);
       // On a fresh lookup, set volatility from BP for liquids — user can still
       // override afterwards. This keeps the dropdown in sync with the BP shown.
       const derivedVolatility =
         form === 'liquid' && typeof bp === 'number'
           ? volatilityFromBP(bp)
-          : c.volatility;
+          : isDifferentChemical
+            ? undefined
+            : c.volatility;
       onChange({
         pubchemCid: r.cid,
         cas: r.cas,
@@ -254,16 +364,16 @@ function ChemicalRow({ stepId, chemical: c }: { stepId: string; chemical: Substa
         hazardStatements: r.hazardStatements,
         ghsPictograms: r.pictograms,
         wel: {
-          ...c.wel,
-          twa: r.wel.twa ?? c.wel.twa,
-          stel: r.wel.stel ?? c.wel.stel,
-          source: r.wel.source ?? c.wel.source,
+          twa: r.wel.twa ?? 'n/a',
+          stel: r.wel.stel ?? 'n/a',
+          source: r.wel.source ?? 'Manual',
         },
         form,
-        sdsUrl: r.sdsUrl ?? c.sdsUrl,
-        sdsSource: r.sdsSource ?? c.sdsSource,
+        sdsUrl: r.sdsUrl ?? (isDifferentChemical ? undefined : c.sdsUrl),
+        sdsSource: r.sdsSource ?? (isDifferentChemical ? undefined : c.sdsSource),
         boilingPointC: bp,
         volatility: derivedVolatility,
+        dustiness: isDifferentChemical ? undefined : c.dustiness,
         pubchemFetchedAt: r.fetchedAt,
       });
     } catch (e) {
@@ -342,219 +452,263 @@ function ChemicalRow({ stepId, chemical: c }: { stepId: string; chemical: Substa
         </button>
       </button>
 
-      {open && (
-        <div className="border-t border-zinc-100 p-4 bg-zinc-50/40 space-y-4">
-          {/* Identity */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="md:col-span-2">
-              <span className="field-label">Chemical name or CAS<Req /></span>
-              <div className="flex gap-2">
-                <ChemicalAutocomplete
-                  value={c.name}
-                  onChange={(v) => onChange({ name: v })}
-                  onSelect={(selection) => {
-                    onChange({ name: selection.name });
-                    lookup(false, selection.cid ?? selection.name);
-                  }}
-                  placeholder="e.g. acetone or 67-64-1"
-                  disabled={busy}
-                />
-                <button
-                  className="btn-secondary !px-2 !py-2 shrink-0"
-                  disabled={busy}
-                  onClick={() => lookup(true)}
-                  title={c.pubchemCid ? 'Refresh from PubChem (bypasses cache)' : 'Look up on PubChem'}
-                >
-                  <RefreshCw size={14} className={busy ? 'animate-spin' : ''} />
-                </button>
-              </div>
-            </div>
-            <div>
-              <span className="field-label">CAS number<Req /></span>
-              <input
-                className="field-input font-mono"
-                value={c.cas ?? ''}
-                onChange={(e) => onChange({ cas: e.target.value })}
-                placeholder="e.g. 67-64-1"
-              />
-            </div>
-          </div>
+      {open && (() => {
+        const miss = {
+          name: !c.name.trim(),
+          cas: !c.cas?.trim(),
+          quantity: !splitQuantity(c.quantity).value,
+          wel: !c.wel.twa?.trim() && !c.wel.stel?.trim(),
+          duration: !c.exposureDuration.trim(),
+          frequency: !c.exposureFrequency.trim(),
+          routes: !Object.values(c.exposureRoutes).some(Boolean),
+        };
+        return (
+        <div className="border-t border-zinc-100 px-3 py-2.5 bg-zinc-50/40">
+          {error && <div className="text-xs text-red-600 mb-2">{error}</div>}
 
-          {c.pubchemCid && (
-            <div className="text-[11px] text-zinc-500 flex items-center gap-2 flex-wrap">
-              <span className="pill"><Sparkles size={10} /> CID {c.pubchemCid}</span>
-              {c.pubchemFetchedAt && <span>Fetched {c.pubchemFetchedAt.slice(0, 10)}</span>}
-              {c.sdsUrl && (
-                <a href={c.sdsUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-accent-700 hover:underline">
-                  Open latest SDS{c.sdsSource ? ` (${c.sdsSource})` : ''} <ExternalLink size={11} />
-                </a>
+          <div className="grid grid-cols-2 gap-2.5">
+            {/* Q1 — Identity */}
+            <div className="space-y-1.5">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Identity</div>
+              <div>
+                <span className="field-label">Chemical name or CAS<Req /></span>
+                <div className="flex gap-1">
+                  <ChemicalAutocomplete
+                    value={c.name}
+                    onChange={(v) => onChange({ name: v })}
+                    onSelect={(selection) => {
+                      onChange({ name: selection.name });
+                      lookup(false, selection.cid ?? selection.name);
+                    }}
+                    placeholder="e.g. acetone or 67-64-1"
+                    disabled={busy}
+                    invalid={miss.name}
+                  />
+                  <button
+                    className="btn-secondary !px-2 !py-1.5 shrink-0"
+                    disabled={busy}
+                    onClick={() => lookup(true)}
+                    title={c.pubchemCid ? 'Refresh from PubChem (bypasses cache)' : 'Look up on PubChem'}
+                  >
+                    <RefreshCw size={13} className={busy ? 'animate-spin' : ''} />
+                  </button>
+                </div>
+              </div>
+              <div>
+                <span className="field-label">CAS number<Req /></span>
+                <input
+                  className={clsx('field-input !py-1.5 text-xs font-mono', miss.cas && 'field-missing')}
+                  value={c.cas ?? ''}
+                  onChange={(e) => onChange({ cas: e.target.value })}
+                  placeholder="e.g. 67-64-1"
+                />
+              </div>
+              {c.pubchemCid && (
+                <div className="text-[10px] text-zinc-500 flex flex-wrap items-center gap-1.5">
+                  <span className="pill !text-[10px] !py-0"><Sparkles size={9} /> CID {c.pubchemCid}</span>
+                  {c.pubchemFetchedAt && <span>{c.pubchemFetchedAt.slice(0, 10)}</span>}
+                  {c.sdsUrl && (
+                    <a href={c.sdsUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 text-accent-700 hover:underline">
+                      SDS{c.sdsSource ? ` (${c.sdsSource})` : ''} <ExternalLink size={10} />
+                    </a>
+                  )}
+                </div>
               )}
             </div>
-          )}
-          {error && <div className="text-xs text-red-600">{error}</div>}
 
-          {/* Amount & physical state */}
-          <div>
-            <div className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 mb-1.5">
-              Amount &amp; physical state
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            {/* Q2 — Physical state */}
+            <div className="space-y-1.5">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Physical state</div>
               <label>
                 <span className="field-label">Form<Req /></span>
                 <select
                   className="field-input !py-1.5 text-xs"
                   value={c.form}
-                  onChange={(e) => onChange({ form: e.target.value as SubstanceForm })}
+                  onChange={(e) => {
+                    const nextForm = e.target.value as SubstanceForm;
+                    const { value, unit } = splitQuantity(c.quantity);
+                    const allowed = UNITS_BY_FORM[nextForm];
+                    const nextUnit = allowed.includes(unit) ? unit : defaultUnit(nextForm);
+                    onChange({
+                      form: nextForm,
+                      quantity: joinQuantity(value, nextUnit),
+                    });
+                  }}
                 >
                   {FORMS.map((f) => <option key={f} value={f}>{f}</option>)}
                 </select>
               </label>
-              {(c.form === 'liquid') && (
+              {c.form === 'liquid' && (
                 <label>
-                  <span className="field-label">
-                    Volatility
-                    <span className="ml-1 text-[10px] font-normal text-zinc-400">COSHH Essentials</span>
-                  </span>
+                  <span className="field-label">Volatility <span className="text-zinc-400 font-normal text-[10px]">COSHH</span></span>
                   <select
                     className="field-input !py-1.5 text-xs"
                     value={c.volatility ?? ''}
                     onChange={(e) => onChange({ volatility: (e.target.value || undefined) as Substance['volatility'] })}
                   >
                     <option value="">{typeof c.boilingPointC === 'number' ? `Auto from BP (${formatAutoVolatility(c.boilingPointC)})` : '— select —'}</option>
-                    <option value="low">Low (BP &gt; 150 °C)</option>
-                    <option value="medium">Medium (BP 50–150 °C)</option>
-                    <option value="high">High (BP &lt; 50 °C)</option>
+                    <option value="low">{'Low (>150 °C)'}</option>
+                    <option value="medium">Medium (50–150 °C)</option>
+                    <option value="high">{'High (<50 °C)'}</option>
                   </select>
                   {typeof c.boilingPointC === 'number' && (
-                    <div className="text-[10px] text-zinc-500 mt-0.5">
-                      PubChem BP ≈ {c.boilingPointC} °C
-                    </div>
+                    <div className="text-[10px] text-zinc-500 mt-0.5">BP ≈ {c.boilingPointC} °C</div>
                   )}
                 </label>
               )}
               {(c.form === 'solid' || c.form === 'powder') && (
                 <label>
-                  <span className="field-label">
-                    Dustiness
-                    <span className="ml-1 text-[10px] font-normal text-zinc-400">COSHH Essentials</span>
-                  </span>
+                  <span className="field-label">Dustiness <span className="text-zinc-400 font-normal text-[10px]">COSHH</span></span>
                   <select
                     className="field-input !py-1.5 text-xs"
                     value={c.dustiness ?? ''}
                     onChange={(e) => onChange({ dustiness: (e.target.value || undefined) as Substance['dustiness'] })}
                   >
                     <option value="">— select —</option>
-                    <option value="low">Low (pellet / waxy / non-friable)</option>
-                    <option value="medium">Medium (granular / crystalline)</option>
-                    <option value="high">High (fine powder / settles slowly)</option>
+                    <option value="low">Low (pellet / waxy)</option>
+                    <option value="medium">Medium (granular)</option>
+                    <option value="high">High (fine powder)</option>
                   </select>
                 </label>
               )}
               <label>
                 <span className="field-label">Quantity<Req /></span>
-                <input
-                  className="field-input !py-1.5 text-xs"
+                <QuantityInput
                   value={c.quantity}
-                  onChange={(e) => onChange({ quantity: e.target.value })}
-                  placeholder="e.g. 500 mL"
+                  form={c.form}
+                  onChange={(next) => onChange({ quantity: next })}
+                  invalid={miss.quantity}
                 />
               </label>
             </div>
-          </div>
 
-          {/* Workplace Exposure Limits */}
-          <div>
-            <div className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 mb-1.5">
-              Workplace exposure limits
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <label>
-                <span className="field-label">TWA (8 h)<Req /></span>
-                <input
-                  className="field-input !py-1.5 text-xs"
-                  value={c.wel.twa ?? ''}
-                  onChange={(e) => onChange({ wel: { ...c.wel, twa: e.target.value, source: e.target.value && !c.wel.source ? 'Manual' : c.wel.source } })}
-                  placeholder="value or n/a"
-                />
-              </label>
-              <label>
-                <span className="field-label">STEL (15 min)<Req /></span>
-                <input
-                  className="field-input !py-1.5 text-xs"
-                  value={c.wel.stel ?? ''}
-                  onChange={(e) => onChange({ wel: { ...c.wel, stel: e.target.value, source: e.target.value && !c.wel.source ? 'Manual' : c.wel.source } })}
-                  placeholder="value or n/a"
-                />
-              </label>
-            </div>
-            <div className="text-[11px] text-zinc-500 mt-1">
-              If no UK WEL applies, enter “n/a” to acknowledge the field. TWA or STEL must be filled.
-            </div>
-          </div>
-
-          {/* Exposure — always visible */}
-          <div className="rounded-md border border-zinc-200 bg-white p-3 space-y-3">
-            <div className="text-xs font-medium text-zinc-700">Exposure routes &amp; duration</div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <label>
-                <span className="field-label">Length of exposure<Req /></span>
-                <input
-                  className="field-input"
-                  value={c.exposureDuration}
-                  onChange={(e) => onChange({ exposureDuration: e.target.value })}
-                  placeholder="e.g. up to 30 min"
-                />
-              </label>
-              <label>
-                <span className="field-label">Frequency of exposure<Req /></span>
-                <input
-                  className="field-input"
-                  value={c.exposureFrequency}
-                  onChange={(e) => onChange({ exposureFrequency: e.target.value })}
-                  placeholder="e.g. weekly"
-                />
-              </label>
-            </div>
-            <div>
-              <span className="field-label">Exposure routes<Req /></span>
-              <div className="flex flex-wrap gap-2">
-                {ROUTES.map(({ key, label }) => {
-                  const on = c.exposureRoutes[key];
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => onChange({ exposureRoutes: { ...c.exposureRoutes, [key]: !on } })}
-                      className={
-                        'px-3 py-1 rounded-full text-xs border transition ' +
-                        (on
-                          ? 'bg-accent-600 text-white border-accent-600'
-                          : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50')
-                      }
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
+            {/* Q3 — WEL */}
+            <div className="space-y-1.5">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Workplace exposure limits</div>
+              <div className="grid grid-cols-2 gap-1.5">
+                <label>
+                  <span className="field-label">TWA (8 h)<Req /></span>
+                  <input
+                    className={clsx('field-input !py-1.5 text-xs', miss.wel && 'field-missing')}
+                    value={c.wel.twa ?? ''}
+                    onChange={(e) => onChange({ wel: { ...c.wel, twa: e.target.value, source: e.target.value && !c.wel.source ? 'Manual' : c.wel.source } })}
+                    placeholder="value or n/a"
+                  />
+                </label>
+                <label>
+                  <span className="field-label">STEL (15 min)<Req /></span>
+                  <input
+                    className={clsx('field-input !py-1.5 text-xs', miss.wel && 'field-missing')}
+                    value={c.wel.stel ?? ''}
+                    onChange={(e) => onChange({ wel: { ...c.wel, stel: e.target.value, source: e.target.value && !c.wel.source ? 'Manual' : c.wel.source } })}
+                    placeholder="value or n/a"
+                  />
+                </label>
               </div>
-              <div className="text-[11px] text-zinc-500 mt-1">Select at least one route.</div>
+              <div className="text-[10px] text-zinc-500">Enter "n/a" if no UK WEL applies.</div>
+            </div>
+
+            {/* Q4 — Exposure */}
+            <div className="space-y-1.5">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Exposure</div>
+              <div>
+                <span className="field-label">Routes<Req /></span>
+                <div className={clsx('flex flex-wrap gap-1 mt-0.5 rounded-md', miss.routes && 'field-missing p-1')}>
+                  {ROUTES.map(({ key, label }) => {
+                    const on = c.exposureRoutes[key];
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => onChange({ exposureRoutes: { ...c.exposureRoutes, [key]: !on } })}
+                        className={
+                          'px-2.5 py-0.5 rounded-full text-xs border transition ' +
+                          (on
+                            ? 'bg-accent-600 text-white border-accent-600'
+                            : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50')
+                        }
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                <label>
+                  <span className="field-label">Duration<Req /></span>
+                  <input
+                    className={clsx('field-input !py-1.5 text-xs', miss.duration && 'field-missing')}
+                    value={c.exposureDuration}
+                    onChange={(e) => onChange({ exposureDuration: e.target.value })}
+                    placeholder="e.g. 30 min"
+                  />
+                </label>
+                <label>
+                  <span className="field-label">Frequency<Req /></span>
+                  <input
+                    className={clsx('field-input !py-1.5 text-xs', miss.frequency && 'field-missing')}
+                    value={c.exposureFrequency}
+                    onChange={(e) => onChange({ exposureFrequency: e.target.value })}
+                    placeholder="e.g. weekly"
+                  />
+                </label>
+              </div>
             </div>
           </div>
 
-          {/* Hazard data — moved to bottom, kept collapsible */}
           {(c.hazardStatements.length > 0 || c.ghsPictograms.length > 0) && (
-            <details className="rounded-md border border-zinc-200 bg-white p-3">
+            <details className="mt-2 rounded border border-zinc-200 bg-white p-2.5">
               <summary className="cursor-pointer text-xs font-medium text-zinc-700">
                 Hazard data ({c.ghsPictograms.length} pictograms · {c.hazardStatements.length} H-codes)
               </summary>
-              <div className="mt-3 space-y-3">
+              <div className="mt-2.5 space-y-2.5">
                 <GhsGrid ids={c.ghsPictograms} />
                 <HCodeList codes={c.hazardStatements} />
               </div>
             </details>
           )}
         </div>
-      )}
+        );
+      })()}
+    </div>
+  );
+}
+
+function QuantityInput({
+  value,
+  form,
+  onChange,
+  invalid,
+}: {
+  value: string;
+  form: SubstanceForm;
+  onChange: (next: string) => void;
+  invalid?: boolean;
+}) {
+  const parsed = splitQuantity(value);
+  const allowed = UNITS_BY_FORM[form];
+  const unit = parsed.unit && allowed.includes(parsed.unit) ? parsed.unit : defaultUnit(form);
+  const customUnit = parsed.unit && !allowed.includes(parsed.unit) ? parsed.unit : null;
+
+  return (
+    <div className="flex gap-1">
+      <input
+        className={clsx('field-input !py-1.5 text-xs flex-1 min-w-0', invalid && 'field-missing')}
+        type="text"
+        inputMode="decimal"
+        value={parsed.value}
+        onChange={(e) => onChange(joinQuantity(e.target.value, unit))}
+        placeholder="e.g. 500"
+      />
+      <select
+        className="field-input !py-1.5 text-xs !pr-6 w-[5.25rem] shrink-0"
+        value={unit}
+        onChange={(e) => onChange(joinQuantity(parsed.value, e.target.value))}
+      >
+        {allowed.map((u) => <option key={u} value={u}>{u}</option>)}
+        {customUnit && <option value={customUnit}>{customUnit}</option>}
+      </select>
     </div>
   );
 }

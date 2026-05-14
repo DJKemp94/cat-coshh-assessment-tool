@@ -49,57 +49,57 @@ const AQUATIC = ['H400','H410','H411','H412','H413'];
 const STORAGE: Rule[] = [];
 
 const INCOMPATIBLES: Rule[] = [
-  { hCodes: EXPLOSIVE, trigger: 'explosive', text: 'Explosives/self-reactives must be isolated from combustibles, oxidisers, reducing agents, heat, friction and shock sources.' },
+  { hCodes: EXPLOSIVE, trigger: 'explosive', text: 'Segregate explosives or self-reactives from incompatible materials, heat, friction, impact and ignition sources as specified by the SDS.' },
 ];
 
 const SPILLS: Rule[] = [
-  { hCodes: EXPLOSIVE, trigger: 'explosive', text: 'Do not allow to dry out — cover with copious water if applicable. Evacuate immediately and call specialist response. Do not attempt to absorb or sweep.' },
-  { hCodes: [...SKIN_CORR, ...CORROSIVE_METALS], trigger: 'corrosive', text: 'Wear chemical PPE; ventilate; contain with absorbent; neutralise with appropriate base/acid; collect as hazardous waste.' },
-  { hCodes: FLAMMABLE, pictograms: ['flammable'], trigger: 'flammable', text: 'Eliminate ignition sources; ventilate; absorb on inert vermiculite; collect in labelled flammable-waste container.' },
-  { hCodes: ALL_ACUTE_TOX, trigger: 'acute toxicity', text: 'Evacuate and cordon area; use full chemical PPE and respiratory protection; follow SDS spill response.' },
-  { hCodes: AQUATIC, pictograms: ['environmental'], trigger: 'aquatic hazard', text: 'Prevent release to drains and watercourses; bund and absorb; notify environmental safety officer.' },
-  { hCodes: WATER_REACTIVE, trigger: 'water-reactive', text: 'Do not use water; cover with dry sand or vermiculite and isolate; ventilate area.' },
-  { hCodes: PYROPHORIC, trigger: 'pyrophoric', text: 'Cover with dry sand or inert powder; do not expose to air; do not use water.' },
-  { hCodes: OXIDISING, trigger: 'oxidising', text: 'Do not use combustible absorbents (paper, sawdust). Use inert mineral absorbents only.' },
-  { hCodes: RESP_SENS, trigger: 'respiratory sensitiser', text: 'Use respiratory protection rated for the substance; ventilate thoroughly before re-entry.' },
+  { hCodes: EXPLOSIVE, trigger: 'explosive', text: 'Evacuate and call specialist response for explosive or self-reactive spills. Do not sweep, absorb or disturb unless the SDS and local emergency plan confirm it is safe.' },
+  { hCodes: [...SKIN_CORR, ...CORROSIVE_METALS], trigger: 'corrosive', text: 'For corrosive spills, isolate the area, wear suitable chemical PPE, ventilate, contain with compatible absorbent and collect as hazardous waste. Neutralise only where the SDS and local procedure allow.' },
+  { hCodes: FLAMMABLE, pictograms: ['flammable'], trigger: 'flammable', text: 'For flammable spills, remove ignition sources if safe, ventilate, prevent spread and collect with compatible non-sparking equipment and inert absorbent.' },
+  { hCodes: ALL_ACUTE_TOX, trigger: 'acute toxicity', text: 'For toxic spills, keep people away, escalate to trained responders and follow the SDS spill procedure, including any respiratory protection or evacuation requirements.' },
+  { hCodes: AQUATIC, pictograms: ['environmental'], trigger: 'aquatic hazard', text: 'Prevent spills entering drains or watercourses. Bund, absorb or contain the release and escalate under the local environmental procedure.' },
+  { hCodes: WATER_REACTIVE, trigger: 'water-reactive', text: 'For water-reactive spills, keep dry, isolate from water and aqueous materials, ventilate if safe and follow the SDS for compatible absorbents.' },
+  { hCodes: PYROPHORIC, trigger: 'pyrophoric', text: 'For pyrophoric or self-heating spills, isolate from air, water and ignition sources; use only SDS-approved inert media and call trained responders.' },
+  { hCodes: OXIDISING, trigger: 'oxidising', text: 'For oxidiser spills, keep away from combustible materials and use only compatible inert absorbents or clean-up media specified by the SDS.' },
+  { hCodes: RESP_SENS, trigger: 'respiratory sensitiser', text: 'For respiratory sensitiser spills, prevent inhalation exposure, ventilate or evacuate as appropriate and allow re-entry only after controls are confirmed effective.' },
 ];
 
 const FIRST_AID: Rule[] = [
-  { hCodes: SKIN_CORR, trigger: 'skin corrosion (H314)', text: 'Skin: remove contaminated clothing; irrigate with copious water for 15 min; seek medical attention immediately.' },
-  { hCodes: SKIN_IRR, trigger: 'skin irritation (H315)', text: 'Skin: wash with soap and water; seek advice if irritation persists.' },
-  { hCodes: SKIN_SENS, trigger: 'skin sensitiser (H317)', text: 'Skin sensitiser: remove exposure; wash thoroughly; report any rash or reaction to occupational health.' },
-  { hCodes: EYE_DMG, trigger: 'eye damage (H318)', text: 'Eye: irrigate with eyewash for at least 15 min holding eyelids open; seek medical attention immediately.' },
-  { hCodes: EYE_IRR, trigger: 'eye irritation (H319)', text: 'Eye: rinse cautiously with water for several minutes; seek advice if irritation persists.' },
-  { hCodes: [...ACUTE_TOX_INH, ...RESP_IRR], trigger: 'respiratory hazard', text: 'Inhalation: move to fresh air, keep at rest; seek medical attention; do not induce vomiting.' },
-  { hCodes: RESP_SENS, trigger: 'respiratory sensitiser (H334)', text: 'Respiratory sensitiser: move to fresh air, monitor for delayed asthma/wheeze; seek medical attention even if symptoms appear hours later.' },
-  { hCodes: CNS_DEPRESS, trigger: 'CNS depressant (H336)', text: 'If dizziness or drowsiness: move to fresh air; do not leave alone; seek medical attention if symptoms persist.' },
-  { hCodes: ACUTE_TOX_ORAL, trigger: 'acute oral toxicity', text: 'Ingestion: rinse mouth; do NOT induce vomiting; seek medical attention immediately with SDS.' },
-  { hCodes: ASPIRATION, trigger: 'aspiration hazard (H304)', text: 'Aspiration hazard: do NOT induce vomiting — risk of chemical pneumonitis. Seek immediate medical attention.' },
-  { hCodes: ACUTE_TOX_DERMAL, trigger: 'dermal toxicity', text: 'Skin: remove clothing; wash with soap and copious water; seek medical attention.' },
-  { hCodes: TARGET_ORGAN, trigger: 'target organ toxicity', text: 'Following exposure, refer to occupational health for clinical review against the substance’s known target organ.' },
-  { hCodes: CMR, trigger: 'CMR', text: 'Record exposure on the personal exposure log; refer to occupational health.' },
+  { hCodes: SKIN_CORR, trigger: 'skin corrosion (H314)', text: 'Skin contact with corrosives: remove contaminated clothing, rinse immediately with running water and seek urgent medical advice. Follow the SDS for rinse duration and aftercare.' },
+  { hCodes: SKIN_IRR, trigger: 'skin irritation (H315)', text: 'Skin contact with irritants: wash with water, remove contaminated clothing and seek advice if symptoms persist.' },
+  { hCodes: SKIN_SENS, trigger: 'skin sensitiser (H317)', text: 'Skin sensitiser exposure: remove exposure, wash thoroughly and report rash, dermatitis or reaction symptoms to Occupational Health.' },
+  { hCodes: EYE_DMG, trigger: 'eye damage (H318)', text: 'Eye exposure with serious eye-damage hazards: rinse immediately using eyewash while holding eyelids open and seek urgent medical attention.' },
+  { hCodes: EYE_IRR, trigger: 'eye irritation (H319)', text: 'Eye exposure with irritants: rinse cautiously with water and seek advice if pain, redness or visual symptoms persist.' },
+  { hCodes: [...ACUTE_TOX_INH, ...RESP_IRR], trigger: 'respiratory hazard', text: 'Inhalation exposure: move the person to fresh air if safe to do so, keep at rest and seek medical advice where symptoms, toxic exposure or respiratory irritation may have occurred.' },
+  { hCodes: RESP_SENS, trigger: 'respiratory sensitiser (H334)', text: 'Respiratory sensitiser exposure: move to fresh air, monitor for delayed wheeze or asthma symptoms and seek medical advice even if symptoms develop later.' },
+  { hCodes: CNS_DEPRESS, trigger: 'CNS depressant (H336)', text: 'Drowsiness or dizziness: move to fresh air, avoid leaving the person alone and seek medical advice if symptoms persist or exposure was significant.' },
+  { hCodes: ACUTE_TOX_ORAL, trigger: 'acute oral toxicity', text: 'Ingestion of acutely toxic substances: rinse mouth, do not induce vomiting unless medically directed, and seek urgent medical advice with the SDS available.' },
+  { hCodes: ASPIRATION, trigger: 'aspiration hazard (H304)', text: 'Aspiration hazard: do not induce vomiting. Seek urgent medical advice because liquid entering the lungs can cause serious harm.' },
+  { hCodes: ACUTE_TOX_DERMAL, trigger: 'dermal toxicity', text: 'Dermal toxic exposure: remove contaminated clothing, wash exposed skin thoroughly and seek medical advice based on SDS first-aid guidance.' },
+  { hCodes: TARGET_ORGAN, trigger: 'target organ toxicity', text: 'Following significant exposure to target-organ toxic substances, arrange medical or Occupational Health review against the SDS and exposure details.' },
+  { hCodes: CMR, trigger: 'CMR', text: 'For suspected CMR exposure, record the incident and refer to Occupational Health or competent medical advice under the local exposure-reporting process.' },
 ];
 
 const FIRE: Rule[] = [
-  { hCodes: EXPLOSIVE, trigger: 'explosive', text: 'Risk of detonation — evacuate area; fight fire from a safe distance; do not approach the container.' },
-  { hCodes: FLAMMABLE, pictograms: ['flammable'], trigger: 'flammable', text: 'Suitable extinguishers: foam, CO₂, dry powder. Cool surrounding containers with water spray.' },
-  { hCodes: OXIDISING, pictograms: ['oxidising'], trigger: 'oxidising', text: 'Oxidiser — use copious water spray; do NOT use foam (foam can fuel the fire).' },
-  { hCodes: WATER_REACTIVE, trigger: 'water-reactive', text: 'Do NOT use water. Use dry powder or sand only.' },
-  { hCodes: PYROPHORIC, trigger: 'pyrophoric / self-heating', text: 'Use dry powder or sand only; do not use water or CO₂.' },
-  { hCodes: PRESSURISED, pictograms: ['compressed-gas'], trigger: 'pressurised cylinder', text: 'Cylinder fire — evacuate; cool cylinders from a safe distance; do not approach.' },
-  { hCodes: ALL_ACUTE_TOX, trigger: 'acute toxicity', text: 'Combustion may produce toxic fumes — full BA required; evacuate downwind.' },
-  { hCodes: AQUATIC, trigger: 'aquatic hazard', text: 'Bund firefighting run-off; prevent release to drains and watercourses.' },
+  { hCodes: EXPLOSIVE, trigger: 'explosive', text: 'Explosive or self-reactive fire risk: evacuate, keep distance and tell emergency responders about the substance and SDS hazards.' },
+  { hCodes: FLAMMABLE, pictograms: ['flammable'], trigger: 'flammable', text: 'Flammable substances: use extinguishing media suitable for the material and surrounding fire, and cool exposed containers from a safe distance where appropriate.' },
+  { hCodes: OXIDISING, pictograms: ['oxidising'], trigger: 'oxidising', text: 'Oxidisers can intensify fire. Keep away from combustibles and use only SDS-approved firefighting media.' },
+  { hCodes: WATER_REACTIVE, trigger: 'water-reactive', text: 'Water-reactive substances: do not use water unless the SDS or emergency responder confirms it is safe; use compatible dry media specified by the SDS.' },
+  { hCodes: PYROPHORIC, trigger: 'pyrophoric / self-heating', text: 'Pyrophoric or self-heating substances: isolate from air and water where safe, evacuate if needed and use only SDS-approved extinguishing media.' },
+  { hCodes: PRESSURISED, pictograms: ['compressed-gas'], trigger: 'pressurised cylinder', text: 'Pressurised containers: evacuate if heating or fire exposure occurs, keep distance and cool from a protected position only if safe.' },
+  { hCodes: ALL_ACUTE_TOX, trigger: 'acute toxicity', text: 'Fire involving toxic substances may generate harmful fumes. Evacuate affected areas and provide SDS details to emergency responders.' },
+  { hCodes: AQUATIC, trigger: 'aquatic hazard', text: 'Contain firefighting run-off where practicable and prevent release to drains or watercourses.' },
 ];
 
 const WASTE: Rule[] = [
-  { hCodes: EXPLOSIVE, trigger: 'explosive', text: 'Explosive waste — DO NOT place in normal hazardous waste stream; arrange specialist disposal via licensed contractor.' },
-  { hCodes: CMR, trigger: 'CMR', text: 'CMR waste — segregate, label clearly with H-code, dispose via licensed hazardous waste contractor.' },
-  { hCodes: AQUATIC, pictograms: ['environmental'], trigger: 'aquatic hazard', text: 'Aquatic hazard waste — segregate; do not dispose to drain; collect in sealed bunded container.' },
-  { hCodes: FLAMMABLE, trigger: 'flammable', text: 'Segregate halogenated and non-halogenated solvent waste per local protocol; sealed labelled containers.' },
-  { hCodes: ALL_ACUTE_TOX, trigger: 'acute toxicity', text: 'Toxic waste — collect in sealed, clearly labelled container for licensed disposal.' },
-  { hCodes: [...SKIN_CORR, ...CORROSIVE_METALS], trigger: 'corrosive', text: 'Corrosive waste — neutralise where safe to do so; otherwise collect in compatible container for licensed disposal.' },
-  { hCodes: PYROPHORIC, trigger: 'pyrophoric / self-heating', text: 'Pyrophoric waste — quench under inert conditions before disposal; collect in sealed container under inert gas.' },
-  { hCodes: WATER_REACTIVE, trigger: 'water-reactive', text: 'Water-reactive waste — keep dry until disposal; do not mix with aqueous waste streams.' },
+  { hCodes: EXPLOSIVE, trigger: 'explosive', text: 'Do not place explosive or self-reactive waste into routine waste streams. Arrange specialist disposal through the approved hazardous-waste route.' },
+  { hCodes: CMR, trigger: 'CMR', text: 'Segregate CMR waste, label it clearly and dispose of it through the approved hazardous-waste route.' },
+  { hCodes: AQUATIC, pictograms: ['environmental'], trigger: 'aquatic hazard', text: 'Collect environmentally hazardous waste in sealed compatible containment. Do not dispose to drain.' },
+  { hCodes: FLAMMABLE, trigger: 'flammable', text: 'Collect flammable waste in sealed, labelled, compatible containers and segregate waste streams according to local procedure.' },
+  { hCodes: ALL_ACUTE_TOX, trigger: 'acute toxicity', text: 'Collect toxic waste in sealed, clearly labelled compatible containers for approved hazardous-waste disposal.' },
+  { hCodes: [...SKIN_CORR, ...CORROSIVE_METALS], trigger: 'corrosive', text: 'Collect corrosive waste in compatible containers. Neutralise only where the SDS and local procedure confirm it is safe and authorised.' },
+  { hCodes: PYROPHORIC, trigger: 'pyrophoric / self-heating', text: 'Manage pyrophoric or self-heating waste using the SDS-approved quench, inerting or containment method before disposal.' },
+  { hCodes: WATER_REACTIVE, trigger: 'water-reactive', text: 'Keep water-reactive waste dry and segregated from aqueous waste until collected through the approved disposal route.' },
 ];
 
 const RULESETS: Record<RequirementField, Rule[]> = {
@@ -232,7 +232,7 @@ function selectedStorageSuggestions(chems: Substance[]): Suggestion[] {
     out,
     seen,
     explosive,
-    `Store explosives/self-reactives (${names(explosive)}) isolated in original packaging, protected from heat, friction and shock; keep only minimum quantities.`,
+    `Store explosives or self-reactives (${names(explosive)}) in approved storage, in minimum quantities, protected from heat, friction, shock and incompatible materials.`,
     'Triggered by explosive/self-reactive H-codes.',
   );
 
@@ -241,7 +241,7 @@ function selectedStorageSuggestions(chems: Substance[]): Suggestion[] {
     out,
     seen,
     flammableGas,
-    `Store flammable gases (${names(flammableGas)}) in a ventilated cylinder store, upright and secured, away from oxidising gases and ignition sources.`,
+    `Store flammable gases (${names(flammableGas)}) upright, secured, ventilated and segregated from oxidising gases and ignition sources.`,
     'Triggered by H220/H221 flammable gas classification.',
   );
 
@@ -250,7 +250,7 @@ function selectedStorageSuggestions(chems: Substance[]): Suggestion[] {
     out,
     seen,
     pressurised,
-    `Store pressurised gas containers (${names(pressurised)}) upright, secured, ventilated and away from heat.`,
+    `Store pressurised gas containers (${names(pressurised)}) upright, secured, ventilated and protected from heat or physical damage.`,
     'Triggered by compressed-gas pictogram or H229/H280/H281.',
   );
 
@@ -259,7 +259,7 @@ function selectedStorageSuggestions(chems: Substance[]): Suggestion[] {
     out,
     seen,
     group1,
-    `Store flammables/combustibles (${names(group1)}) in a clearly labelled fire-resistant metal flammables cabinet, or an explosion-proof fridge if temperature-controlled storage is required. Do not keep cardboard or other combustible packaging in the cabinet.`,
+    `Store flammables and combustibles (${names(group1)}) in approved flammable storage, away from ignition sources, oxidisers and incompatible chemicals. Keep only the working quantity at the point of use.`,
     fbmh('Group 1: flammables and combustibles'),
   );
 
@@ -268,7 +268,7 @@ function selectedStorageSuggestions(chems: Substance[]): Suggestion[] {
     out,
     seen,
     group2,
-    `Store volatile poisons/halogenated solvents (${names(group2)}) separately in a ventilated cabinet where practicable. If a flammables cabinet is used, keep bases out and separate by shelf/secondary containment.`,
+    `Store volatile poisons or halogenated solvents (${names(group2)}) separately in compatible, ventilated storage where practicable. Segregate from bases, oxidisers and reactive materials.`,
     fbmh('Group 2: volatile poisons, halogenated/chlorinated solvents'),
   );
 
@@ -277,7 +277,7 @@ function selectedStorageSuggestions(chems: Substance[]): Suggestion[] {
     out,
     seen,
     group3,
-    `Store oxidising inorganic acids (${names(group3)}) in a clearly labelled corrosives cabinet under the fume hood, in secondary containment. Keep oxidising acids isolated from other storage groups.`,
+    `Store oxidising inorganic acids (${names(group3)}) in compatible corrosives storage with secondary containment. Segregate from organic materials, flammables, bases and other incompatible storage groups.`,
     fbmh('Group 3: oxidising inorganic acids'),
   );
 
@@ -286,7 +286,7 @@ function selectedStorageSuggestions(chems: Substance[]): Suggestion[] {
     out,
     seen,
     group4,
-    `Store non-oxidising organic/mineral acids (${names(group4)}) in a clearly labelled corrosives cabinet, preferably under the fume hood, with compatible secondary containment.`,
+    `Store non-oxidising organic or mineral acids (${names(group4)}) in compatible corrosives storage with secondary containment. Segregate from bases and incompatible chemicals.`,
     fbmh('Group 4: non-oxidising organic and mineral acids'),
   );
 
@@ -295,7 +295,7 @@ function selectedStorageSuggestions(chems: Substance[]): Suggestion[] {
     out,
     seen,
     group5,
-    `Store liquid bases (${names(group5)}) in a clearly labelled corrosives cabinet with compatible secondary containment.`,
+    `Store liquid bases (${names(group5)}) in compatible corrosives storage with secondary containment. Segregate from acids, halogenated solvents and incompatible chemicals.`,
     fbmh('Group 5: liquid bases'),
   );
 
@@ -304,7 +304,7 @@ function selectedStorageSuggestions(chems: Substance[]): Suggestion[] {
     out,
     seen,
     group6,
-    `Store oxidisers/organic peroxides (${names(group6)}) isolated from other storage groups. If stored near other chemicals, keep in a separate tray, tub or secondary container.`,
+    `Store oxidisers or organic peroxides (${names(group6)}) isolated from other storage groups, using compatible secondary containment and minimum practicable quantities.`,
     fbmh('Group 6: oxidizers / organic peroxides; compatible storage groups: none'),
   );
 
@@ -313,7 +313,7 @@ function selectedStorageSuggestions(chems: Substance[]): Suggestion[] {
     out,
     seen,
     group7,
-    `Store non-volatile poisons/toxins (${names(group7)}) in a lockable toxins cabinet with waterproof secondary containment; keep liquid poisons below cyanide- or sulfide-containing solids.`,
+    `Store non-volatile poisons or toxins (${names(group7)}) in secure, clearly labelled compatible storage with secondary containment. Keep liquids below solids where practicable.`,
     fbmh('Group 7: non-volatile liquid and dry poisons'),
   );
 
@@ -322,7 +322,7 @@ function selectedStorageSuggestions(chems: Substance[]): Suggestion[] {
     out,
     seen,
     group9,
-    `Store dry solids/powders (${names(group9)}) in a cabinet or on open shelving below eye height; keep powders above liquids and protected from liquid spills.`,
+    `Store dry solids or powders (${names(group9)}) in stable, labelled storage, protected from moisture, contamination and contact with liquid spills.`,
     fbmh('Group 9: dry solids'),
   );
 
@@ -331,7 +331,7 @@ function selectedStorageSuggestions(chems: Substance[]): Suggestion[] {
     out,
     seen,
     waterReactive,
-    `Store water-reactive substances (${names(waterReactive)}) dry, sealed and physically segregated from water, aqueous solutions, acids, bases and alcohols.`,
+    `Store water-reactive substances (${names(waterReactive)}) dry, sealed and physically segregated from water, aqueous materials and incompatible chemicals.`,
     'Triggered by H260/H261 water-reactive classification; check SDS sections 7 and 10.',
   );
 
@@ -340,7 +340,7 @@ function selectedStorageSuggestions(chems: Substance[]): Suggestion[] {
     out,
     seen,
     pyrophoric,
-    `Store pyrophoric/self-heating substances (${names(pyrophoric)}) under inert atmosphere or as specified by the SDS, away from air, water, oxidisers and ignition sources.`,
+    `Store pyrophoric or self-heating substances (${names(pyrophoric)}) exactly as specified by the SDS, segregated from air, water, oxidisers and ignition sources.`,
     'Triggered by pyrophoric/self-heating/self-reactive H-codes; check SDS sections 7 and 10.',
   );
 
@@ -349,7 +349,7 @@ function selectedStorageSuggestions(chems: Substance[]): Suggestion[] {
     out,
     seen,
     aquatic,
-    `Store aquatic/environmental hazards (${names(aquatic)}) in bunded or secondary containment to prevent release to drains or watercourses.`,
+    `Store aquatic or environmental hazards (${names(aquatic)}) in suitable secondary containment to prevent release to drains, soil or watercourses.`,
     'Triggered by aquatic/environmental H-codes or environmental pictogram.',
   );
 

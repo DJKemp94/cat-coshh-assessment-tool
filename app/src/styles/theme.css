@@ -30,6 +30,9 @@ body {
   .field-textarea {
     @apply field-input min-h-[88px] resize-y;
   }
+  .field-missing {
+    @apply bg-amber-50 border-amber-300 ring-1 ring-amber-200/60;
+  }
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm
            font-medium transition focus:outline-none focus:ring-2 focus:ring-accent-500

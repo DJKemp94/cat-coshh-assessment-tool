@@ -365,32 +365,32 @@ function buildControlsPatch(driver: SubstanceAnalysis, analyses: SubstanceAnalys
 
   const engineering = (() => {
     switch (a) {
-      case 1: return 'Provide good general ventilation. Keep containers closed when not in use and minimise spills, splashes and open handling.';
-      case 2: return 'Use suitable engineering control at the point of release, such as local exhaust ventilation or equivalent capture. Keep containers closed and use enclosed transfer where practicable. Keep LEV inspection and thorough examination in date where LEV is used.';
-      case 3: return 'Use containment or enclosure to prevent routine exposure. Carry out transfers and cleaning under controlled conditions, with extraction or negative pressure where required. Keep inspection, maintenance and test records for control equipment.';
-      case 4: return 'Do not rely on generic banding alone. Obtain competent specialist advice before work proceeds, and define suitable containment, extraction, monitoring and safe-system-of-work requirements for the specific task.';
+      case 1: return 'Provide effective general ventilation and good working practice. Keep containers closed except during use, and minimise spills, splashes, dust generation and open handling.';
+      case 2: return 'Use suitable engineering control at the point of release, such as local exhaust ventilation, enclosure or equivalent capture. Keep containers closed and use controlled transfer or dispensing where practicable. Inspect and maintain controls, and keep statutory LEV examination records where LEV is used.';
+      case 3: return 'Use containment or enclosure to prevent routine exposure. Carry out transfer, cleaning and maintenance under controlled conditions, with extraction or negative pressure where required. Keep inspection, maintenance and test records for control equipment.';
+      case 4: return 'Do not rely on generic banding alone. Obtain competent specialist advice before work proceeds, and define task-specific containment, extraction, monitoring and safe-system-of-work requirements.';
     }
   })();
 
   const ppeType = a >= 3
-    ? 'Suitable chemical-resistant gloves, eye/face protection and protective clothing selected for the substance and task. RPE only where exposure cannot be adequately controlled by other means, and only after selection and fit testing where required.'
-    : 'Suitable chemical-resistant gloves, eye protection and protective clothing selected for the substance and task.';
+    ? 'Use chemical-resistant gloves, eye/face protection and protective clothing selected for the substance, contact time and task. Use RPE only where exposure cannot be adequately controlled by other means, and only after suitable selection, fit testing where required, maintenance and storage arrangements are in place.'
+    : 'Use chemical-resistant gloves, eye protection and protective clothing selected for the substance, contact time and task.';
   const ppeStandard = a >= 3
-    ? 'Gloves to EN ISO 374-1 where chemical protection is required; eye protection to EN 166. RPE must be suitable for the contaminant, face-fit tested where tight-fitting, maintained and stored correctly.'
+    ? 'Gloves to EN ISO 374-1 where chemical protection is required; eye protection to EN 166. RPE must be suitable for the contaminant and task, face-fit tested where tight-fitting, maintained and stored correctly.'
     : 'Gloves to EN ISO 374-1 where chemical protection is required; eye protection to EN 166.';
 
-  const admin = 'Use a written SOP or safe working procedure. Brief users before first use and restrict work to trained personnel. Keep the work area clean, report spills promptly, and review the assessment if the substance, quantity, process or controls change.';
+  const admin = 'Use a written SOP or safe working procedure. Brief users before first use and restrict the activity to trained and authorised personnel. Keep the work area clean, report spills or control failures promptly, and review the assessment if the substance, quantity, frequency, process or controls change.';
 
   const airMonitoring = a >= 2
-    ? 'Consider personal exposure monitoring against the relevant WEL where exposure may approach the limit, controls are unproven, or the task changes. Document the monitoring strategy where higher-risk controls are required.'
-    : 'Routine air monitoring is not normally required where exposure is adequately controlled and no WEL concern is identified. Reassess if quantity, frequency, duration or process temperature increases.';
+    ? 'Consider personal exposure monitoring against the relevant WEL where exposure could approach the limit, controls are unproven, or the task changes. Document the monitoring decision and review it when quantity, duration, frequency, temperature or control performance changes.'
+    : 'Routine air monitoring is not normally required where exposure is demonstrably low and no WEL concern is identified. Reassess if quantity, frequency, duration, temperature or control performance changes.';
 
   const healthSurveillanceDrivers = analyses.flatMap((x) =>
     x.drivingHCodes.filter((h) => /^H(317|334|340|341|350|360|361|362)/i.test(h)),
   );
   const healthSurveillance = healthSurveillanceDrivers.length > 0
-    ? `Refer to Occupational Health to decide whether health surveillance is required for ${[...new Set(healthSurveillanceDrivers)].join(', ')}. Maintain health records where surveillance is required.`
-    : 'No routine health surveillance trigger identified from the current H-statements. Users must report symptoms or suspected exposure promptly.';
+    ? `Refer to Occupational Health to decide whether health surveillance is required for ${[...new Set(healthSurveillanceDrivers)].join(', ')}. Maintain health records where surveillance is required, and tell users how to report symptoms or suspected exposure.`
+    : 'No routine health surveillance trigger has been identified from the current H-statements. Users must report symptoms, suspected exposure or control failures promptly.';
 
   return {
     engineering,
