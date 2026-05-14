@@ -233,8 +233,8 @@ function ChemicalRow({ stepId, chemical: c }: { stepId: string; chemical: Substa
 
   const onChange = (patch: Partial<Substance>) => update(stepId, c.id, patch);
 
-  const lookup = async (force = false, override?: string) => {
-    const query = (override ?? c.name).trim();
+  const lookup = async (force = false, override?: string | number) => {
+    const query = typeof override === 'number' ? override : (override ?? c.name).trim();
     if (!query) { setError('Enter a chemical name first.'); return; }
     setBusy(true); setError(null);
     try {
@@ -352,7 +352,10 @@ function ChemicalRow({ stepId, chemical: c }: { stepId: string; chemical: Substa
                 <ChemicalAutocomplete
                   value={c.name}
                   onChange={(v) => onChange({ name: v })}
-                  onSelect={(name) => { onChange({ name }); lookup(false, name); }}
+                  onSelect={(selection) => {
+                    onChange({ name: selection.name });
+                    lookup(false, selection.cid ?? selection.name);
+                  }}
                   placeholder="e.g. acetone or 67-64-1"
                   disabled={busy}
                 />

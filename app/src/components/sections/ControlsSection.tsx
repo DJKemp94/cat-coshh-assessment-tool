@@ -156,7 +156,6 @@ function CoshhEssentialsPanel({
   onApply: (patch: Parameters<ReturnType<typeof useAssessment.getState>['updateControls']>[0]) => void;
 }) {
   const [open, setOpen] = useState(true);
-  const [details, setDetails] = useState(false);
 
   const apply = () => {
     if (!window.confirm(
@@ -169,7 +168,7 @@ function CoshhEssentialsPanel({
   };
 
   return (
-    <div className={clsx('card p-4 mb-4 border-l-4', APPROACH_COLOR[s.approach])}>
+    <div className="card p-4 mb-4">
       <div className="flex items-start gap-3">
         <Sparkles size={18} className="shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
@@ -209,98 +208,11 @@ function CoshhEssentialsPanel({
 
           {open && (
             <div className="mt-3 space-y-3 text-sm">
-              <div className="text-zinc-700">
-                Driven by{' '}
-                <strong>{s.driver?.name}</strong> — hazard group{' '}
-                <strong>{s.driver?.hazardGroup}</strong>
-                {s.driver && s.driver.drivingHCodes.length > 0 && (
-                  <> ({s.driver.drivingHCodes.join(', ')})</>
-                )}
-                , scale <strong>{s.driver?.scale}</strong>
-                {s.driver?.bandKind !== 'not-applicable' && (
-                  <>, {s.driver?.bandKind} <strong>{s.driver?.band}</strong></>
-                )}
-                {s.driver?.exposurePredictor && (
-                  <>, exposure predictor <strong>{s.driver.exposurePredictor}</strong></>
-                )}.
-              </div>
-
-              <div className="text-xs text-zinc-600">
-                Reference: {s.gSheetRef}.{' '}
-                <a
-                  href="https://www.hse.gov.uk/pubns/books/hsg193.htm"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-0.5 text-accent-700 hover:underline"
-                >
-                  HSG193 <ExternalLink size={11} />
-                </a>
-              </div>
-
-              <details className="rounded-md border border-zinc-200 bg-white/70 p-2.5 text-xs text-zinc-700">
-                <summary className="cursor-pointer font-medium text-zinc-800">
-                  What the COSHH Essentials values mean
-                </summary>
-                <div className="mt-2 grid grid-cols-1 lg:grid-cols-3 gap-3">
-                  <div>
-                    <div className="font-medium text-zinc-900 mb-1">Hazard group</div>
-                    <dl className="space-y-1">
-                      {HAZARD_GROUP_HELP.map(([key, text]) => (
-                        <div key={key} className="grid grid-cols-[1.5rem_1fr] gap-1">
-                          <dt className="font-semibold">Group {key}</dt>
-                          <dd>{text}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                  </div>
-                  <div>
-                    <div className="font-medium text-zinc-900 mb-1">EP band</div>
-                    <dl className="space-y-1">
-                      {EP_HELP.map(([key, text]) => (
-                        <div key={key} className="grid grid-cols-[2rem_1fr] gap-1">
-                          <dt className="font-semibold">{key}</dt>
-                          <dd>{text}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                  </div>
-                  <div>
-                    <div className="font-medium text-zinc-900 mb-1">Approach</div>
-                    <dl className="space-y-1">
-                      {APPROACH_HELP.map(([key, text]) => (
-                        <div key={key} className="grid grid-cols-[1.5rem_1fr] gap-1">
-                          <dt className="font-semibold">{key}</dt>
-                          <dd>{text}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                    <p className="mt-2 text-zinc-500">
-                      EP is calculated from amount in use plus dustiness for solids or volatility for liquids.
-                    </p>
-                  </div>
-                </div>
-              </details>
-
-              {s.warnings.length > 0 && (
-                <div className="rounded-md border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-900 space-y-1">
-                  <div className="flex items-center gap-1 font-medium">
-                    <AlertTriangle size={12} /> Caveats &amp; assumptions
-                  </div>
-                  <ul className="list-disc ml-4 space-y-0.5">
-                    {s.warnings.map((w, i) => <li key={i}>{w}</li>)}
-                  </ul>
-                </div>
-              )}
-
-              <button
-                onClick={() => setDetails((v) => !v)}
-                className="text-xs text-zinc-600 hover:text-zinc-900 inline-flex items-center gap-1"
-              >
-                {details ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+              <div className="text-xs font-medium text-zinc-700">
                 Per-substance breakdown ({s.analyses.length}) — grouped by approach
-              </button>
+              </div>
 
-              {details && (() => {
+              {(() => {
                 const groups = new Map<Approach, SubstanceAnalysis[]>();
                 for (const a of s.analyses) {
                   const list = groups.get(a.approach) ?? [];
@@ -374,6 +286,101 @@ function CoshhEssentialsPanel({
                   </div>
                 );
               })()}
+
+              <details className="rounded-md border-2 border-accent-200 bg-accent-50/60 p-3 text-xs text-zinc-800 shadow-soft">
+                <summary className="cursor-pointer font-semibold text-accent-900 select-none">
+                  What the COSHH Essentials values mean
+                </summary>
+                <div className="mt-3 grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <div>
+                    <div className="font-semibold text-accent-900 mb-1.5 pb-1 border-b border-accent-200">
+                      Hazard group
+                    </div>
+                    <dl className="space-y-1.5">
+                      {HAZARD_GROUP_HELP.map(([key, text]) => (
+                        <div key={key} className="flex gap-2">
+                          <dt className="font-semibold whitespace-nowrap shrink-0 min-w-[3.5rem]">
+                            Group {key}
+                          </dt>
+                          <dd className="text-zinc-700">{text}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-accent-900 mb-1.5 pb-1 border-b border-accent-200">
+                      EP band
+                    </div>
+                    <dl className="space-y-1.5">
+                      {EP_HELP.map(([key, text]) => (
+                        <div key={key} className="flex gap-2">
+                          <dt className="font-semibold whitespace-nowrap shrink-0 min-w-[2.5rem]">
+                            {key}
+                          </dt>
+                          <dd className="text-zinc-700">{text}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-accent-900 mb-1.5 pb-1 border-b border-accent-200">
+                      Approach
+                    </div>
+                    <dl className="space-y-1.5">
+                      {APPROACH_HELP.map(([key, text]) => (
+                        <div key={key} className="flex gap-2">
+                          <dt className="font-semibold whitespace-nowrap shrink-0 min-w-[1.5rem]">
+                            {key}
+                          </dt>
+                          <dd className="text-zinc-700">{text}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                    <p className="mt-2 text-zinc-500 italic">
+                      EP is calculated from amount in use plus dustiness for solids or volatility for liquids.
+                    </p>
+                  </div>
+                </div>
+              </details>
+
+              {s.warnings.length > 0 && (
+                <div className="rounded-md border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-900 space-y-1">
+                  <div className="flex items-center gap-1 font-medium">
+                    <AlertTriangle size={12} /> Caveats &amp; assumptions
+                  </div>
+                  <ul className="list-disc ml-4 space-y-0.5">
+                    {s.warnings.map((w, i) => <li key={i}>{w}</li>)}
+                  </ul>
+                </div>
+              )}
+
+              <div className="text-zinc-700 text-sm">
+                Driven by{' '}
+                <strong>{s.driver?.name}</strong> — hazard group{' '}
+                <strong>{s.driver?.hazardGroup}</strong>
+                {s.driver && s.driver.drivingHCodes.length > 0 && (
+                  <> ({s.driver.drivingHCodes.join(', ')})</>
+                )}
+                , scale <strong>{s.driver?.scale}</strong>
+                {s.driver?.bandKind !== 'not-applicable' && (
+                  <>, {s.driver?.bandKind} <strong>{s.driver?.band}</strong></>
+                )}
+                {s.driver?.exposurePredictor && (
+                  <>, exposure predictor <strong>{s.driver.exposurePredictor}</strong></>
+                )}.
+              </div>
+
+              <div className="text-xs text-zinc-600">
+                Reference: {s.gSheetRef}.{' '}
+                <a
+                  href="https://www.hse.gov.uk/pubns/books/hsg193.htm"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-0.5 text-accent-700 hover:underline"
+                >
+                  HSG193 <ExternalLink size={11} />
+                </a>
+              </div>
 
               <div className="flex items-center gap-2 pt-1">
                 <button onClick={apply} className="btn-primary text-xs">

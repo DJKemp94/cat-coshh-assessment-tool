@@ -3,9 +3,9 @@
 
 # Local assistant/tool settings
 .claude/settings.local.json
+.idea/
 
 # App dependencies and generated output
 app/node_modules/
 app/dist/
 app/tsconfig.tsbuildinfo
-

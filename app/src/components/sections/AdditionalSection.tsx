@@ -1,7 +1,9 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { ChevronDown, ChevronRight, Plus, Lightbulb } from 'lucide-react';
+import clsx from 'clsx';
 import { useAssessment } from '@/store/assessment';
 import { SectionHeader } from '@/components/common/SectionHeader';
-import { SuggestionChips, appendUnique } from '@/components/common/SuggestionChips';
+import { appendUnique, ChipSuggestion } from '@/components/common/SuggestionChips';
 import { SuggestionDisclaimer } from '@/components/common/SuggestionDisclaimer';
 import { suggestRequirements, RequirementField } from '@/services/suggestRequirements';
 
@@ -17,31 +19,24 @@ export function AdditionalSection() {
     [assessment.processSteps],
   );
 
-  const tableSuggestions = (field: RequirementField) => suggestions[field] ?? [];
-
-  const taWithSuggestions = (
+  const ta = (
     key: keyof typeof a,
     field: RequirementField | null,
     label: string,
     placeholder?: string,
-  ) => (
-    <div>
-      <span className="field-label">{label}</span>
-      {field && (
-        <SuggestionChips
-          suggestions={tableSuggestions(field)}
-          value={a[key] as string}
-          onAppend={(s) => update({ [key]: appendUnique(a[key] as string, s) } as Partial<typeof a>)}
-        />
-      )}
-      <textarea
-        className="field-textarea"
-        value={a[key] as string}
+  ) => {
+    const value = a[key] as string;
+    return (
+      <Field
+        label={label}
+        value={value}
+        suggestions={field ? suggestions[field] ?? [] : []}
+        onAppend={(s) => update({ [key]: appendUnique(value, s) } as Partial<typeof a>)}
+        onChange={(v) => update({ [key]: v } as Partial<typeof a>)}
         placeholder={placeholder}
-        onChange={(e) => update({ [key]: e.target.value } as Partial<typeof a>)}
       />
-    </div>
-  );
+    );
+  };
 
   return (
     <section>
@@ -49,54 +44,191 @@ export function AdditionalSection() {
         title="Storage &amp; Emergency"
         subtitle={
           totalChems > 0
-            ? `Suggestions below are derived from H-codes and GHS pictograms across the ${totalChems} chemical${totalChems === 1 ? '' : 's'} you've added. Click a chip to add it.`
+            ? `Suggestions below are derived from H-codes and GHS pictograms across the ${totalChems} chemical${totalChems === 1 ? '' : 's'} you've added.`
             : 'Add chemicals in the Process Steps section to see hazard-driven suggestions here.'
         }
       />
       <SuggestionDisclaimer />
 
-      <div className="card p-5 space-y-4">
-        <label className="flex items-center gap-2 text-sm text-zinc-700">
-          <input
-            type="checkbox"
-            checked={a.cheminventoryLogged}
-            onChange={(e) => update({ cheminventoryLogged: e.target.checked })}
-          />
-          Hazardous substance logged into ChemInventory
-        </label>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <label>
-            <span className="field-label">SDS version number</span>
+      <div className="space-y-3">
+        <Card title="Storage & SDS" defaultOpen>
+          <label className="flex items-center gap-2 text-sm text-zinc-700">
             <input
-              className="field-input"
-              value={a.sdsVersion}
-              onChange={(e) => update({ sdsVersion: e.target.value })}
+              type="checkbox"
+              checked={a.cheminventoryLogged}
+              onChange={(e) => update({ cheminventoryLogged: e.target.checked })}
             />
+            Hazardous substance logged into ChemInventory
           </label>
-          <label>
-            <span className="field-label">SDS date</span>
-            <input
-              type="date"
-              className="field-input"
-              value={a.sdsDate}
-              onChange={(e) => update({ sdsDate: e.target.value })}
-            />
-          </label>
-        </div>
 
-        {taWithSuggestions('storage', 'storage', 'Storage requirements')}
-        {taWithSuggestions('incompatibles', 'incompatibles', 'Incompatible substances')}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label>
+              <span className="field-label">SDS version number</span>
+              <input
+                className="field-input"
+                value={a.sdsVersion}
+                onChange={(e) => update({ sdsVersion: e.target.value })}
+              />
+            </label>
+            <label>
+              <span className="field-label">SDS date</span>
+              <input
+                type="date"
+                className="field-input"
+                value={a.sdsDate}
+                onChange={(e) => update({ sdsDate: e.target.value })}
+              />
+            </label>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {taWithSuggestions('emergencySpills', 'emergencySpills', 'Emergency — Spills')}
-          {taWithSuggestions('emergencyFirstAid', 'emergencyFirstAid', 'Emergency — First aid')}
-          {taWithSuggestions('emergencyFire', 'emergencyFire', 'Emergency — Fire')}
-        </div>
+          {ta('storage', 'storage', 'Storage requirements')}
+          {ta('incompatibles', 'incompatibles', 'Incompatible substances')}
+        </Card>
 
-        {taWithSuggestions('wasteHandling', 'wasteHandling', 'Waste handling')}
-        {taWithSuggestions('other', null, 'Other')}
+        <Card title="Emergency response" defaultOpen>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {ta('emergencyFirstAid', 'emergencyFirstAid', 'First aid')}
+            {ta('emergencySpills', 'emergencySpills', 'Spills')}
+            {ta('emergencyFire', 'emergencyFire', 'Fire')}
+          </div>
+        </Card>
+
+        <Card title="Waste & other" defaultOpen>
+          {ta('wasteHandling', 'wasteHandling', 'Waste handling')}
+          {ta('other', null, 'Other')}
+        </Card>
       </div>
     </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+function Card({
+  title,
+  defaultOpen,
+  children,
+}: {
+  title: string;
+  defaultOpen: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="card overflow-hidden">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-zinc-50 transition"
+      >
+        {open ? <ChevronDown size={16} className="text-zinc-500" /> : <ChevronRight size={16} className="text-zinc-500" />}
+        <span className="font-medium text-zinc-900">{title}</span>
+      </button>
+      {open && <div className="px-4 pb-4 space-y-4 border-t border-zinc-100">{children}</div>}
+    </div>
+  );
+}
+
+function Field({
+  label,
+  value,
+  suggestions,
+  onAppend,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  suggestions: ChipSuggestion[];
+  onAppend: (text: string) => void;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
+  // Auto-show chips while the field is empty; collapse once the user has typed
+  // or inserted anything. User can still toggle manually.
+  const isEmpty = value.trim().length === 0;
+  const [forced, setForced] = useState<boolean | null>(null);
+  const showChips = forced ?? (isEmpty && suggestions.length > 0);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <span className="field-label !mb-0">{label}</span>
+        {suggestions.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setForced(!showChips)}
+            className={clsx(
+              'inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border transition',
+              showChips
+                ? 'bg-accent-50 border-accent-200 text-accent-800'
+                : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50',
+            )}
+            aria-expanded={showChips}
+          >
+            <Lightbulb size={11} />
+            {suggestions.length} suggestion{suggestions.length === 1 ? '' : 's'}
+            {showChips ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+          </button>
+        )}
+      </div>
+
+      {showChips && (
+        <ScrollableChipRow
+          suggestions={suggestions}
+          value={value}
+          onAppend={(t) => {
+            onAppend(t);
+            // Once the user has clicked something, leave it as user-preference;
+            // don't force-collapse — they may want another.
+          }}
+        />
+      )}
+
+      <textarea
+        className="field-textarea"
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </div>
+  );
+}
+
+function ScrollableChipRow({
+  suggestions,
+  value,
+  onAppend,
+}: {
+  suggestions: ChipSuggestion[];
+  value: string;
+  onAppend: (text: string) => void;
+}) {
+  return (
+    <div className="relative -mx-1 mb-1.5">
+      <div className="overflow-x-auto px-1 py-1 scrollbar-thin">
+        <div className="flex flex-nowrap gap-1.5 min-w-min">
+          {suggestions.map((s) => {
+            const inUse = value.toLowerCase().includes(s.text.toLowerCase());
+            return (
+              <button
+                key={s.text}
+                type="button"
+                onClick={() => onAppend(s.text)}
+                title={s.hint || (inUse ? 'Already added' : 'Click to add')}
+                className={clsx(
+                  'inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs whitespace-nowrap shrink-0 transition',
+                  inUse
+                    ? 'bg-accent-100 border-accent-300 text-accent-900 cursor-default'
+                    : 'bg-white border-zinc-200 text-zinc-700 hover:bg-accent-50 hover:border-accent-200',
+                )}
+              >
+                {!inUse && <Plus size={11} className="text-zinc-400" />}
+                {s.text}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
   );
 }

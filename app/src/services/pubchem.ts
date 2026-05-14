@@ -23,6 +23,11 @@ export interface PubChemResult {
   fetchedAt: string;
 }
 
+export interface PubChemAutocompleteSuggestion {
+  name: string;
+  cid?: number;
+}
+
 // ---------- rate-limited queue (≤5 req/s, internal min gap 250 ms) ----------
 
 let last = 0;
@@ -464,6 +469,33 @@ export async function autocompleteNames(
   if (!r.ok) return [];
   const j = (await r.json()) as { dictionary_terms?: { compound?: string[] } };
   return j.dictionary_terms?.compound ?? [];
+}
+
+async function cidForAutocompleteName(name: string, signal?: AbortSignal): Promise<number | undefined> {
+  const url = `${REST}/compound/name/${encodeURIComponent(name)}/cids/JSON`;
+  const r = await fetch(url, { signal, headers: { Accept: 'application/json' } });
+  if (!r.ok) return undefined;
+  const j = (await r.json()) as { IdentifierList?: { CID?: number[] } };
+  return j.IdentifierList?.CID?.[0];
+}
+
+export async function autocompleteChemicals(
+  prefix: string,
+  limit = 10,
+  signal?: AbortSignal,
+): Promise<PubChemAutocompleteSuggestion[]> {
+  const names = await autocompleteNames(prefix, limit, signal);
+  const out: PubChemAutocompleteSuggestion[] = [];
+  for (const name of names) {
+    if (signal?.aborted) break;
+    try {
+      out.push({ name, cid: await cidForAutocompleteName(name, signal) });
+    } catch {
+      if (signal?.aborted) break;
+      out.push({ name });
+    }
+  }
+  return out;
 }
 
 export function clearPubChemCache() {

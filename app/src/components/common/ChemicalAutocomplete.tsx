@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Search, Loader2 } from 'lucide-react';
-import { autocompleteNames } from '@/services/pubchem';
+import { autocompleteChemicals, PubChemAutocompleteSuggestion } from '@/services/pubchem';
 
 interface Props {
   value: string;
   onChange: (next: string) => void;
-  onSelect: (name: string) => void;
+  onSelect: (selection: PubChemAutocompleteSuggestion) => void;
   placeholder?: string;
   disabled?: boolean;
 }
@@ -19,7 +19,7 @@ export function ChemicalAutocomplete({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [items, setItems] = useState<string[]>([]);
+  const [items, setItems] = useState<PubChemAutocompleteSuggestion[]>([]);
   const [active, setActive] = useState(0);
   const wrapRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -36,7 +36,7 @@ export function ChemicalAutocomplete({
       abortRef.current = ac;
       setLoading(true);
       try {
-        const r = await autocompleteNames(value, 10, ac.signal);
+        const r = await autocompleteChemicals(value, 10, ac.signal);
         setItems(r);
         setActive(0);
       } catch {
@@ -56,10 +56,10 @@ export function ChemicalAutocomplete({
     return () => document.removeEventListener('mousedown', onDocClick);
   }, []);
 
-  const pick = (name: string) => {
-    onChange(name);
+  const pick = (selection: PubChemAutocompleteSuggestion) => {
+    onChange(selection.name);
     setOpen(false);
-    onSelect(name);
+    onSelect(selection);
   };
 
   const onKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -109,12 +109,12 @@ export function ChemicalAutocomplete({
       </div>
       {open && items.length > 0 && (
         <ul className="absolute z-20 left-0 right-0 mt-1 max-h-64 overflow-y-auto bg-white border border-zinc-200 rounded-md shadow-lg text-sm">
-          {items.map((name, i) => (
+          {items.map((item, i) => (
             <li
-              key={name}
+              key={`${item.name}-${item.cid ?? 'name'}`}
               onMouseDown={(e) => {
                 e.preventDefault();
-                pick(name);
+                pick(item);
               }}
               onMouseEnter={() => setActive(i)}
               className={
@@ -122,7 +122,8 @@ export function ChemicalAutocomplete({
                 (i === active ? 'bg-accent-50 text-accent-900' : 'text-zinc-800')
               }
             >
-              {name}
+              <span>{item.name}</span>
+              {item.cid && <span className="ml-2 text-[10px] text-zinc-400 font-mono">CID {item.cid}</span>}
             </li>
           ))}
         </ul>

@@ -69,9 +69,9 @@ export function Sidebar() {
       <div className="px-5 py-5 border-t border-zinc-100 flex items-end gap-3">
         <CatSitting className="w-24 h-24 -mb-2 -ml-1" />
         <div className="text-xs text-zinc-500 leading-snug pb-2 flex-1">
-          Stay curious.
+          Please do not
           <br />
-          Stay safe.
+          the cat...
         </div>
         <PawMark className="w-8 h-8 opacity-40 pb-2" />
       </div>

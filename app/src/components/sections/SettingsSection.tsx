@@ -77,7 +77,7 @@ export function SettingsSection() {
           <p className="text-xs text-zinc-500">
             CAT — COSHH Assessment Tool. Browser-only. No accounts, no online repository.
             <br />
-            <span className="italic">Stay curious. Stay safe.</span>
+            <span className="italic">Please do not the cat.</span>
           </p>
         </div>
       </div>
