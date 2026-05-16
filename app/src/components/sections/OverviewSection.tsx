@@ -1,3 +1,4 @@
+import clsx from 'clsx';
 import { useAssessment } from '@/store/assessment';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { PersonsAtRisk } from '@/types/assessment';
@@ -11,34 +12,60 @@ const PERSONS: { key: keyof PersonsAtRisk; label: string }[] = [
   { key: 'public', label: 'Public' },
 ];
 
+const Req = () => <span className="text-red-600 ml-0.5" aria-label="required">*</span>;
+
 export function OverviewSection() {
   const overview = useAssessment((s) => s.assessment.overview);
   const update = useAssessment((s) => s.updateOverview);
 
-  const text = (key: keyof typeof overview, label: string, placeholder?: string) => (
-    <label className="block">
-      <span className="field-label">{label}</span>
-      <input
-        type="text"
-        className="field-input"
-        value={overview[key] as string}
-        placeholder={placeholder}
-        onChange={(e) => update({ [key]: e.target.value } as Partial<typeof overview>)}
-      />
-    </label>
-  );
+  const anyPersonSelected = Object.values(overview.personsAtRisk).some(Boolean);
 
-  const date = (key: keyof typeof overview, label: string) => (
-    <label className="block">
-      <span className="field-label">{label}</span>
-      <input
-        type="date"
-        className="field-input"
-        value={overview[key] as string}
-        onChange={(e) => update({ [key]: e.target.value } as Partial<typeof overview>)}
-      />
-    </label>
-  );
+  const text = (
+    key: keyof typeof overview,
+    label: string,
+    opts: { required?: boolean; placeholder?: string } = {},
+  ) => {
+    const value = overview[key] as string;
+    const missing = opts.required && !value.trim();
+    return (
+      <label className="block">
+        <span className="field-label">
+          {label}
+          {opts.required && <Req />}
+        </span>
+        <input
+          type="text"
+          className={clsx('field-input', missing && 'field-missing')}
+          value={value}
+          placeholder={opts.placeholder}
+          onChange={(e) => update({ [key]: e.target.value } as Partial<typeof overview>)}
+        />
+      </label>
+    );
+  };
+
+  const date = (
+    key: keyof typeof overview,
+    label: string,
+    opts: { required?: boolean } = {},
+  ) => {
+    const value = overview[key] as string;
+    const missing = opts.required && !value;
+    return (
+      <label className="block">
+        <span className="field-label">
+          {label}
+          {opts.required && <Req />}
+        </span>
+        <input
+          type="date"
+          className={clsx('field-input', missing && 'field-missing')}
+          value={value}
+          onChange={(e) => update({ [key]: e.target.value } as Partial<typeof overview>)}
+        />
+      </label>
+    );
+  };
 
   return (
     <section>
@@ -48,14 +75,14 @@ export function OverviewSection() {
       />
       <div className="card p-5 space-y-5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {text('businessUnit', 'Business Unit', 'e.g. School of Chemistry')}
-          {text('riskAssessmentRef', 'Risk Assessment Ref No.', 'RA-2026-001')}
-          {text('sopRef', 'Safe Operating Procedure Ref No.', 'SOP-…')}
-          {text('assessor', 'Risk Assessor', 'Full name')}
-          {date('dateOfAssessment', 'Date of Assessment')}
+          {text('businessUnit', 'Business Unit', { placeholder: 'e.g. School of Chemistry' })}
+          {text('riskAssessmentRef', 'Risk Assessment Ref No.', { placeholder: 'RA-2026-001' })}
+          {text('sopRef', 'Safe Operating Procedure Ref No.', { placeholder: 'SOP-…' })}
+          {text('assessor', 'Risk Assessor', { required: true, placeholder: 'Full name' })}
+          {date('dateOfAssessment', 'Date of Assessment', { required: true })}
           {date('dateOfNextReview', 'Date of Next Review')}
-          {text('locations', 'Location(s) of Activity', 'Building, room')}
-          {text('activityTitle', 'Activity Title', 'e.g. Solvent extraction')}
+          {text('locations', 'Location(s) of Activity', { placeholder: 'Building, room' })}
+          {text('activityTitle', 'Activity Title', { required: true, placeholder: 'e.g. Solvent extraction' })}
         </div>
 
         <label className="block">
@@ -69,8 +96,15 @@ export function OverviewSection() {
         </label>
 
         <div>
-          <span className="field-label">Persons at Risk</span>
-          <div className="flex flex-wrap gap-2">
+          <span className="field-label">
+            Persons at Risk<Req />
+          </span>
+          <div
+            className={clsx(
+              'flex flex-wrap gap-2 rounded-md',
+              !anyPersonSelected && 'field-missing p-2',
+            )}
+          >
             {PERSONS.map(({ key, label }) => {
               const on = overview.personsAtRisk[key];
               return (
@@ -94,6 +128,11 @@ export function OverviewSection() {
               );
             })}
           </div>
+          {!anyPersonSelected && (
+            <div className="text-[11px] text-amber-800 mt-1">
+              Select at least one group.
+            </div>
+          )}
         </div>
       </div>
     </section>

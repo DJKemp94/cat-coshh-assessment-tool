@@ -165,6 +165,12 @@ export interface Assessment {
   id: UUID;
   overview: Overview;
   taskHazards: TaskHazard[];
+  /**
+   * Explicit assessor confirmation that no non-chemical hazards apply.
+   * Required to mark the Non-Chemical Hazards section complete when the list
+   * is empty — prevents accidentally skipping the section.
+   */
+  taskHazardsConfirmedNone?: boolean;
   processSteps: ProcessStep[];
   controls: ControlMeasures;
   additional: AdditionalRequirements;
@@ -194,13 +200,23 @@ export const uuid = (): UUID =>
   (crypto as Crypto & { randomUUID?: () => string }).randomUUID?.() ??
   Math.random().toString(36).slice(2) + Date.now().toString(36);
 
+const isoDate = (d: Date): string => d.toISOString().slice(0, 10);
+
+export const todayISO = (): string => isoDate(new Date());
+
+export const plusYearsISO = (years: number): string => {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() + years);
+  return isoDate(d);
+};
+
 export const emptyOverview = (): Overview => ({
   businessUnit: '',
   riskAssessmentRef: '',
   sopRef: '',
   assessor: '',
-  dateOfAssessment: '',
-  dateOfNextReview: '',
+  dateOfAssessment: todayISO(),
+  dateOfNextReview: plusYearsISO(1),
   locations: '',
   activityTitle: '',
   activityOutline: '',
@@ -267,7 +283,7 @@ export const emptySubstance = (): Substance => ({
 export const emptyBriefing = (): BriefingEntry => ({
   id: uuid(),
   name: '',
-  date: '',
+  date: todayISO(),
 });
 
 export const newAssessment = (): Assessment => {

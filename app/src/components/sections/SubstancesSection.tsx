@@ -1,6 +1,6 @@
 import {
   Plus, Trash2, RefreshCw, ChevronDown, ChevronRight, ExternalLink, Sparkles,
-  AlertCircle, FlaskConical, Wand2, Loader2, CheckCircle2,
+  AlertCircle, FlaskConical, Wand2, Loader2, CheckCircle2, Copy,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import clsx from 'clsx';
@@ -106,9 +106,34 @@ function ProcessStepCard({ step, index }: { step: ProcessStep; index: number }) 
   const updateStep = useAssessment((s) => s.updateProcessStep);
   const removeStep = useAssessment((s) => s.removeProcessStep);
   const addChemical = useAssessment((s) => s.addChemical);
+  const allSteps = useAssessment((s) => s.assessment.processSteps);
   const [showSuggest, setShowSuggest] = useState(false);
   const [adding, setAdding] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(false);
+  const [showReuse, setShowReuse] = useState(false);
+
+  // Build a unique catalogue of chemicals from prior steps for the "copy
+  // from previous step" affordance. Deduplicated by CAS/name+CID so adding
+  // acetone in step 1 only shows it once even if it appears in step 2.
+  const reusableChemicals = useMemo(() => {
+    if (index === 0) return [] as { key: string; from: string; chem: Substance }[];
+    const seen = new Set<string>();
+    const existing = new Set(
+      step.chemicals.map((c) => (c.cas ?? c.name).toLowerCase()).filter(Boolean),
+    );
+    const out: { key: string; from: string; chem: Substance }[] = [];
+    for (let i = 0; i < index; i++) {
+      const prev = allSteps[i];
+      for (const ch of prev.chemicals) {
+        const key = (ch.cas ?? `${ch.name}|${ch.pubchemCid ?? ''}`).toLowerCase();
+        if (!key || seen.has(key)) continue;
+        if (existing.has((ch.cas ?? ch.name).toLowerCase())) continue;
+        seen.add(key);
+        out.push({ key, from: `Step ${i + 1}`, chem: ch });
+      }
+    }
+    return out;
+  }, [allSteps, index, step.chemicals]);
 
   const incompleteCount = step.chemicals.filter(isChemicalIncomplete).length;
   const isStepComplete =
@@ -231,7 +256,7 @@ function ProcessStepCard({ step, index }: { step: ProcessStep; index: number }) 
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline justify-between mb-1">
             <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium">
-              Process step
+              Process step<Req />
             </span>
             <div className="flex items-center gap-2">
               {suggestions.length > 0 && (
@@ -262,7 +287,10 @@ function ProcessStepCard({ step, index }: { step: ProcessStep; index: number }) 
             </div>
           </div>
           <textarea
-            className="field-textarea bg-white text-sm"
+            className={clsx(
+              'field-textarea bg-white text-sm',
+              !step.step.trim() && 'field-missing',
+            )}
             value={step.step}
             onChange={(e) => updateStep(step.id, { step: e.target.value })}
             placeholder="Describe this step — e.g. dispense 500 mL acetone and 200 mL methanol into 1 L reactor"
@@ -300,17 +328,67 @@ function ProcessStepCard({ step, index }: { step: ProcessStep; index: number }) 
       )}
 
       <div className="border-t border-zinc-100 bg-zinc-50/40 px-4 py-3">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-2 gap-2">
           <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium">
             Chemicals in this step ({step.chemicals.length})
           </span>
-          <button
-            className="btn-ghost text-xs px-2 py-1 text-accent-700 hover:bg-accent-50"
-            onClick={() => addChemical(step.id)}
-          >
-            <Plus size={12} /> Add chemical
-          </button>
+          <div className="flex items-center gap-1">
+            {reusableChemicals.length > 0 && (
+              <button
+                className="btn-ghost text-xs px-2 py-1 text-zinc-600 hover:bg-zinc-100"
+                onClick={() => setShowReuse((v) => !v)}
+                title="Copy a chemical from an earlier step"
+              >
+                <Copy size={12} /> Reuse from earlier ({reusableChemicals.length})
+              </button>
+            )}
+            <button
+              className="btn-ghost text-xs px-2 py-1 text-accent-700 hover:bg-accent-50"
+              onClick={() => addChemical(step.id)}
+            >
+              <Plus size={12} /> Add chemical
+            </button>
+          </div>
         </div>
+        {showReuse && reusableChemicals.length > 0 && (
+          <div className="mb-2 rounded-md border border-zinc-200 bg-white p-2">
+            <div className="text-[10px] text-zinc-500 mb-1.5">
+              Click a chemical to copy it into this step. Quantity / exposure are not copied — set them for this step.
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {reusableChemicals.map(({ key, from, chem }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => {
+                    addChemical(step.id, {
+                      pubchemCid: chem.pubchemCid,
+                      cas: chem.cas,
+                      name: chem.name,
+                      hazardStatements: chem.hazardStatements,
+                      ghsPictograms: chem.ghsPictograms,
+                      wel: { ...chem.wel },
+                      form: chem.form,
+                      sdsUrl: chem.sdsUrl,
+                      sdsSource: chem.sdsSource,
+                      boilingPointC: chem.boilingPointC,
+                      volatility: chem.volatility,
+                      dustiness: chem.dustiness,
+                      pubchemFetchedAt: chem.pubchemFetchedAt,
+                    });
+                    setShowReuse(false);
+                  }}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-zinc-200 text-zinc-700 text-xs hover:bg-accent-50 hover:border-accent-200"
+                >
+                  <Plus size={11} className="text-zinc-400" />
+                  {chem.name}
+                  {chem.cas && <span className="font-mono text-[10px] text-zinc-500">· {chem.cas}</span>}
+                  <span className="text-[10px] text-zinc-400">· {from}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         {step.chemicals.length === 0 ? (
           <div className="text-xs text-zinc-400 italic px-1 py-2">
             No chemicals added yet. Use "Add chemical" or, if you've described the step above, try
@@ -471,49 +549,56 @@ function ChemicalRow({ stepId, chemical: c }: { stepId: string; chemical: Substa
             <div className="space-y-1.5">
               <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Identity</div>
               <div>
-                <span className="field-label">Chemical name or CAS<Req /></span>
-                <div className="flex gap-1">
-                  <ChemicalAutocomplete
-                    value={c.name}
-                    onChange={(v) => onChange({ name: v })}
-                    onSelect={(selection) => {
-                      onChange({ name: selection.name });
-                      lookup(false, selection.cid ?? selection.name);
-                    }}
-                    placeholder="e.g. acetone or 67-64-1"
-                    disabled={busy}
-                    invalid={miss.name}
-                  />
-                  <button
-                    className="btn-secondary !px-2 !py-1.5 shrink-0"
-                    disabled={busy}
-                    onClick={() => lookup(true)}
-                    title={c.pubchemCid ? 'Refresh from PubChem (bypasses cache)' : 'Look up on PubChem'}
-                  >
-                    <RefreshCw size={13} className={busy ? 'animate-spin' : ''} />
-                  </button>
-                </div>
-              </div>
-              <div>
-                <span className="field-label">CAS number<Req /></span>
-                <input
-                  className={clsx('field-input !py-1.5 text-xs font-mono', miss.cas && 'field-missing')}
-                  value={c.cas ?? ''}
-                  onChange={(e) => onChange({ cas: e.target.value })}
-                  placeholder="e.g. 67-64-1"
+                <span className="field-label">Chemical name<Req /></span>
+                <ChemicalAutocomplete
+                  value={c.name}
+                  onChange={(v) => onChange({ name: v })}
+                  onSelect={(selection) => {
+                    onChange({ name: selection.name });
+                    lookup(false, selection.cid ?? selection.name);
+                  }}
+                  placeholder="e.g. acetone or 67-64-1"
+                  disabled={busy}
+                  invalid={miss.name}
                 />
               </div>
-              {c.pubchemCid && (
-                <div className="text-[10px] text-zinc-500 flex flex-wrap items-center gap-1.5">
-                  <span className="pill !text-[10px] !py-0"><Sparkles size={9} /> CID {c.pubchemCid}</span>
-                  {c.pubchemFetchedAt && <span>{c.pubchemFetchedAt.slice(0, 10)}</span>}
-                  {c.sdsUrl && (
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-zinc-500">
+                <span className="font-medium text-zinc-600">CAS</span>
+                <input
+                  className={clsx(
+                    'bg-transparent border-0 border-b border-dashed border-zinc-300 focus:border-accent-500 focus:ring-0 outline-none px-0 py-0 text-[11px] font-mono w-24',
+                    miss.cas && 'border-red-400',
+                  )}
+                  value={c.cas ?? ''}
+                  onChange={(e) => onChange({ cas: e.target.value })}
+                  placeholder="—"
+                  aria-label="CAS number"
+                />
+                {c.pubchemCid && (
+                  <>
+                    <span className="text-zinc-300">·</span>
+                    <span className="pill !text-[10px] !py-0"><Sparkles size={9} /> CID {c.pubchemCid}</span>
+                  </>
+                )}
+                {c.sdsUrl && (
+                  <>
+                    <span className="text-zinc-300">·</span>
                     <a href={c.sdsUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 text-accent-700 hover:underline">
                       SDS{c.sdsSource ? ` (${c.sdsSource})` : ''} <ExternalLink size={10} />
                     </a>
-                  )}
-                </div>
-              )}
+                  </>
+                )}
+                <button
+                  type="button"
+                  className="ml-auto inline-flex items-center gap-1 text-accent-700 hover:underline disabled:opacity-50"
+                  disabled={busy || !c.name.trim()}
+                  onClick={() => lookup(true)}
+                  title={c.pubchemCid ? 'Refresh from PubChem (bypasses cache)' : 'Look up on PubChem'}
+                >
+                  <RefreshCw size={11} className={busy ? 'animate-spin' : ''} />
+                  {c.pubchemCid ? 'Refresh' : 'Look up'}
+                </button>
+              </div>
             </div>
 
             {/* Q2 — Physical state */}
@@ -635,43 +720,94 @@ function ChemicalRow({ stepId, chemical: c }: { stepId: string; chemical: Substa
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-1.5">
-                <label>
-                  <span className="field-label">Duration<Req /></span>
-                  <input
-                    className={clsx('field-input !py-1.5 text-xs', miss.duration && 'field-missing')}
-                    value={c.exposureDuration}
-                    onChange={(e) => onChange({ exposureDuration: e.target.value })}
-                    placeholder="e.g. 30 min"
-                  />
-                </label>
-                <label>
-                  <span className="field-label">Frequency<Req /></span>
-                  <input
-                    className={clsx('field-input !py-1.5 text-xs', miss.frequency && 'field-missing')}
-                    value={c.exposureFrequency}
-                    onChange={(e) => onChange({ exposureFrequency: e.target.value })}
-                    placeholder="e.g. weekly"
-                  />
-                </label>
+                <ChipPickerInput
+                  label="Duration"
+                  required
+                  invalid={miss.duration}
+                  value={c.exposureDuration}
+                  onChange={(v) => onChange({ exposureDuration: v })}
+                  options={['< 15 min', '15 min', '30 min', '1 h', '2 h', '4 h', '8 h shift']}
+                  placeholder="e.g. 30 min"
+                />
+                <ChipPickerInput
+                  label="Frequency"
+                  required
+                  invalid={miss.frequency}
+                  value={c.exposureFrequency}
+                  onChange={(v) => onChange({ exposureFrequency: v })}
+                  options={['Daily', 'Weekly', 'Monthly', 'Occasional', 'One-off']}
+                  placeholder="e.g. weekly"
+                />
               </div>
             </div>
           </div>
 
           {(c.hazardStatements.length > 0 || c.ghsPictograms.length > 0) && (
-            <details className="mt-2 rounded border border-zinc-200 bg-white p-2.5">
-              <summary className="cursor-pointer text-xs font-medium text-zinc-700">
-                Hazard data ({c.ghsPictograms.length} pictograms · {c.hazardStatements.length} H-codes)
-              </summary>
-              <div className="mt-2.5 space-y-2.5">
+            <div className="mt-2 rounded border border-zinc-200 bg-white p-2.5">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
+                Hazard data — {c.ghsPictograms.length} pictogram{c.ghsPictograms.length === 1 ? '' : 's'} · {c.hazardStatements.length} H-code{c.hazardStatements.length === 1 ? '' : 's'}
+              </div>
+              <div className="space-y-2.5">
                 <GhsGrid ids={c.ghsPictograms} />
                 <HCodeList codes={c.hazardStatements} />
               </div>
-            </details>
+            </div>
           )}
         </div>
         );
       })()}
     </div>
+  );
+}
+
+function ChipPickerInput({
+  label,
+  required,
+  invalid,
+  value,
+  onChange,
+  options,
+  placeholder,
+}: {
+  label: string;
+  required?: boolean;
+  invalid?: boolean;
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+  placeholder?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="field-label">{label}{required && <Req />}</span>
+      <input
+        className={clsx('field-input !py-1.5 text-xs', invalid && 'field-missing')}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        list={`chip-${label}`}
+      />
+      <div className="flex flex-wrap gap-1 mt-1">
+        {options.map((opt) => {
+          const active = value.trim().toLowerCase() === opt.toLowerCase();
+          return (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => onChange(opt)}
+              className={clsx(
+                'px-1.5 py-0.5 rounded-full text-[10px] border transition',
+                active
+                  ? 'bg-accent-100 border-accent-300 text-accent-900'
+                  : 'bg-white border-zinc-200 text-zinc-600 hover:bg-accent-50 hover:border-accent-200',
+              )}
+            >
+              {opt}
+            </button>
+          );
+        })}
+      </div>
+    </label>
   );
 }
 

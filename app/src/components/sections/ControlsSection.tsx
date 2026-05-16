@@ -1,11 +1,12 @@
-import { useMemo, useState } from 'react';
-import { Sparkles, AlertTriangle, ExternalLink, ChevronDown, ChevronRight, Lightbulb } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Sparkles, AlertTriangle, ExternalLink, ChevronDown, ChevronRight, Info, Undo2 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAssessment } from '@/store/assessment';
 import { SectionHeader } from '@/components/common/SectionHeader';
-import { SuggestionChips, appendUnique } from '@/components/common/SuggestionChips';
-import { SuggestionDisclaimer } from '@/components/common/SuggestionDisclaimer';
+import { appendUnique } from '@/components/common/SuggestionChips';
+import { SuggestionField } from '@/components/common/SuggestionField';
 import { suggestControls, OverallSuggestion, SubstanceAnalysis, Approach, APPROACH_LABEL } from '@/services/coshhEssentials';
+import { ControlMeasures } from '@/types/assessment';
 
 const ELIM_SUB_SUGGESTIONS = [
   'Elimination considered; the substance is required for this activity.',
@@ -55,69 +56,6 @@ const HEALTH_SURVEILLANCE_SUGGESTIONS = [
   'Users must report symptoms, suspected exposure or PPE/control failures promptly.',
 ];
 
-const asChipSuggestions = (texts: string[]) => texts.map((t) => ({ text: t }));
-
-function ControlField({
-  label,
-  hint,
-  value,
-  suggestions,
-  onChange,
-  onAppend,
-  placeholder,
-}: {
-  label: string;
-  hint?: string;
-  value: string;
-  suggestions: string[];
-  onChange: (next: string) => void;
-  onAppend: (s: string) => void;
-  placeholder?: string;
-}) {
-  const [showChips, setShowChips] = useState(false);
-
-  return (
-    <div className="card p-4">
-      <div className="flex items-baseline justify-between gap-2 mb-2">
-        <div className="font-medium text-zinc-900">{label}</div>
-        {hint && <div className="text-[11px] text-zinc-500 hidden md:block">{hint}</div>}
-      </div>
-      {suggestions.length > 0 && (
-        <div className="flex items-center justify-end mb-1.5">
-          <button
-            type="button"
-            onClick={() => setShowChips((v) => !v)}
-            className={clsx(
-              'inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border transition shadow-soft',
-              showChips
-                ? 'bg-accent-600 border-accent-600 text-white hover:bg-accent-700'
-                : 'bg-accent-50 border-accent-300 text-accent-800 hover:bg-accent-100',
-            )}
-            aria-expanded={showChips}
-          >
-            <Lightbulb size={12} />
-            {showChips ? 'Hide' : 'Show'} {suggestions.length} suggestion{suggestions.length === 1 ? '' : 's'}
-            {showChips ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-          </button>
-        </div>
-      )}
-      {showChips && (
-        <SuggestionChips
-          suggestions={asChipSuggestions(suggestions)}
-          value={value}
-          onAppend={onAppend}
-        />
-      )}
-      <textarea
-        className="field-textarea"
-        value={value}
-        placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
-      />
-    </div>
-  );
-}
-
 const append = appendUnique;
 
 const APPROACH_COLOR: Record<number, string> = {
@@ -151,27 +89,25 @@ const APPROACH_HELP = [
 
 function CoshhEssentialsPanel({
   s,
+  signature,
+  appliedKey,
   onApply,
+  onUndo,
 }: {
   s: OverallSuggestion;
-  onApply: (patch: Parameters<ReturnType<typeof useAssessment.getState>['updateControls']>[0]) => void;
+  signature: string;
+  appliedKey: string | null;
+  onApply: () => void;
+  onUndo: () => void;
 }) {
-  const [open, setOpen] = useState(true);
-
-  const apply = () => {
-    if (!window.confirm(
-      `Apply COSHH Essentials Approach ${s.approach} suggestions?\n\n` +
-      `This will OVERWRITE the existing Engineering, Administrative, PPE, Air Monitoring and Health Surveillance fields. ` +
-      `The inserted text is a concise starting point and should be checked against the specific task and SDS.\n\n` +
-      `Continue?`,
-    )) return;
-    onApply(s.controlsPatch);
-  };
+  const [open, setOpen] = useState(false);
+  const [showGlossary, setShowGlossary] = useState(false);
+  const justApplied = appliedKey === signature;
 
   return (
     <div className="card p-4 mb-4">
       <div className="flex items-start gap-3">
-        <Sparkles size={18} className="shrink-0 mt-0.5" />
+        <Sparkles size={18} className="shrink-0 mt-0.5 text-accent-600" />
         <div className="flex-1 min-w-0">
           <button
             onClick={() => setOpen((v) => !v)}
@@ -205,14 +141,65 @@ function CoshhEssentialsPanel({
                 </span>
               );
             })()}
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setShowGlossary((v) => !v); }}
+              className="ml-auto inline-flex items-center gap-1 text-[11px] text-zinc-500 hover:text-zinc-700"
+              title="What the values mean"
+            >
+              <Info size={12} />
+            </button>
           </button>
+
+          {/* Inline status row: shows applied state with a one-click undo */}
+          <div className="mt-2 flex items-center justify-between flex-wrap gap-2">
+            {justApplied ? (
+              <div className="inline-flex items-center gap-2 text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-1">
+                <Sparkles size={12} />
+                Suggestions applied to control fields — review and edit below.
+                <button
+                  type="button"
+                  onClick={onUndo}
+                  className="inline-flex items-center gap-1 ml-1 font-medium underline hover:no-underline"
+                >
+                  <Undo2 size={11} /> Undo
+                </button>
+              </div>
+            ) : (
+              <div className="text-xs text-zinc-500">
+                Driven by{' '}
+                <strong className="text-zinc-700">{s.driver?.name}</strong>
+                {s.driver && s.driver.drivingHCodes.length > 0 && (
+                  <> ({s.driver.drivingHCodes.join(', ')})</>
+                )}.
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={onApply}
+              className="btn-secondary text-xs"
+              title="Insert the suggested starter text into the control fields below"
+            >
+              <Sparkles size={12} />
+              {justApplied ? 'Re-apply' : 'Apply suggestion'}
+            </button>
+          </div>
+
+          {showGlossary && (
+            <div className="mt-3 rounded-md border border-accent-200 bg-accent-50/60 p-3 text-xs text-zinc-800">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <Glossary title="Hazard group" entries={HAZARD_GROUP_HELP as unknown as ReadonlyArray<readonly [string, string]>} keyMin="3.5rem" labelPrefix="Group " />
+                <Glossary title="EP band" entries={EP_HELP as unknown as ReadonlyArray<readonly [string, string]>} keyMin="2.5rem" />
+                <Glossary title="Approach" entries={APPROACH_HELP as unknown as ReadonlyArray<readonly [string, string]>} keyMin="1.5rem" />
+              </div>
+              <p className="mt-2 text-zinc-500 italic">
+                EP is calculated from amount in use plus dustiness for solids or volatility for liquids.
+              </p>
+            </div>
+          )}
 
           {open && (
             <div className="mt-3 space-y-3 text-sm">
-              <div className="text-xs font-medium text-zinc-700">
-                Per-substance breakdown ({s.analyses.length}) — grouped by approach
-              </div>
-
               {(() => {
                 const groups = new Map<Approach, SubstanceAnalysis[]>();
                 for (const a of s.analyses) {
@@ -288,62 +275,6 @@ function CoshhEssentialsPanel({
                 );
               })()}
 
-              <details className="rounded-md border-2 border-accent-200 bg-accent-50/60 p-3 text-xs text-zinc-800 shadow-soft">
-                <summary className="cursor-pointer font-semibold text-accent-900 select-none">
-                  What the COSHH Essentials values mean
-                </summary>
-                <div className="mt-3 grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  <div>
-                    <div className="font-semibold text-accent-900 mb-1.5 pb-1 border-b border-accent-200">
-                      Hazard group
-                    </div>
-                    <dl className="space-y-1.5">
-                      {HAZARD_GROUP_HELP.map(([key, text]) => (
-                        <div key={key} className="flex gap-2">
-                          <dt className="font-semibold whitespace-nowrap shrink-0 min-w-[3.5rem]">
-                            Group {key}
-                          </dt>
-                          <dd className="text-zinc-700">{text}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                  </div>
-                  <div>
-                    <div className="font-semibold text-accent-900 mb-1.5 pb-1 border-b border-accent-200">
-                      EP band
-                    </div>
-                    <dl className="space-y-1.5">
-                      {EP_HELP.map(([key, text]) => (
-                        <div key={key} className="flex gap-2">
-                          <dt className="font-semibold whitespace-nowrap shrink-0 min-w-[2.5rem]">
-                            {key}
-                          </dt>
-                          <dd className="text-zinc-700">{text}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                  </div>
-                  <div>
-                    <div className="font-semibold text-accent-900 mb-1.5 pb-1 border-b border-accent-200">
-                      Approach
-                    </div>
-                    <dl className="space-y-1.5">
-                      {APPROACH_HELP.map(([key, text]) => (
-                        <div key={key} className="flex gap-2">
-                          <dt className="font-semibold whitespace-nowrap shrink-0 min-w-[1.5rem]">
-                            {key}
-                          </dt>
-                          <dd className="text-zinc-700">{text}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                    <p className="mt-2 text-zinc-500 italic">
-                      EP is calculated from amount in use plus dustiness for solids or volatility for liquids.
-                    </p>
-                  </div>
-                </div>
-              </details>
-
               {s.warnings.length > 0 && (
                 <div className="rounded-md border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-900 space-y-1">
                   <div className="flex items-center gap-1 font-medium">
@@ -354,22 +285,6 @@ function CoshhEssentialsPanel({
                   </ul>
                 </div>
               )}
-
-              <div className="text-zinc-700 text-sm">
-                Driven by{' '}
-                <strong>{s.driver?.name}</strong> — hazard group{' '}
-                <strong>{s.driver?.hazardGroup}</strong>
-                {s.driver && s.driver.drivingHCodes.length > 0 && (
-                  <> ({s.driver.drivingHCodes.join(', ')})</>
-                )}
-                , scale <strong>{s.driver?.scale}</strong>
-                {s.driver?.bandKind !== 'not-applicable' && (
-                  <>, {s.driver?.bandKind} <strong>{s.driver?.band}</strong></>
-                )}
-                {s.driver?.exposurePredictor && (
-                  <>, exposure predictor <strong>{s.driver.exposurePredictor}</strong></>
-                )}.
-              </div>
 
               <div className="text-xs text-zinc-600">
                 Reference: {s.gSheetRef}.{' '}
@@ -382,19 +297,43 @@ function CoshhEssentialsPanel({
                   HSG193 <ExternalLink size={11} />
                 </a>
               </div>
-
-              <div className="flex items-center gap-2 pt-1">
-                <button onClick={apply} className="btn-primary text-xs">
-                  <Sparkles size={12} /> Apply suggestion to control fields
-                </button>
-                <span className="text-[11px] text-zinc-500">
-                  Overwrites Engineering / Admin / PPE / Air monitoring / Health surveillance with concise starting text.
-                </span>
-              </div>
             </div>
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function Glossary({
+  title,
+  entries,
+  keyMin,
+  labelPrefix,
+}: {
+  title: string;
+  entries: ReadonlyArray<readonly [string, string]>;
+  keyMin: string;
+  labelPrefix?: string;
+}) {
+  return (
+    <div>
+      <div className="font-semibold text-accent-900 mb-1.5 pb-1 border-b border-accent-200">
+        {title}
+      </div>
+      <dl className="space-y-1.5">
+        {entries.map(([key, text]) => (
+          <div key={key} className="flex gap-2">
+            <dt
+              className="font-semibold whitespace-nowrap shrink-0"
+              style={{ minWidth: keyMin }}
+            >
+              {labelPrefix ? `${labelPrefix}${key}` : key}
+            </dt>
+            <dd className="text-zinc-700">{text}</dd>
+          </div>
+        ))}
+      </dl>
     </div>
   );
 }
@@ -414,101 +353,176 @@ export function ControlsSection() {
     [allSubstances],
   );
 
+  // Stable identifier for the current driver+approach, used to gate the
+  // one-time auto-apply and to label the active "Applied" banner.
+  const suggestionSig = suggestion
+    ? `${suggestion.approach}|${suggestion.driver?.substanceId ?? ''}|${suggestion.analyses
+        .map((a) => `${a.substanceId}:${a.approach}`)
+        .sort()
+        .join(',')}`
+    : null;
+
+  // Auto-apply the patch once per unique driver signature, and only when the
+  // target fields are still empty — so we never silently overwrite an
+  // assessor's own work.
+  const autoAppliedRef = useRef<string | null>(null);
+  const [appliedKey, setAppliedKey] = useState<string | null>(null);
+  const [snapshot, setSnapshot] = useState<ControlMeasures | null>(null);
+
+  const applyPatch = (sig: string) => {
+    if (!suggestion) return;
+    setSnapshot(controls);
+    update(suggestion.controlsPatch);
+    setAppliedKey(sig);
+  };
+
+  const undoPatch = () => {
+    if (!snapshot) return;
+    update(snapshot);
+    setSnapshot(null);
+    setAppliedKey(null);
+  };
+
+  useEffect(() => {
+    if (!suggestion || !suggestionSig) return;
+    if (autoAppliedRef.current === suggestionSig) return;
+    const fieldsEmpty =
+      !controls.elimination.trim() &&
+      !controls.substitution.trim() &&
+      !controls.reduction.trim() &&
+      !controls.engineering.trim() &&
+      !controls.administrative.trim() &&
+      !controls.ppe.type.trim() &&
+      !controls.airMonitoring.trim() &&
+      !controls.healthSurveillance.trim();
+    if (fieldsEmpty) {
+      autoAppliedRef.current = suggestionSig;
+      applyPatch(suggestionSig);
+    }
+    // We intentionally depend only on the suggestion signature.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [suggestionSig]);
+
   return (
     <section>
       <SectionHeader
         title="Control Measures"
         subtitle="Apply the hierarchy of control. PPE is the last resort. Click a suggested phrase to add it."
       />
-      <SuggestionDisclaimer />
 
-      {suggestion && (
+      {suggestion && suggestionSig ? (
         <CoshhEssentialsPanel
           s={suggestion}
-          onApply={(patch) => update(patch)}
+          signature={suggestionSig}
+          appliedKey={appliedKey}
+          onApply={() => applyPatch(suggestionSig)}
+          onUndo={undoPatch}
         />
+      ) : (
+        <div className="card p-3 mb-4 text-xs text-zinc-500">
+          Add chemicals in <strong>Process Steps</strong> to see COSHH Essentials suggestions here.
+        </div>
       )}
 
       <div className="space-y-3">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <ControlField
-            label="Elimination / Substitution"
-            hint="Remove or replace with a less hazardous option."
-            suggestions={ELIM_SUB_SUGGESTIONS}
-            value={controls.elimination + (controls.substitution ? '\n' + controls.substitution : '')}
-            onChange={(v) => update({ elimination: v, substitution: '' })}
-            onAppend={(s) =>
-              update({
-                elimination: append(
-                  controls.elimination + (controls.substitution ? '\n' + controls.substitution : ''),
-                  s,
-                ),
-                substitution: '',
-              })
-            }
-            placeholder="Record whether the substance or process can be removed, replaced, pre-diluted, bought ready-to-use, or changed to a lower hazard grade."
-          />
-          <ControlField
-            label="Reduction"
-            hint="Reduce quantity, concentration or duration."
-            suggestions={REDUCTION_SUGGESTIONS}
-            value={controls.reduction}
-            onChange={(v) => update({ reduction: v })}
-            onAppend={(s) => update({ reduction: append(controls.reduction, s) })}
-            placeholder="Record how quantity, concentration, batch size, exposure time, frequency and number of people exposed will be kept as low as practicable."
-          />
+          <div className="card p-4">
+            <SuggestionField
+              label="Elimination / Substitution"
+              hint="Remove or replace with a less hazardous option."
+              suggestions={ELIM_SUB_SUGGESTIONS}
+              value={controls.elimination + (controls.substitution ? '\n' + controls.substitution : '')}
+              onChange={(v) => update({ elimination: v, substitution: '' })}
+              onAppend={(s) =>
+                update({
+                  elimination: append(
+                    controls.elimination + (controls.substitution ? '\n' + controls.substitution : ''),
+                    s,
+                  ),
+                  substitution: '',
+                })
+              }
+              placeholder="Record whether the substance or process can be removed, replaced, pre-diluted, bought ready-to-use, or changed to a lower hazard grade."
+            />
+          </div>
+          <div className="card p-4">
+            <SuggestionField
+              label="Reduction"
+              hint="Reduce quantity, concentration or duration."
+              suggestions={REDUCTION_SUGGESTIONS}
+              value={controls.reduction}
+              onChange={(v) => update({ reduction: v })}
+              onAppend={(s) => update({ reduction: append(controls.reduction, s) })}
+              placeholder="Record how quantity, concentration, batch size, exposure time, frequency and number of people exposed will be kept as low as practicable."
+            />
+          </div>
         </div>
 
-        <ControlField
-          label="Engineering Controls"
-          hint="LEV, fume hoods, enclosures, interlocks."
-          suggestions={ENGINEERING_SUGGESTIONS}
-          value={controls.engineering}
-          onChange={(v) => update({ engineering: v })}
-          onAppend={(s) => update({ engineering: append(controls.engineering, s) })}
-          placeholder="Record the physical controls used to prevent or capture exposure, such as enclosure, LEV, fume cupboard, shielding, closed transfer, splash control, interlocks, inspection and maintenance."
-        />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <ControlField
-            label="Administrative Controls"
-            hint="SOPs, training, permits, signage."
-            suggestions={ADMIN_SUGGESTIONS}
-            value={controls.administrative}
-            onChange={(v) => update({ administrative: v })}
-            onAppend={(s) => update({ administrative: append(controls.administrative, s) })}
-            placeholder="Record procedural controls such as SOP reference, training, briefing, authorisation, supervision, signage, housekeeping, lone-working limits and review triggers."
-          />
-          <ControlField
-            label="PPE"
-            hint="Last resort — gloves, eye, RPE."
-            suggestions={PPE_TYPE_SUGGESTIONS}
-            value={controls.ppe.type}
-            onChange={(v) => update({ ppe: { ...controls.ppe, type: v } })}
-            onAppend={(s) =>
-              update({ ppe: { ...controls.ppe, type: append(controls.ppe.type, s) } })
-            }
-            placeholder="Record PPE selected for the substance and task: glove material and change frequency, eye/face protection, clothing, footwear and any RPE with fit-test and maintenance requirements."
+        <div className="card p-4">
+          <SuggestionField
+            label="Engineering Controls"
+            hint="LEV, fume hoods, enclosures, interlocks."
+            required
+            suggestions={ENGINEERING_SUGGESTIONS}
+            value={controls.engineering}
+            onChange={(v) => update({ engineering: v })}
+            onAppend={(s) => update({ engineering: append(controls.engineering, s) })}
+            placeholder="Record the physical controls used to prevent or capture exposure, such as enclosure, LEV, fume cupboard, shielding, closed transfer, splash control, interlocks, inspection and maintenance."
           />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <ControlField
-            label="Air Monitoring"
-            suggestions={AIR_MONITORING_SUGGESTIONS}
-            value={controls.airMonitoring}
-            onChange={(v) => update({ airMonitoring: v })}
-            onAppend={(s) => update({ airMonitoring: append(controls.airMonitoring, s) })}
-            placeholder="Record whether air monitoring is required, why it is or is not needed, relevant WELs, sampling type, review frequency and triggers for reassessment."
-          />
-          <ControlField
-            label="Health Surveillance"
-            suggestions={HEALTH_SURVEILLANCE_SUGGESTIONS}
-            value={controls.healthSurveillance}
-            onChange={(v) => update({ healthSurveillance: v })}
-            onAppend={(s) => update({ healthSurveillance: append(controls.healthSurveillance, s) })}
-            placeholder="Record any Occupational Health referral, health-surveillance decision, symptom reporting route, exposure records and review triggers."
-          />
+          <div className="card p-4">
+            <SuggestionField
+              label="Administrative Controls"
+              hint="SOPs, training, permits, signage."
+              required
+              suggestions={ADMIN_SUGGESTIONS}
+              value={controls.administrative}
+              onChange={(v) => update({ administrative: v })}
+              onAppend={(s) => update({ administrative: append(controls.administrative, s) })}
+              placeholder="Record procedural controls such as SOP reference, training, briefing, authorisation, supervision, signage, housekeeping, lone-working limits and review triggers."
+            />
+          </div>
+          <div className="card p-4">
+            <SuggestionField
+              label="PPE"
+              hint="Last resort — gloves, eye, RPE."
+              required
+              suggestions={PPE_TYPE_SUGGESTIONS}
+              value={controls.ppe.type}
+              onChange={(v) => update({ ppe: { ...controls.ppe, type: v } })}
+              onAppend={(s) =>
+                update({ ppe: { ...controls.ppe, type: append(controls.ppe.type, s) } })
+              }
+              placeholder="Record PPE selected for the substance and task: glove material and change frequency, eye/face protection, clothing, footwear and any RPE with fit-test and maintenance requirements."
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="card p-4">
+            <SuggestionField
+              label="Air Monitoring"
+              required
+              suggestions={AIR_MONITORING_SUGGESTIONS}
+              value={controls.airMonitoring}
+              onChange={(v) => update({ airMonitoring: v })}
+              onAppend={(s) => update({ airMonitoring: append(controls.airMonitoring, s) })}
+              placeholder="Record whether air monitoring is required, why it is or is not needed, relevant WELs, sampling type, review frequency and triggers for reassessment."
+            />
+          </div>
+          <div className="card p-4">
+            <SuggestionField
+              label="Health Surveillance"
+              required
+              suggestions={HEALTH_SURVEILLANCE_SUGGESTIONS}
+              value={controls.healthSurveillance}
+              onChange={(v) => update({ healthSurveillance: v })}
+              onAppend={(s) => update({ healthSurveillance: append(controls.healthSurveillance, s) })}
+              placeholder="Record any Occupational Health referral, health-surveillance decision, symptom reporting route, exposure records and review triggers."
+            />
+          </div>
         </div>
       </div>
     </section>

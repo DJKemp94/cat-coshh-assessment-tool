@@ -24,12 +24,14 @@ export function AdditionalSection() {
     field: RequirementField | null,
     label: string,
     placeholder?: string,
+    required?: boolean,
   ) => {
     const value = a[key] as string;
     return (
       <Field
         label={label}
         value={value}
+        required={required}
         suggestions={field ? suggestions[field] ?? [] : []}
         onAppend={(s) => update({ [key]: appendUnique(value, s) } as Partial<typeof a>)}
         onChange={(v) => update({ [key]: v } as Partial<typeof a>)}
@@ -86,6 +88,7 @@ export function AdditionalSection() {
             'storage',
             'Storage requirements',
             'Record where and how substances will be stored, including compatible storage group, segregation, secondary containment, ventilation, security, temperature limits and maximum quantities.',
+            true,
           )}
           {ta(
             'incompatibles',
@@ -93,6 +96,28 @@ export function AdditionalSection() {
             'Incompatible substances',
             'Record substances or storage groups that must be kept apart, including acids/bases, oxidisers/flammables, water-reactives, cyanides/sulphides and any SDS section 10 restrictions.',
           )}
+          {(() => {
+            const pairs = suggestions.incompatibles ?? [];
+            if (pairs.length < 2) return null;
+            const current = a.incompatibles;
+            const missing = pairs.filter(
+              (p) => !current.toLowerCase().includes(p.text.toLowerCase()),
+            );
+            if (missing.length === 0) return null;
+            return (
+              <button
+                type="button"
+                className="btn-ghost text-xs text-accent-700 hover:bg-accent-50 !px-2 !py-1 mt-1"
+                onClick={() => {
+                  let next = current;
+                  for (const p of missing) next = appendUnique(next, p.text);
+                  update({ incompatibles: next });
+                }}
+              >
+                <Plus size={12} /> Add all {missing.length} detected pair{missing.length === 1 ? '' : 's'}
+              </button>
+            );
+          })()}
         </Card>
 
         <Card title="Emergency response" defaultOpen>
@@ -102,18 +127,21 @@ export function AdditionalSection() {
               'emergencyFirstAid',
               'First aid',
               'Record first-aid actions for credible exposure routes, when to seek medical advice, what SDS information must go with the person and how exposure incidents are reported.',
+              true,
             )}
             {ta(
               'emergencySpills',
               'emergencySpills',
               'Spills',
               'Record spill response for foreseeable quantities, including evacuation or isolation, PPE, ventilation, absorbents, drain protection, waste collection and when to escalate.',
+              true,
             )}
             {ta(
               'emergencyFire',
               'emergencyFire',
               'Fire',
               'Record relevant fire hazards, suitable extinguishing media from the SDS, substances that must not contact water, toxic fumes, cylinder risks and run-off control.',
+              true,
             )}
           </div>
         </Card>
@@ -124,6 +152,7 @@ export function AdditionalSection() {
             'wasteHandling',
             'Waste handling',
             'Record waste containers, segregation, labelling, incompatible waste streams, temporary storage, collection route and any waste that needs specialist disposal.',
+            true,
           )}
           {ta(
             'other',
@@ -170,6 +199,7 @@ function Field({
   onAppend,
   onChange,
   placeholder,
+  required,
 }: {
   label: string;
   value: string;
@@ -177,17 +207,24 @@ function Field({
   onAppend: (text: string) => void;
   onChange: (v: string) => void;
   placeholder?: string;
+  required?: boolean;
 }) {
   // Auto-show chips while the field is empty; collapse once the user has typed
   // or inserted anything. User can still toggle manually.
   const isEmpty = value.trim().length === 0;
   const [forced, setForced] = useState<boolean | null>(null);
   const showChips = forced ?? (isEmpty && suggestions.length > 0);
+  const missing = required && isEmpty;
 
   return (
     <div>
       <div className="flex items-center justify-between gap-2 mb-1">
-        <span className="field-label !mb-0">{label}</span>
+        <span className="field-label !mb-0">
+          {label}
+          {required && (
+            <span className="text-red-600 ml-0.5" aria-label="required">*</span>
+          )}
+        </span>
         {suggestions.length > 0 && (
           <button
             type="button"
@@ -220,7 +257,7 @@ function Field({
       )}
 
       <textarea
-        className="field-textarea"
+        className={clsx('field-textarea', missing && 'field-missing')}
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}

@@ -18,6 +18,7 @@ import { migrateAssessment } from '@/services/migrate';
 
 const STORAGE_KEY = 'cat.activeAssessment';
 const PRIVACY_ACK_KEY = 'cat.privacyAck';
+const TESTING_MODE_KEY = 'cat.testingMode';
 
 export type SectionId =
   | 'overview'
@@ -34,9 +35,13 @@ interface AssessmentState {
   activeSection: SectionId;
   privacyAcknowledged: boolean;
   hydrated: boolean;
+  /** When true, the sidebar lets the user jump to any section regardless of
+   *  completion order. Intended for testing the UI while data is incomplete. */
+  testingMode: boolean;
 
   setSection: (id: SectionId) => void;
   acknowledgePrivacy: () => void;
+  setTestingMode: (v: boolean) => void;
 
   updateOverview: (patch: Partial<Overview>) => void;
   updateControls: (patch: Partial<ControlMeasures>) => void;
@@ -45,6 +50,7 @@ interface AssessmentState {
   addHazard: () => void;
   updateHazard: (id: string, patch: Partial<TaskHazard>) => void;
   removeHazard: (id: string) => void;
+  setTaskHazardsConfirmedNone: (v: boolean) => void;
 
   addProcessStep: () => void;
   updateProcessStep: (id: string, patch: Partial<ProcessStep>) => void;
@@ -68,9 +74,14 @@ const touch = (a: Assessment): Assessment => ({
   meta: { ...a.meta, updatedAt: new Date().toISOString() },
 });
 
-const loadFromStorage = (): { assessment: Assessment; privacy: boolean } => {
+const loadFromStorage = (): {
+  assessment: Assessment;
+  privacy: boolean;
+  testingMode: boolean;
+} => {
   let assessment = newAssessment();
   let privacy = false;
+  let testingMode = false;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -81,10 +92,11 @@ const loadFromStorage = (): { assessment: Assessment; privacy: boolean } => {
       }
     }
     privacy = localStorage.getItem(PRIVACY_ACK_KEY) === '1';
+    testingMode = localStorage.getItem(TESTING_MODE_KEY) === '1';
   } catch {
     /* ignore */
   }
-  return { assessment, privacy };
+  return { assessment, privacy, testingMode };
 };
 
 let saveTimer: number | undefined;
@@ -100,10 +112,14 @@ const scheduleSave = (a: Assessment) => {
   }, 500);
 };
 
-const { assessment: initialAssessment, privacy: initialPrivacy } =
+const {
+  assessment: initialAssessment,
+  privacy: initialPrivacy,
+  testingMode: initialTestingMode,
+} =
   typeof window !== 'undefined'
     ? loadFromStorage()
-    : { assessment: newAssessment(), privacy: false };
+    : { assessment: newAssessment(), privacy: false, testingMode: false };
 
 export const useAssessment = create<AssessmentState>((set, get) => {
   const apply = (mutator: (a: Assessment) => Assessment) => {
@@ -122,6 +138,7 @@ export const useAssessment = create<AssessmentState>((set, get) => {
     assessment: initialAssessment,
     activeSection: 'overview',
     privacyAcknowledged: initialPrivacy,
+    testingMode: initialTestingMode,
     hydrated: true,
 
     setSection: (id) => set({ activeSection: id }),
@@ -129,16 +146,53 @@ export const useAssessment = create<AssessmentState>((set, get) => {
       try { localStorage.setItem(PRIVACY_ACK_KEY, '1'); } catch { /* ignore */ }
       set({ privacyAcknowledged: true });
     },
+    setTestingMode: (v) => {
+      try {
+        if (v) localStorage.setItem(TESTING_MODE_KEY, '1');
+        else localStorage.removeItem(TESTING_MODE_KEY);
+      } catch { /* ignore */ }
+      set({ testingMode: v });
+    },
 
     updateOverview: (patch) =>
-      apply((a) => ({ ...a, overview: { ...a.overview, ...patch } })),
+      apply((a) => {
+        let next = { ...a.overview, ...patch };
+        // If the user moves the assessment date, slide the review date along
+        // with it unless they've already nudged the review independently.
+        if (
+          patch.dateOfAssessment !== undefined &&
+          patch.dateOfNextReview === undefined
+        ) {
+          const prior = a.overview.dateOfAssessment;
+          const expectedPriorReview = prior
+            ? (() => {
+                const d = new Date(prior + 'T00:00:00');
+                d.setFullYear(d.getFullYear() + 1);
+                return d.toISOString().slice(0, 10);
+              })()
+            : '';
+          const reviewIsDefault =
+            !a.overview.dateOfNextReview ||
+            a.overview.dateOfNextReview === expectedPriorReview;
+          if (reviewIsDefault && patch.dateOfAssessment) {
+            const d = new Date(patch.dateOfAssessment + 'T00:00:00');
+            d.setFullYear(d.getFullYear() + 1);
+            next = { ...next, dateOfNextReview: d.toISOString().slice(0, 10) };
+          }
+        }
+        return { ...a, overview: next };
+      }),
     updateControls: (patch) =>
       apply((a) => ({ ...a, controls: { ...a.controls, ...patch } })),
     updateAdditional: (patch) =>
       apply((a) => ({ ...a, additional: { ...a.additional, ...patch } })),
 
     addHazard: () =>
-      apply((a) => ({ ...a, taskHazards: [...a.taskHazards, emptyTaskHazard()] })),
+      apply((a) => ({
+        ...a,
+        taskHazards: [...a.taskHazards, emptyTaskHazard()],
+        taskHazardsConfirmedNone: false,
+      })),
     updateHazard: (id, patch) =>
       apply((a) => ({
         ...a,
@@ -146,6 +200,8 @@ export const useAssessment = create<AssessmentState>((set, get) => {
       })),
     removeHazard: (id) =>
       apply((a) => ({ ...a, taskHazards: a.taskHazards.filter((h) => h.id !== id) })),
+    setTaskHazardsConfirmedNone: (v) =>
+      apply((a) => ({ ...a, taskHazardsConfirmedNone: v })),
 
     addProcessStep: () =>
       apply((a) => ({ ...a, processSteps: [...a.processSteps, emptyProcessStep()] })),

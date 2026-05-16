@@ -6,32 +6,44 @@ import {
   ShieldCheck,
   PackageOpen,
   Users,
-  Settings,
-  LifeBuoy,
+  Check,
+  Lock,
 } from 'lucide-react';
 import { SectionId, useAssessment } from '@/store/assessment';
 import { CatLogo, CatSitting, PawMark } from '@/components/common/CatLogo';
+import { CoreSectionId, isSectionComplete } from '@/services/completion';
 
 interface NavItem {
-  id: SectionId;
+  id: Extract<SectionId, CoreSectionId>;
   label: string;
   Icon: typeof ClipboardList;
 }
 
+// Order: the natural fill order. Hazards come before Controls because the
+// hazards drive the control measures.
 const NAV: NavItem[] = [
-  { id: 'overview', label: 'Complete Assessment', Icon: ClipboardList },
+  { id: 'overview', label: 'Overview', Icon: ClipboardList },
   { id: 'substances', label: 'Process Steps', Icon: FlaskConical },
-  { id: 'controls', label: 'Controls', Icon: ShieldCheck },
   { id: 'taskHazards', label: 'Non-Chemical Hazards', Icon: AlertTriangle },
+  { id: 'controls', label: 'Controls', Icon: ShieldCheck },
   { id: 'additional', label: 'Storage & Emergency', Icon: PackageOpen },
   { id: 'briefing', label: 'Briefing & Sign-off', Icon: Users },
-  { id: 'settings', label: 'Settings', Icon: Settings },
-  { id: 'help', label: 'Help & Resources', Icon: LifeBuoy },
 ];
 
 export function Sidebar() {
   const active = useAssessment((s) => s.activeSection);
   const setSection = useAssessment((s) => s.setSection);
+  const assessment = useAssessment((s) => s.assessment);
+  const testingMode = useAssessment((s) => s.testingMode);
+
+  // A section is "unlocked" if every prior section is complete. The first
+  // section is always unlocked. This enforces an ordered fill flow without
+  // hiding what's coming next. Testing mode disables the gate entirely.
+  const completion = NAV.map((n) => isSectionComplete(assessment, n.id));
+  const completedCount = completion.filter(Boolean).length;
+  const unlocked = NAV.map(
+    (_, i) => testingMode || i === 0 || completion.slice(0, i).every(Boolean),
+  );
 
   return (
     <aside className="w-64 shrink-0 border-r border-zinc-200 bg-white flex flex-col h-full">
@@ -45,22 +57,49 @@ export function Sidebar() {
         </div>
       </div>
 
-      <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
-        {NAV.map(({ id, label, Icon }) => {
+      <div className="px-4 pt-3 pb-1 text-[10px] uppercase tracking-wider text-zinc-500 font-medium flex items-center justify-between">
+        <span>Assessment</span>
+        <span className="text-zinc-400 normal-case tracking-normal">
+          {completedCount} of {NAV.length}
+        </span>
+      </div>
+
+      <nav className="flex-1 px-2 py-1 space-y-0.5 overflow-y-auto">
+        {NAV.map(({ id, label, Icon }, i) => {
           const isActive = id === active;
+          const done = completion[i];
+          const isUnlocked = unlocked[i];
           return (
             <button
               key={id}
-              onClick={() => setSection(id)}
+              onClick={() => isUnlocked && setSection(id)}
+              disabled={!isUnlocked}
+              title={
+                !isUnlocked
+                  ? 'Complete the previous sections to unlock this step'
+                  : undefined
+              }
               className={clsx(
                 'w-full flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition text-left',
                 isActive
                   ? 'bg-accent-50 text-accent-800 font-medium border border-accent-100'
-                  : 'text-zinc-700 hover:bg-zinc-50 border border-transparent',
+                  : isUnlocked
+                  ? 'text-zinc-700 hover:bg-zinc-50 border border-transparent'
+                  : 'text-zinc-400 border border-transparent cursor-not-allowed',
               )}
             >
-              <Icon size={16} className={isActive ? 'text-accent-600' : 'text-zinc-400'} />
+              <Icon
+                size={16}
+                className={
+                  isActive
+                    ? 'text-accent-600'
+                    : isUnlocked
+                    ? 'text-zinc-400'
+                    : 'text-zinc-300'
+                }
+              />
               <span className="flex-1">{label}</span>
+              <StatusDot done={done} locked={!isUnlocked} />
             </button>
           );
         })}
@@ -76,5 +115,34 @@ export function Sidebar() {
         <PawMark className="w-8 h-8 opacity-40 pb-2" />
       </div>
     </aside>
+  );
+}
+
+function StatusDot({ done, locked }: { done: boolean; locked: boolean }) {
+  if (done) {
+    return (
+      <span
+        className="w-4 h-4 rounded-full bg-emerald-500 text-white inline-flex items-center justify-center shrink-0"
+        title="Section complete"
+      >
+        <Check size={11} strokeWidth={3} />
+      </span>
+    );
+  }
+  if (locked) {
+    return (
+      <span
+        className="w-4 h-4 inline-flex items-center justify-center shrink-0 text-zinc-300"
+        title="Locked until previous sections are complete"
+      >
+        <Lock size={11} />
+      </span>
+    );
+  }
+  return (
+    <span
+      className="w-3 h-3 rounded-full border border-zinc-300 shrink-0"
+      title="Section pending"
+    />
   );
 }
