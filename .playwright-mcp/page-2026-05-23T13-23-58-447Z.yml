@@ -1,0 +1,354 @@
+- generic [ref=e4]:
+  - complementary [ref=e5]:
+    - generic [ref=e6]:
+      - img "CAT logo" [ref=e7]
+      - generic [ref=e8]:
+        - generic [ref=e9]: CAT
+        - generic [ref=e10]: COSHH Assessment Tool
+    - generic [ref=e11]:
+      - generic [ref=e12]: Assessment
+      - generic [ref=e13]: 2 of 6
+    - navigation [ref=e14]:
+      - button "Overview" [ref=e15] [cursor=pointer]:
+        - img [ref=e16]
+        - generic [ref=e19]: Overview
+        - generic "Section complete" [ref=e20]:
+          - img [ref=e21]
+      - button "Process Steps Section pending" [ref=e23] [cursor=pointer]:
+        - img [ref=e24]
+        - generic [ref=e26]: Process Steps
+        - generic "Section pending" [ref=e27]
+      - button "Non-Chemical Hazards" [ref=e28] [cursor=pointer]:
+        - img [ref=e29]
+        - generic [ref=e31]: Non-Chemical Hazards
+        - generic "Section complete" [ref=e32]:
+          - img [ref=e33]
+      - button "Controls Section pending" [ref=e35] [cursor=pointer]:
+        - img [ref=e36]
+        - generic [ref=e39]: Controls
+        - generic "Section pending" [ref=e40]
+      - button "Storage & Emergency Section pending" [active] [ref=e41] [cursor=pointer]:
+        - img [ref=e42]
+        - generic [ref=e46]: Storage & Emergency
+        - generic "Section pending" [ref=e47]
+      - button "Briefing & Sign-off Section pending" [ref=e48] [cursor=pointer]:
+        - img [ref=e49]
+        - generic [ref=e54]: Briefing & Sign-off
+        - generic "Section pending" [ref=e55]
+    - generic [ref=e56]:
+      - img [ref=e57]
+      - generic [ref=e58]:
+        - text: Please do not
+        - text: the cat...
+      - img [ref=e59]
+  - generic [ref=e60]:
+    - banner [ref=e61]:
+      - generic [ref=e62]:
+        - generic [ref=e63]: Storage grouping check
+        - generic [ref=e64]: Ref CAT-STOR
+      - button "Open settings" [ref=e65] [cursor=pointer]:
+        - img [ref=e66]
+      - button "Open help" [ref=e69] [cursor=pointer]:
+        - img [ref=e70]
+    - main [ref=e73]:
+      - generic [ref=e209]:
+        - generic [ref=e210]:
+          - generic [ref=e211]:
+            - heading "Storage & Emergency" [level=1] [ref=e212]
+            - paragraph [ref=e213]: Suggestions below are derived from H-codes and GHS pictograms across the 3 chemicals you've added.
+          - button "Re-apply suggestions" [ref=e215] [cursor=pointer]:
+            - img [ref=e216]
+            - text: Re-apply suggestions
+        - generic [ref=e219]:
+          - img [ref=e220]
+          - generic [ref=e222]:
+            - strong [ref=e223]: Suggestions, not recommendations.
+            - text: The chips below are generated from the GHS hazard codes and pictograms of the chemicals you have added. They are starting points only and must be reviewed against the substance Safety Data Sheet, local procedures and competent H&S judgement before being relied upon. CAT does not validate that the chosen controls are sufficient for your activity.
+        - generic [ref=e224]:
+          - generic [ref=e225]:
+            - generic [ref=e226]:
+              - text: Key hazards (from GHS)
+              - img [ref=e227]
+            - generic [ref=e229]:
+              - generic [ref=e230]:
+                - img "Flammable" [ref=e231]
+                - text: Flammable
+              - generic [ref=e232]:
+                - img "Harmful / irritant" [ref=e233]
+                - text: Harmful / irritant
+              - generic [ref=e234]:
+                - img "Acute toxicity" [ref=e235]
+                - text: Acute toxicity
+              - generic [ref=e236]:
+                - img "Health hazard" [ref=e237]
+                - text: Health hazard
+          - generic [ref=e238]:
+            - generic [ref=e239]: Storage implications
+            - list [ref=e240]:
+              - listitem [ref=e241]: Store flammables and combustibles (Acetone, Methanol) in approved flammable storage, away from ignition sources, oxidisers and incompatible chemicals. Keep only the working quantity at the point of use.
+              - listitem [ref=e242]: Store non-oxidising organic or mineral acids (Hydrochloric Acid (37%)) in compatible corrosives storage with secondary containment. Segregate from bases and incompatible chemicals.
+              - listitem [ref=e243]: Store non-volatile poisons or toxins (Methanol) in secure, clearly labelled compatible storage with secondary containment. Keep liquids below solids where practicable.
+        - generic [ref=e244]:
+          - generic [ref=e245]:
+            - generic [ref=e246]:
+              - button [ref=e247] [cursor=pointer]:
+                - img [ref=e248]
+              - img [ref=e251]
+              - button "Storage & SDS Storage requirements and controls generated from GHS symbols and hazard codes." [ref=e254] [cursor=pointer]:
+                - generic [ref=e255]: Storage & SDS
+                - generic [ref=e256]: Storage requirements and controls generated from GHS symbols and hazard codes.
+              - generic [ref=e258]:
+                - generic [ref=e259]:
+                  - checkbox "Hazardous substance logged into ChemInventory" [ref=e260]
+                  - text: Hazardous substance logged into ChemInventory
+                - button "Import from inventory" [ref=e261] [cursor=pointer]:
+                  - img [ref=e262]
+                  - text: Import from inventory
+            - generic [ref=e266]:
+              - generic [ref=e267]:
+                - generic [ref=e268]:
+                  - generic [ref=e269]:
+                    - text: Add chemicals (quick add)
+                    - img [ref=e270]
+                  - generic [ref=e272]:
+                    - textbox "Type a chemical name or CAS number (e.g. acetone, 67-64-1)..." [ref=e273]
+                    - button "Bulk paste" [ref=e274] [cursor=pointer]:
+                      - text: Bulk paste
+                      - img [ref=e275]
+                    - button "Add" [ref=e277] [cursor=pointer]:
+                      - text: Add
+                      - img [ref=e278]
+                  - generic [ref=e279]:
+                    - generic [ref=e280]:
+                      - text: Acetone
+                      - generic [ref=e281]: x
+                    - generic [ref=e282]:
+                      - text: Methanol
+                      - generic [ref=e283]: x
+                    - generic [ref=e284]:
+                      - text: Hydrochloric Acid (37%)
+                      - generic [ref=e285]: x
+                - generic [ref=e287]:
+                  - img [ref=e288]
+                  - generic [ref=e291]:
+                    - generic [ref=e292]: 3 chemicals added
+                    - generic [ref=e293]: Controls generated from GHS and H-codes
+                    - button "View details" [ref=e294] [cursor=pointer]:
+                      - text: View details
+                      - img [ref=e295]
+              - generic [ref=e297]:
+                - generic [ref=e298]:
+                  - generic [ref=e299]:
+                    - generic [ref=e300]:
+                      - generic [ref=e301]: Chemicals grouped by storage requirements
+                      - generic [ref=e302]: Smart grouping
+                      - img [ref=e303]
+                    - generic [ref=e305]:
+                      - generic [ref=e306]: 3 groups · 3 chemicals
+                      - button "Expand all" [ref=e307] [cursor=pointer]:
+                        - img [ref=e308]
+                        - text: Expand all
+                  - generic [ref=e311]:
+                    - generic [ref=e312]:
+                      - button "Flammable solvents 2 chemicals Shared storage controls apply to all chemicals in this group. Auto-generated" [ref=e313] [cursor=pointer]:
+                        - img [ref=e315]
+                        - generic [ref=e317]:
+                          - generic [ref=e318]:
+                            - generic [ref=e319]: Flammable solvents
+                            - generic [ref=e320]: 2 chemicals
+                          - generic [ref=e321]: Shared storage controls apply to all chemicals in this group.
+                        - generic [ref=e322]:
+                          - img [ref=e323]
+                          - text: Auto-generated
+                        - img [ref=e326]
+                      - generic [ref=e328]:
+                        - generic [ref=e329]:
+                          - generic [ref=e330]:
+                            - text: Shared controls (applies to all)
+                            - img [ref=e331]
+                          - generic [ref=e333]:
+                            - button "Store in an approved flammable cabinet." [ref=e334] [cursor=pointer]:
+                              - img [ref=e335]
+                              - text: Store in an approved flammable cabinet.
+                            - button "Keep away from ignition sources, heat and sparks." [ref=e338] [cursor=pointer]:
+                              - img [ref=e339]
+                              - text: Keep away from ignition sources, heat and sparks.
+                            - button "Use in a well-ventilated area." [ref=e342] [cursor=pointer]:
+                              - img [ref=e343]
+                              - text: Use in a well-ventilated area.
+                            - button "Keep containers tightly closed." [ref=e346] [cursor=pointer]:
+                              - img [ref=e347]
+                              - text: Keep containers tightly closed.
+                            - button "Keep only the working quantity at the point of use." [ref=e350] [cursor=pointer]:
+                              - img [ref=e351]
+                              - text: Keep only the working quantity at the point of use.
+                          - button "View group details" [ref=e354] [cursor=pointer]:
+                            - text: View group details
+                            - img [ref=e355]
+                        - generic [ref=e357]:
+                          - generic [ref=e358]: Chemicals in this group
+                          - generic [ref=e359]:
+                            - generic [ref=e360]:
+                              - generic [ref=e361]:
+                                - generic [ref=e362]: Acetone
+                                - generic [ref=e363]:
+                                  - img "Flammable" [ref=e364]
+                                  - img "Harmful / irritant" [ref=e365]
+                              - generic [ref=e366]: 500 mL
+                              - generic [ref=e367]: v3.1 · 2026-05-23
+                              - generic [ref=e368]: Auto-generated
+                              - img [ref=e369]
+                            - generic [ref=e371]:
+                              - generic [ref=e372]:
+                                - generic [ref=e373]: Methanol
+                                - generic [ref=e374]:
+                                  - img "Flammable" [ref=e375]
+                                  - img "Acute toxicity" [ref=e376]
+                                  - img "Health hazard" [ref=e377]
+                              - generic [ref=e378]: 200 mL
+                              - generic [ref=e379]: v3.1 · 2026-05-23
+                              - generic [ref=e380]: Auto-generated
+                              - img [ref=e381]
+                    - button "Corrosive substances 1 chemical Shared storage controls apply to all chemicals in this group. Auto-generated" [ref=e384] [cursor=pointer]:
+                      - img [ref=e386]
+                      - generic [ref=e388]:
+                        - generic [ref=e389]:
+                          - generic [ref=e390]: Corrosive substances
+                          - generic [ref=e391]: 1 chemical
+                        - generic [ref=e392]: Shared storage controls apply to all chemicals in this group.
+                      - generic [ref=e393]:
+                        - img [ref=e394]
+                        - text: Auto-generated
+                      - img [ref=e397]
+                    - button "Toxic substances 1 chemical Shared storage controls apply to all chemicals in this group. Needs review" [ref=e400] [cursor=pointer]:
+                      - img [ref=e402]
+                      - generic [ref=e407]:
+                        - generic [ref=e408]:
+                          - generic [ref=e409]: Toxic substances
+                          - generic [ref=e410]: 1 chemical
+                        - generic [ref=e411]: Shared storage controls apply to all chemicals in this group.
+                      - generic [ref=e412]:
+                        - img [ref=e413]
+                        - text: Needs review
+                      - img [ref=e415]
+                    - generic [ref=e417]:
+                      - generic [ref=e418]:
+                        - img [ref=e419]
+                        - text: Exceptions & conflicts
+                        - generic [ref=e421]: "1"
+                        - generic [ref=e422]: These items need your attention.
+                      - button "Segregate non-oxidising organic/mineral acids (Hydrochloric Acid (37%)) from poison/toxin storage (Methanol). Additional controls required" [ref=e424] [cursor=pointer]:
+                        - generic [ref=e425]:
+                          - img [ref=e426]
+                          - text: Segregate non-oxidising organic/mineral acids (Hydrochloric Acid (37%)) from poison/toxin storage (Methanol).
+                        - generic [ref=e428]: Additional controls required
+                  - button "Add manual chemical" [ref=e429] [cursor=pointer]:
+                    - img [ref=e430]
+                    - text: Add manual chemical
+                - generic [ref=e431]:
+                  - generic [ref=e432]:
+                    - text: Review summary
+                    - img [ref=e433]
+                  - generic [ref=e435]:
+                    - generic [ref=e436]:
+                      - img [ref=e438]
+                      - generic [ref=e441]: "3"
+                      - generic [ref=e442]: Chemicals added
+                    - generic [ref=e443]:
+                      - img [ref=e445]
+                      - generic [ref=e449]: "16"
+                      - generic [ref=e450]: Controls auto-generated
+                    - generic [ref=e451]:
+                      - img [ref=e453]
+                      - generic [ref=e455]: "2"
+                      - generic [ref=e456]: Needs review
+                    - generic [ref=e457]:
+                      - img [ref=e459]
+                      - generic [ref=e461]: "0"
+                      - generic [ref=e462]: Conflicts detected
+                  - generic [ref=e463]: Quick actions
+                  - generic [ref=e464]:
+                    - button "Apply controls to similar chemicals" [ref=e465] [cursor=pointer]:
+                      - img [ref=e466]
+                      - text: Apply controls to similar chemicals
+                    - button "Export controls summary" [ref=e471] [cursor=pointer]:
+                      - img [ref=e472]
+                      - text: Export controls summary
+                    - button "View full comparison" [ref=e476] [cursor=pointer]:
+                      - img [ref=e477]
+                      - text: View full comparison
+                  - generic [ref=e482]:
+                    - generic [ref=e483]:
+                      - img [ref=e484]
+                      - text: How it works
+                    - paragraph [ref=e486]: We group chemicals by recognised GHS pictograms and H-codes, then apply storage controls for each group. Chemicals can appear in more than one group.
+                    - button "Learn more" [ref=e487] [cursor=pointer]:
+                      - text: Learn more
+                      - img [ref=e488]
+              - generic [ref=e492]:
+                - generic [ref=e493]:
+                  - generic [ref=e494]: SDS version number
+                  - textbox "SDS version number" [ref=e495]:
+                    - /placeholder: e.g. v3.1
+                    - text: v3.1
+                - generic [ref=e496]:
+                  - generic [ref=e497]: SDS date
+                  - textbox "SDS date" [ref=e498]: 2026-05-23
+          - generic [ref=e499]:
+            - generic [ref=e500]:
+              - button [ref=e501] [cursor=pointer]:
+                - img [ref=e502]
+              - img [ref=e505]
+              - button "Emergency response Record actions for likely emergency scenarios." [ref=e510] [cursor=pointer]:
+                - generic [ref=e511]: Emergency response
+                - generic [ref=e512]: Record actions for likely emergency scenarios.
+              - button "Expand all" [ref=e514] [cursor=pointer]
+            - generic [ref=e515]:
+              - generic [ref=e516]:
+                - button "First aid For exposure to the substance 6 suggestions" [ref=e518] [cursor=pointer]:
+                  - img [ref=e520]
+                  - generic [ref=e522]: First aid
+                  - generic [ref=e523]: For exposure to the substance
+                  - generic [ref=e524]: 6 suggestions
+                  - img [ref=e525]
+                - button "Spills Spill control and clean up 3 suggestions" [ref=e528] [cursor=pointer]:
+                  - img [ref=e530]
+                  - generic [ref=e533]: Spills
+                  - generic [ref=e534]: Spill control and clean up
+                  - generic [ref=e535]: 3 suggestions
+                  - img [ref=e536]
+                - button "Fire response In case of fire 2 suggestions" [ref=e539] [cursor=pointer]:
+                  - img [ref=e541]
+                  - generic [ref=e543]: Fire response
+                  - generic [ref=e544]: In case of fire
+                  - generic [ref=e545]: 2 suggestions
+                  - img [ref=e546]
+                - button "Disposal Waste and disposal 3 suggestions" [ref=e549] [cursor=pointer]:
+                  - img [ref=e551]
+                  - generic [ref=e554]: Disposal
+                  - generic [ref=e555]: Waste and disposal
+                  - generic [ref=e556]: 3 suggestions
+                  - img [ref=e557]
+              - generic [ref=e559]:
+                - generic [ref=e560]:
+                  - generic [ref=e561]:
+                    - img [ref=e562]
+                    - text: Generated summary
+                    - generic [ref=e564]: (editable)
+                  - generic [ref=e565]: 2 suggestion
+                - textbox "Summarise storage and emergency controls, or add other COSHH requirements that do not fit elsewhere." [ref=e567]
+  - complementary [ref=e188]:
+    - generic [ref=e189]:
+      - generic [ref=e190]: Export
+      - paragraph [ref=e191]: Files download to your device — nothing is uploaded.
+    - generic [ref=e192]:
+      - button "Export PDF" [ref=e193] [cursor=pointer]:
+        - img [ref=e194]
+        - text: Export PDF
+      - button "Export DOCX" [ref=e197] [cursor=pointer]:
+        - img [ref=e198]
+        - text: Export DOCX
+    - button "+ More backup options" [ref=e202] [cursor=pointer]
+    - generic [ref=e203]:
+      - img [ref=e204]
+      - generic [ref=e208]: You are the only copy. Clearing browser data will erase any unsaved draft — export regularly.

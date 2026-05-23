@@ -1,0 +1,539 @@
+- generic [ref=e4]:
+  - complementary [ref=e5]:
+    - generic [ref=e6]:
+      - img "CAT logo" [ref=e7]
+      - generic [ref=e8]:
+        - generic [ref=e9]: CAT
+        - generic [ref=e10]: COSHH Assessment Tool
+    - generic [ref=e11]:
+      - generic [ref=e12]: Assessment
+      - generic [ref=e13]: 0 of 6
+    - navigation [ref=e14]:
+      - button "Overview Section pending" [ref=e15] [cursor=pointer]:
+        - img [ref=e16]
+        - generic [ref=e19]: Overview
+        - generic "Section pending" [ref=e20]
+      - button "Process Steps Section pending" [ref=e21] [cursor=pointer]:
+        - img [ref=e22]
+        - generic [ref=e24]: Process Steps
+        - generic "Section pending" [ref=e25]
+      - button "Non-Chemical Hazards Section pending" [ref=e26] [cursor=pointer]:
+        - img [ref=e27]
+        - generic [ref=e29]: Non-Chemical Hazards
+        - generic "Section pending" [ref=e30]
+      - button "Controls Section pending" [ref=e31] [cursor=pointer]:
+        - img [ref=e32]
+        - generic [ref=e35]: Controls
+        - generic "Section pending" [ref=e36]
+      - button "Storage & Emergency Section pending" [active] [ref=e37] [cursor=pointer]:
+        - img [ref=e38]
+        - generic [ref=e42]: Storage & Emergency
+        - generic "Section pending" [ref=e43]
+      - button "Briefing & Sign-off Section pending" [ref=e44] [cursor=pointer]:
+        - img [ref=e45]
+        - generic [ref=e50]: Briefing & Sign-off
+        - generic "Section pending" [ref=e51]
+    - generic [ref=e52]:
+      - img [ref=e53]
+      - generic [ref=e54]:
+        - text: Please do not
+        - text: the cat...
+      - img [ref=e55]
+  - generic [ref=e56]:
+    - banner [ref=e57]:
+      - generic [ref=e58]:
+        - generic [ref=e59]: New COSHH Assessment
+        - generic [ref=e60]: Draft auto-saves in this browser
+      - button "Open settings" [ref=e61] [cursor=pointer]:
+        - img [ref=e62]
+      - button "Open help" [ref=e65] [cursor=pointer]:
+        - img [ref=e66]
+    - main [ref=e69]:
+      - generic [ref=e204]:
+        - generic [ref=e205]:
+          - generic [ref=e206]:
+            - heading "Storage & Emergency" [level=1] [ref=e207]
+            - paragraph [ref=e208]: Add chemicals in the Process Steps section to see hazard-driven suggestions here.
+          - button "Re-apply suggestions" [ref=e210] [cursor=pointer]:
+            - img [ref=e211]
+            - text: Re-apply suggestions
+        - generic [ref=e214]:
+          - img [ref=e215]
+          - generic [ref=e217]:
+            - strong [ref=e218]: Suggestions, not recommendations.
+            - text: The chips below are generated from the GHS hazard codes and pictograms of the chemicals you have added. They are starting points only and must be reviewed against the substance Safety Data Sheet, local procedures and competent H&S judgement before being relied upon. CAT does not validate that the chosen controls are sufficient for your activity.
+        - generic [ref=e219]:
+          - generic [ref=e220]:
+            - generic [ref=e221]:
+              - button [ref=e222] [cursor=pointer]:
+                - img [ref=e223]
+              - img [ref=e226]
+              - button "Storage & SDS Storage requirements and controls generated from GHS symbols and hazard codes." [ref=e229] [cursor=pointer]:
+                - generic [ref=e230]: Storage & SDS
+                - generic [ref=e231]: Storage requirements and controls generated from GHS symbols and hazard codes.
+              - generic [ref=e233]:
+                - button "Re-analyze chemicals" [ref=e234] [cursor=pointer]:
+                  - img [ref=e235]
+                  - text: Re-analyze chemicals
+                - button "Export storage plan" [ref=e238] [cursor=pointer]:
+                  - img [ref=e239]
+                  - text: Export storage plan
+            - generic [ref=e243]:
+              - generic [ref=e244]:
+                - generic [ref=e245]:
+                  - img [ref=e247]
+                  - generic [ref=e251]: "0"
+                  - generic [ref=e252]: Chemicals added
+                - generic [ref=e253]:
+                  - img [ref=e255]
+                  - generic [ref=e257]: "0"
+                  - generic [ref=e258]: Storage groups created
+                - generic [ref=e259]:
+                  - img [ref=e261]
+                  - generic [ref=e263]: "0"
+                  - generic [ref=e264]: Segregation rules applied
+                - generic [ref=e265]:
+                  - img [ref=e267]
+                  - generic [ref=e269]: "0"
+                  - generic [ref=e270]: Action required
+              - generic [ref=e271]:
+                - generic [ref=e272]:
+                  - generic [ref=e273]:
+                    - text: Recommended storage groups
+                    - img [ref=e274]
+                  - button "View full guidance" [ref=e276] [cursor=pointer]
+                - generic [ref=e277]:
+                  - generic [ref=e278]:
+                    - generic [ref=e279]:
+                      - generic [ref=e280]:
+                        - generic [ref=e281]: "1"
+                        - img [ref=e283]
+                      - generic [ref=e285]:
+                        - generic [ref=e286]: Flammable Liquids
+                        - generic [ref=e287]: Flammable liquids
+                    - generic [ref=e288]:
+                      - generic [ref=e289]: Chemicals (0)
+                      - generic [ref=e290]: No chemicals in this group
+                    - generic [ref=e291]:
+                      - textbox "Add chemical manually" [ref=e292]
+                      - button "Add" [ref=e293] [cursor=pointer]:
+                        - img [ref=e294]
+                        - text: Add
+                  - generic [ref=e295]:
+                    - generic [ref=e296]:
+                      - generic [ref=e297]:
+                        - generic [ref=e298]: 2a
+                        - img [ref=e300]
+                      - generic [ref=e302]:
+                        - generic [ref=e303]: Acids, Inorganic
+                        - generic [ref=e304]: Inorganic acids
+                    - generic [ref=e305]:
+                      - generic [ref=e306]: Chemicals (0)
+                      - generic [ref=e307]: No chemicals in this group
+                    - generic [ref=e308]:
+                      - textbox "Add chemical manually" [ref=e309]
+                      - button "Add" [ref=e310] [cursor=pointer]:
+                        - img [ref=e311]
+                        - text: Add
+                  - generic [ref=e312]:
+                    - generic [ref=e313]:
+                      - generic [ref=e314]:
+                        - generic [ref=e315]: 2b
+                        - img [ref=e317]
+                      - generic [ref=e319]:
+                        - generic [ref=e320]: Acids, Organic
+                        - generic [ref=e321]: Organic acids
+                    - generic [ref=e322]:
+                      - generic [ref=e323]: Chemicals (0)
+                      - generic [ref=e324]: No chemicals in this group
+                    - generic [ref=e325]:
+                      - textbox "Add chemical manually" [ref=e326]
+                      - button "Add" [ref=e327] [cursor=pointer]:
+                        - img [ref=e328]
+                        - text: Add
+                  - generic [ref=e329]:
+                    - generic [ref=e330]:
+                      - generic [ref=e331]:
+                        - generic [ref=e332]: "3"
+                        - img [ref=e334]
+                      - generic [ref=e336]:
+                        - generic [ref=e337]: Alkalis (Bases)
+                        - generic [ref=e338]: Bases / Alkalis
+                    - generic [ref=e339]:
+                      - generic [ref=e340]: Chemicals (0)
+                      - generic [ref=e341]: No chemicals in this group
+                    - generic [ref=e342]:
+                      - textbox "Add chemical manually" [ref=e343]
+                      - button "Add" [ref=e344] [cursor=pointer]:
+                        - img [ref=e345]
+                        - text: Add
+                  - generic [ref=e346]:
+                    - generic [ref=e347]:
+                      - generic [ref=e348]:
+                        - generic [ref=e349]: "4"
+                        - img [ref=e351]
+                      - generic [ref=e353]:
+                        - generic [ref=e354]: Oxidizers
+                        - generic [ref=e355]: Oxidizing substances
+                    - generic [ref=e356]:
+                      - generic [ref=e357]: Chemicals (0)
+                      - generic [ref=e358]: No chemicals in this group
+                    - generic [ref=e359]:
+                      - textbox "Add chemical manually" [ref=e360]
+                      - button "Add" [ref=e361] [cursor=pointer]:
+                        - img [ref=e362]
+                        - text: Add
+                  - generic [ref=e363]:
+                    - generic [ref=e364]:
+                      - generic [ref=e365]:
+                        - generic [ref=e366]: 5a
+                        - img [ref=e368]
+                      - generic [ref=e373]:
+                        - generic [ref=e374]: Poisons, Inorganic
+                        - generic [ref=e375]: Inorganic poisons / toxics
+                    - generic [ref=e376]:
+                      - generic [ref=e377]: Chemicals (0)
+                      - generic [ref=e378]: No chemicals in this group
+                    - generic [ref=e379]:
+                      - textbox "Add chemical manually" [ref=e380]
+                      - button "Add" [ref=e381] [cursor=pointer]:
+                        - img [ref=e382]
+                        - text: Add
+                  - generic [ref=e383]:
+                    - generic [ref=e384]:
+                      - generic [ref=e385]:
+                        - generic [ref=e386]: 5b
+                        - img [ref=e388]
+                      - generic [ref=e393]:
+                        - generic [ref=e394]: Poisons, Organic
+                        - generic [ref=e395]: Organic poisons / toxics
+                    - generic [ref=e396]:
+                      - generic [ref=e397]: Chemicals (0)
+                      - generic [ref=e398]: No chemicals in this group
+                    - generic [ref=e399]:
+                      - textbox "Add chemical manually" [ref=e400]
+                      - button "Add" [ref=e401] [cursor=pointer]:
+                        - img [ref=e402]
+                        - text: Add
+                  - generic [ref=e403]:
+                    - generic [ref=e404]:
+                      - generic [ref=e405]:
+                        - generic [ref=e406]: 5c
+                        - img [ref=e408]
+                      - generic [ref=e418]:
+                        - generic [ref=e419]: Schedule 1 Poisons
+                        - generic [ref=e420]: Schedule 1 poisons
+                    - generic [ref=e421]:
+                      - generic [ref=e422]: Chemicals (0)
+                      - generic [ref=e423]: No chemicals in this group
+                    - generic [ref=e424]:
+                      - textbox "Add chemical manually" [ref=e425]
+                      - button "Add" [ref=e426] [cursor=pointer]:
+                        - img [ref=e427]
+                        - text: Add
+                  - generic [ref=e428]:
+                    - generic [ref=e429]:
+                      - generic [ref=e430]:
+                        - generic [ref=e431]: "6"
+                        - img [ref=e433]
+                      - generic [ref=e436]:
+                        - generic [ref=e437]: Air / Water Reactives
+                        - generic [ref=e438]: Air / water reactive substances
+                    - generic [ref=e439]:
+                      - generic [ref=e440]: Chemicals (0)
+                      - generic [ref=e441]: No chemicals in this group
+                    - generic [ref=e442]:
+                      - textbox "Add chemical manually" [ref=e443]
+                      - button "Add" [ref=e444] [cursor=pointer]:
+                        - img [ref=e445]
+                        - text: Add
+                - paragraph [ref=e446]: Groups are created automatically from GHS pictograms, H-codes and compatibility rules. Acid/base and organic/inorganic splits should be verified against the SDS where the name is ambiguous.
+              - generic [ref=e447]:
+                - generic [ref=e448]:
+                  - generic [ref=e449]:
+                    - text: Chemical classification & storage assignment
+                    - img [ref=e450]
+                  - button "Edit columns" [ref=e452] [cursor=pointer]
+                - table [ref=e454]:
+                  - rowgroup [ref=e463]:
+                    - row "Chemical GHS pictograms Key H-codes Primary hazard Storage group (auto) Storage guidance Segregation alerts" [ref=e464]:
+                      - columnheader "Chemical" [ref=e465]
+                      - columnheader "GHS pictograms" [ref=e466]
+                      - columnheader "Key H-codes" [ref=e467]
+                      - columnheader "Primary hazard" [ref=e468]
+                      - columnheader "Storage group (auto)" [ref=e469]
+                      - columnheader "Storage guidance" [ref=e470]
+                      - columnheader "Segregation alerts" [ref=e471]
+                  - rowgroup [ref=e472]:
+                    - row "Add chemicals in Process Steps to generate storage groups and compatibility checks." [ref=e473]:
+                      - cell "Add chemicals in Process Steps to generate storage groups and compatibility checks." [ref=e474]
+              - generic [ref=e475]:
+                - generic [ref=e476]:
+                  - text: Compatibility between storage groups
+                  - img [ref=e477]
+                - generic [ref=e479]:
+                  - generic [ref=e480]:
+                    - img [ref=e481]
+                    - text: Maybe compatible
+                  - generic [ref=e484]:
+                    - generic [ref=e485]: x
+                    - text: Not compatible
+                  - generic [ref=e486]:
+                    - img [ref=e487]
+                    - text: Confirm with SDS
+                - table [ref=e490]:
+                  - rowgroup [ref=e491]:
+                    - row "Group 1 Flammable Liquids 2a Acids, Inorganic 2b Acids, Organic 3 Alkalis (Bases) 4 Oxidizers 5a Poisons, Inorganic 5b Poisons, Organic 5c Schedule 1 Poisons 6 Air / Water Reactives" [ref=e492]:
+                      - columnheader "Group" [ref=e493]
+                      - columnheader "1 Flammable Liquids" [ref=e494]:
+                        - generic [ref=e495]: "1"
+                        - generic [ref=e496]: Flammable Liquids
+                      - columnheader "2a Acids, Inorganic" [ref=e497]:
+                        - generic [ref=e498]: 2a
+                        - generic [ref=e499]: Acids, Inorganic
+                      - columnheader "2b Acids, Organic" [ref=e500]:
+                        - generic [ref=e501]: 2b
+                        - generic [ref=e502]: Acids, Organic
+                      - columnheader "3 Alkalis (Bases)" [ref=e503]:
+                        - generic [ref=e504]: "3"
+                        - generic [ref=e505]: Alkalis (Bases)
+                      - columnheader "4 Oxidizers" [ref=e506]:
+                        - generic [ref=e507]: "4"
+                        - generic [ref=e508]: Oxidizers
+                      - columnheader "5a Poisons, Inorganic" [ref=e509]:
+                        - generic [ref=e510]: 5a
+                        - generic [ref=e511]: Poisons, Inorganic
+                      - columnheader "5b Poisons, Organic" [ref=e512]:
+                        - generic [ref=e513]: 5b
+                        - generic [ref=e514]: Poisons, Organic
+                      - columnheader "5c Schedule 1 Poisons" [ref=e515]:
+                        - generic [ref=e516]: 5c
+                        - generic [ref=e517]: Schedule 1 Poisons
+                      - columnheader "6 Air / Water Reactives" [ref=e518]:
+                        - generic [ref=e519]: "6"
+                        - generic [ref=e520]: Air / Water Reactives
+                  - rowgroup [ref=e521]:
+                    - row "1 Flammable Liquids x x x x x x" [ref=e522]:
+                      - rowheader "1 Flammable Liquids" [ref=e523]:
+                        - generic [ref=e524]: "1"
+                        - text: Flammable Liquids
+                      - cell [ref=e525]:
+                        - img [ref=e526]
+                      - cell "x" [ref=e529]
+                      - cell [ref=e530]:
+                        - img [ref=e531]
+                      - cell "x" [ref=e534]
+                      - cell "x" [ref=e535]
+                      - cell "x" [ref=e536]
+                      - cell [ref=e537]:
+                        - img [ref=e538]
+                      - cell "x" [ref=e541]
+                      - cell "x" [ref=e542]
+                    - row "2a Acids, Inorganic x x x x x x x" [ref=e543]:
+                      - rowheader "2a Acids, Inorganic" [ref=e544]:
+                        - generic [ref=e545]: 2a
+                        - text: Acids, Inorganic
+                      - cell "x" [ref=e546]
+                      - cell [ref=e547]:
+                        - img [ref=e548]
+                      - cell "x" [ref=e551]
+                      - cell "x" [ref=e552]
+                      - cell [ref=e553]:
+                        - img [ref=e554]
+                      - cell "x" [ref=e557]
+                      - cell "x" [ref=e558]
+                      - cell "x" [ref=e559]
+                      - cell "x" [ref=e560]
+                    - row "2b Acids, Organic x x x x x x x" [ref=e561]:
+                      - rowheader "2b Acids, Organic" [ref=e562]:
+                        - generic [ref=e563]: 2b
+                        - text: Acids, Organic
+                      - cell [ref=e564]:
+                        - img [ref=e565]
+                      - cell "x" [ref=e568]
+                      - cell [ref=e569]:
+                        - img [ref=e570]
+                      - cell "x" [ref=e573]
+                      - cell "x" [ref=e574]
+                      - cell "x" [ref=e575]
+                      - cell "x" [ref=e576]
+                      - cell "x" [ref=e577]
+                      - cell "x" [ref=e578]
+                    - row "3 Alkalis (Bases) x x x x x x" [ref=e579]:
+                      - rowheader "3 Alkalis (Bases)" [ref=e580]:
+                        - generic [ref=e581]: "3"
+                        - text: Alkalis (Bases)
+                      - cell "x" [ref=e582]
+                      - cell "x" [ref=e583]
+                      - cell "x" [ref=e584]
+                      - cell [ref=e585]:
+                        - img [ref=e586]
+                      - cell [ref=e589]:
+                        - img [ref=e590]
+                      - cell [ref=e593]:
+                        - img [ref=e594]
+                      - cell "x" [ref=e597]
+                      - cell "x" [ref=e598]
+                      - cell "x" [ref=e599]
+                    - row "4 Oxidizers x x x x x" [ref=e600]:
+                      - rowheader "4 Oxidizers" [ref=e601]:
+                        - generic [ref=e602]: "4"
+                        - text: Oxidizers
+                      - cell "x" [ref=e603]
+                      - cell [ref=e604]:
+                        - img [ref=e605]
+                      - cell "x" [ref=e608]
+                      - cell [ref=e609]:
+                        - img [ref=e610]
+                      - cell [ref=e613]:
+                        - img [ref=e614]
+                      - cell [ref=e617]:
+                        - img [ref=e618]
+                      - cell "x" [ref=e621]
+                      - cell "x" [ref=e622]
+                      - cell "x" [ref=e623]
+                    - row "5a Poisons, Inorganic x x x x x x" [ref=e624]:
+                      - rowheader "5a Poisons, Inorganic" [ref=e625]:
+                        - generic [ref=e626]: 5a
+                        - text: Poisons, Inorganic
+                      - cell "x" [ref=e627]
+                      - cell "x" [ref=e628]
+                      - cell "x" [ref=e629]
+                      - cell [ref=e630]:
+                        - img [ref=e631]
+                      - cell [ref=e634]:
+                        - img [ref=e635]
+                      - cell [ref=e638]:
+                        - img [ref=e639]
+                      - cell "x" [ref=e642]
+                      - cell "x" [ref=e643]
+                      - cell "x" [ref=e644]
+                    - row "5b Poisons, Organic x x x x x x x" [ref=e645]:
+                      - rowheader "5b Poisons, Organic" [ref=e646]:
+                        - generic [ref=e647]: 5b
+                        - text: Poisons, Organic
+                      - cell [ref=e648]:
+                        - img [ref=e649]
+                      - cell "x" [ref=e652]
+                      - cell "x" [ref=e653]
+                      - cell "x" [ref=e654]
+                      - cell "x" [ref=e655]
+                      - cell "x" [ref=e656]
+                      - cell [ref=e657]:
+                        - img [ref=e658]
+                      - cell "x" [ref=e661]
+                      - cell "x" [ref=e662]
+                    - row "5c Schedule 1 Poisons x x x x x x x x" [ref=e663]:
+                      - rowheader "5c Schedule 1 Poisons" [ref=e664]:
+                        - generic [ref=e665]: 5c
+                        - text: Schedule 1 Poisons
+                      - cell "x" [ref=e666]
+                      - cell "x" [ref=e667]
+                      - cell "x" [ref=e668]
+                      - cell "x" [ref=e669]
+                      - cell "x" [ref=e670]
+                      - cell "x" [ref=e671]
+                      - cell "x" [ref=e672]
+                      - cell [ref=e673]:
+                        - img [ref=e674]
+                      - cell "x" [ref=e677]
+                    - row "6 Air / Water Reactives x x x x x x x x" [ref=e678]:
+                      - rowheader "6 Air / Water Reactives" [ref=e679]:
+                        - generic [ref=e680]: "6"
+                        - text: Air / Water Reactives
+                      - cell "x" [ref=e681]
+                      - cell "x" [ref=e682]
+                      - cell "x" [ref=e683]
+                      - cell "x" [ref=e684]
+                      - cell "x" [ref=e685]
+                      - cell "x" [ref=e686]
+                      - cell "x" [ref=e687]
+                      - cell "x" [ref=e688]
+                      - cell [ref=e689]:
+                        - img [ref=e690]
+                - generic [ref=e693]:
+                  - generic [ref=e694]: Based on the supplied storage compatibility table. Highlighted cells show incompatibilities between storage groups currently used in this assessment. Always confirm with the SDS.
+                  - button "View full matrix" [ref=e695] [cursor=pointer]
+              - generic [ref=e696]:
+                - generic [ref=e697]:
+                  - generic [ref=e698]: SDS version number
+                  - textbox "SDS version number" [ref=e699]:
+                    - /placeholder: e.g. v3.1
+                - generic [ref=e700]:
+                  - generic [ref=e701]: SDS date
+                  - textbox "SDS date" [ref=e702]
+                - generic [ref=e703]:
+                  - checkbox "Hazardous substance logged into ChemInventory" [ref=e704]
+                  - text: Hazardous substance logged into ChemInventory
+              - generic [ref=e705]:
+                - generic [ref=e706]:
+                  - generic [ref=e707]:
+                    - img [ref=e708]
+                    - text: How this works
+                  - paragraph [ref=e710]: We classify chemicals using the H-codes and GHS pictograms recorded in the COSHH assessment, then apply the supplied storage compatibility table.
+                  - button "Learn more" [ref=e711] [cursor=pointer]:
+                    - text: Learn more
+                    - img [ref=e712]
+                - generic [ref=e716]:
+                  - generic [ref=e717]:
+                    - img [ref=e718]
+                    - text: Important
+                  - paragraph [ref=e720]: This is guidance only. Always verify the SDS and local storage procedures before storing chemicals.
+          - generic [ref=e721]:
+            - generic [ref=e722]:
+              - button [ref=e723] [cursor=pointer]:
+                - img [ref=e724]
+              - img [ref=e727]
+              - button "Emergency response Record actions for likely emergency scenarios." [ref=e732] [cursor=pointer]:
+                - generic [ref=e733]: Emergency response
+                - generic [ref=e734]: Record actions for likely emergency scenarios.
+              - button "Expand all" [ref=e736] [cursor=pointer]
+            - generic [ref=e737]:
+              - generic [ref=e738]:
+                - button "First aid For exposure to the substance 1 suggestions" [ref=e740] [cursor=pointer]:
+                  - img [ref=e742]
+                  - generic [ref=e744]: First aid
+                  - generic [ref=e745]: For exposure to the substance
+                  - generic [ref=e746]: 1 suggestions
+                  - img [ref=e747]
+                - button "Spills Spill control and clean up 1 suggestions" [ref=e750] [cursor=pointer]:
+                  - img [ref=e752]
+                  - generic [ref=e755]: Spills
+                  - generic [ref=e756]: Spill control and clean up
+                  - generic [ref=e757]: 1 suggestions
+                  - img [ref=e758]
+                - button "Fire response In case of fire 1 suggestions" [ref=e761] [cursor=pointer]:
+                  - img [ref=e763]
+                  - generic [ref=e765]: Fire response
+                  - generic [ref=e766]: In case of fire
+                  - generic [ref=e767]: 1 suggestions
+                  - img [ref=e768]
+                - button "Disposal Waste and disposal 1 suggestions" [ref=e771] [cursor=pointer]:
+                  - img [ref=e773]
+                  - generic [ref=e776]: Disposal
+                  - generic [ref=e777]: Waste and disposal
+                  - generic [ref=e778]: 1 suggestions
+                  - img [ref=e779]
+              - generic [ref=e781]:
+                - generic [ref=e782]:
+                  - generic [ref=e783]:
+                    - img [ref=e784]
+                    - text: Generated summary
+                    - generic [ref=e786]: (editable)
+                  - generic [ref=e787]: 1 suggestion
+                - textbox "Summarise storage and emergency controls, or add other COSHH requirements that do not fit elsewhere." [ref=e789]
+  - complementary [ref=e183]:
+    - generic [ref=e184]:
+      - generic [ref=e185]: Export
+      - paragraph [ref=e186]: Files download to your device — nothing is uploaded.
+    - generic [ref=e187]:
+      - button "Export PDF" [ref=e188] [cursor=pointer]:
+        - img [ref=e189]
+        - text: Export PDF
+      - button "Export DOCX" [ref=e192] [cursor=pointer]:
+        - img [ref=e193]
+        - text: Export DOCX
+    - button "+ More backup options" [ref=e197] [cursor=pointer]
+    - generic [ref=e198]:
+      - img [ref=e199]
+      - generic [ref=e203]: You are the only copy. Clearing browser data will erase any unsaved draft — export regularly.

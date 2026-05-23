@@ -1,0 +1,159 @@
+- generic [ref=e4]:
+  - complementary [ref=e5]:
+    - generic [ref=e6]:
+      - img "CAT logo" [ref=e7]
+      - generic [ref=e8]:
+        - generic [ref=e9]: CAT
+        - generic [ref=e10]: COSHH Assessment Tool
+    - generic [ref=e11]:
+      - generic [ref=e12]: Assessment
+      - generic [ref=e13]: 0 of 6
+    - navigation [ref=e14]:
+      - button "Overview Section pending" [ref=e15] [cursor=pointer]:
+        - img [ref=e16]
+        - generic [ref=e19]: Overview
+        - generic "Section pending" [ref=e20]
+      - button "Process Steps Section pending" [ref=e21] [cursor=pointer]:
+        - img [ref=e22]
+        - generic [ref=e24]: Process Steps
+        - generic "Section pending" [ref=e25]
+      - button "Non-Chemical Hazards Section pending" [ref=e26] [cursor=pointer]:
+        - img [ref=e27]
+        - generic [ref=e29]: Non-Chemical Hazards
+        - generic "Section pending" [ref=e30]
+      - button "Controls Section pending" [ref=e31] [cursor=pointer]:
+        - img [ref=e32]
+        - generic [ref=e35]: Controls
+        - generic "Section pending" [ref=e36]
+      - button "Storage & Emergency Section pending" [ref=e37] [cursor=pointer]:
+        - img [ref=e38]
+        - generic [ref=e42]: Storage & Emergency
+        - generic "Section pending" [ref=e43]
+      - button "Briefing & Sign-off Section pending" [ref=e44] [cursor=pointer]:
+        - img [ref=e45]
+        - generic [ref=e50]: Briefing & Sign-off
+        - generic "Section pending" [ref=e51]
+    - generic [ref=e52]:
+      - img [ref=e53]
+      - generic [ref=e54]:
+        - text: Please do not
+        - text: the cat...
+      - img [ref=e55]
+  - generic [ref=e56]:
+    - banner [ref=e57]:
+      - generic [ref=e58]:
+        - generic [ref=e59]: New COSHH Assessment
+        - generic [ref=e60]: Draft auto-saves in this browser
+      - button "Open settings" [ref=e61] [cursor=pointer]:
+        - img [ref=e62]
+      - button "Open help" [ref=e65] [cursor=pointer]:
+        - img [ref=e66]
+    - main [ref=e69]:
+      - generic [ref=e71]:
+        - generic [ref=e72]:
+          - generic [ref=e73]:
+            - img [ref=e75]
+            - generic [ref=e78]:
+              - heading "Overview" [level=1] [ref=e79]
+              - paragraph [ref=e80]: Identify the activity, who is doing it, and when it will be reviewed.
+          - generic [ref=e81]:
+            - generic [ref=e82]:
+              - generic [ref=e83]:
+                - img [ref=e84]
+                - text: Business Unit
+              - textbox "Business Unit" [ref=e88]:
+                - /placeholder: e.g. School of Chemistry
+            - generic [ref=e89]:
+              - generic [ref=e90]:
+                - img [ref=e91]
+                - text: Risk Assessment Ref No.
+              - textbox "Risk Assessment Ref No." [ref=e94]:
+                - /placeholder: RA-2026-001
+            - generic [ref=e95]:
+              - generic [ref=e96]:
+                - img [ref=e97]
+                - text: Safe Operating Procedure Ref No.
+              - textbox "Safe Operating Procedure Ref No." [ref=e100]:
+                - /placeholder: SOP-...
+            - generic [ref=e101]:
+              - generic [ref=e102]:
+                - img [ref=e103]
+                - text: Risk Assessor
+                - generic "required" [ref=e106]: "*"
+              - textbox "Risk Assessor required" [ref=e107]:
+                - /placeholder: Full name
+            - generic [ref=e108]:
+              - generic [ref=e109]:
+                - img [ref=e110]
+                - text: Date of Assessment
+                - generic "required" [ref=e112]: "*"
+              - textbox "Date of Assessment required" [ref=e113]: 2026-05-23
+            - generic [ref=e114]:
+              - generic [ref=e115]:
+                - img [ref=e116]
+                - text: Date of Next Review
+              - textbox "Date of Next Review" [ref=e118]: 2027-05-23
+            - generic [ref=e119]:
+              - generic [ref=e120]:
+                - img [ref=e121]
+                - text: Location(s) of Activity
+              - textbox "Location(s) of Activity" [ref=e124]:
+                - /placeholder: Building, room
+            - generic [ref=e125]:
+              - generic [ref=e126]:
+                - img [ref=e127]
+                - text: Activity Title
+                - generic "required" [ref=e130]: "*"
+              - textbox "Activity Title required" [ref=e131]:
+                - /placeholder: e.g. Solvent extraction
+          - generic [ref=e132]:
+            - generic [ref=e133]:
+              - img [ref=e134]
+              - text: Activity Outline
+            - textbox "Activity Outline" [ref=e135]:
+              - /placeholder: Brief description of the activity, equipment, and any notable conditions.
+          - generic [ref=e136]:
+            - generic [ref=e137]:
+              - img [ref=e138]
+              - text: Persons at Risk
+              - generic "required" [ref=e143]: "*"
+            - generic [ref=e144]:
+              - button "Staff" [ref=e145] [cursor=pointer]:
+                - img [ref=e146]
+                - text: Staff
+              - button "Students" [ref=e149] [cursor=pointer]:
+                - img [ref=e150]
+                - text: Students
+              - button "Third Party" [ref=e153] [cursor=pointer]:
+                - img [ref=e154]
+                - text: Third Party
+              - button "Contractors" [ref=e158] [cursor=pointer]:
+                - img [ref=e159]
+                - text: Contractors
+              - button "Visitors" [ref=e164] [cursor=pointer]:
+                - img [ref=e165]
+                - text: Visitors
+              - button "Public" [ref=e169] [cursor=pointer]:
+                - img [ref=e170]
+                - text: Public
+            - generic [ref=e175]: Select at least one group.
+        - generic [ref=e176]:
+          - button "Cancel" [ref=e177] [cursor=pointer]
+          - button "Save Overview" [ref=e178] [cursor=pointer]:
+            - img [ref=e179]
+            - text: Save Overview
+  - complementary [ref=e183]:
+    - generic [ref=e184]:
+      - generic [ref=e185]: Export
+      - paragraph [ref=e186]: Files download to your device — nothing is uploaded.
+    - generic [ref=e187]:
+      - button "Export PDF" [ref=e188] [cursor=pointer]:
+        - img [ref=e189]
+        - text: Export PDF
+      - button "Export DOCX" [ref=e192] [cursor=pointer]:
+        - img [ref=e193]
+        - text: Export DOCX
+    - button "+ More backup options" [ref=e197] [cursor=pointer]
+    - generic [ref=e198]:
+      - img [ref=e199]
+      - generic [ref=e203]: You are the only copy. Clearing browser data will erase any unsaved draft — export regularly.
