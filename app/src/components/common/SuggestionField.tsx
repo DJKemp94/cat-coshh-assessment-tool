@@ -66,10 +66,10 @@ export function SuggestionField({
               type="button"
               onClick={() => setForced(!showChips)}
               className={clsx(
-                'inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border transition',
+                'inline-flex items-center justify-between gap-1 text-[11px] px-2.5 py-1 rounded-full border transition whitespace-nowrap shrink-0 w-[8.25rem]',
                 showChips
-                  ? 'bg-accent-50 border-accent-200 text-accent-800'
-                  : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50',
+                  ? 'bg-accent-100 border-accent-300 text-accent-900'
+                  : 'bg-amber-100 border-amber-300 text-amber-900 hover:bg-amber-200',
               )}
               aria-expanded={showChips}
             >

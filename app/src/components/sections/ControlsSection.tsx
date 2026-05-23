@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Sparkles, AlertTriangle, ExternalLink, ChevronDown, ChevronRight, Info, Undo2 } from 'lucide-react';
+import {
+  Sparkles, AlertTriangle, ExternalLink, ChevronDown, ChevronRight, Info,
+  Undo2, RotateCw, Ban, BarChart3, Wrench, FileText, Hand, Wind,
+  Stethoscope,
+} from 'lucide-react';
 import clsx from 'clsx';
 import { useAssessment } from '@/store/assessment';
 import { SectionHeader } from '@/components/common/SectionHeader';
@@ -105,51 +109,55 @@ function CoshhEssentialsPanel({
   const justApplied = appliedKey === signature;
 
   return (
-    <div className="card p-4 mb-4">
+    <div className="card p-4 mb-5">
       <div className="flex items-start gap-3">
-        <Sparkles size={18} className="shrink-0 mt-0.5 text-accent-600" />
+        <div className="shrink-0 mt-1 flex h-7 w-7 items-center justify-center rounded-md bg-accent-50 text-accent-700">
+          <Sparkles size={17} />
+        </div>
         <div className="flex-1 min-w-0">
-          <button
-            onClick={() => setOpen((v) => !v)}
-            className="flex items-center gap-1.5 flex-wrap text-left w-full"
-          >
-            {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-            <span className="font-medium">COSHH Essentials suggestion</span>
-            {(() => {
-              const present = [...new Set(s.analyses.map((a) => a.approach))].sort((a, b) => a - b);
-              const multiple = present.length > 1;
-              return (
-                <span className="inline-flex items-center gap-1 flex-wrap">
-                  {present.map((ap) => (
-                    <span
-                      key={ap}
-                      className={clsx(
-                        'text-xs px-2 py-0.5 rounded-full border',
-                        APPROACH_COLOR[ap],
-                      )}
-                    >
-                      {ap === s.approach
-                        ? s.approachLabel + (multiple ? ' · drives' : '')
-                        : `Approach ${ap}`}
-                    </span>
-                  ))}
-                  {multiple && (
-                    <span className="text-[11px] text-zinc-600">
-                      {present.length} approaches across {s.analyses.length} substances
-                    </span>
-                  )}
-                </span>
-              );
-            })()}
+          <div className="flex items-start gap-2">
+            <button
+              onClick={() => setOpen((v) => !v)}
+              className="flex min-w-0 flex-1 items-center gap-1.5 flex-wrap text-left"
+            >
+              {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+              <span className="font-medium">COSHH Essentials suggestion</span>
+              {(() => {
+                const present = [...new Set(s.analyses.map((a) => a.approach))].sort((a, b) => a - b);
+                const multiple = present.length > 1;
+                return (
+                  <span className="inline-flex items-center gap-1 flex-wrap">
+                    {present.map((ap) => (
+                      <span
+                        key={ap}
+                        className={clsx(
+                          'text-xs px-2 py-0.5 rounded-full border',
+                          APPROACH_COLOR[ap],
+                        )}
+                      >
+                        {ap === s.approach
+                          ? s.approachLabel + (multiple ? ' · drives' : '')
+                          : `Approach ${ap}`}
+                      </span>
+                    ))}
+                    {multiple && (
+                      <span className="text-[11px] text-zinc-600">
+                        {present.length} approaches across {s.analyses.length} substances
+                      </span>
+                    )}
+                  </span>
+                );
+              })()}
+            </button>
             <button
               type="button"
-              onClick={(e) => { e.stopPropagation(); setShowGlossary((v) => !v); }}
-              className="ml-auto inline-flex items-center gap-1 text-[11px] text-zinc-500 hover:text-zinc-700"
+              onClick={() => setShowGlossary((v) => !v)}
+              className="inline-flex items-center gap-1 text-[11px] text-zinc-500 hover:text-zinc-700"
               title="What the values mean"
             >
               <Info size={12} />
             </button>
-          </button>
+          </div>
 
           {/* Inline status row: shows applied state with a one-click undo */}
           <div className="mt-2 flex items-center justify-between flex-wrap gap-2">
@@ -406,8 +414,19 @@ export function ControlsSection() {
   return (
     <section>
       <SectionHeader
-        title="Control Measures"
-        subtitle="Apply the hierarchy of control. PPE is the last resort. Click a suggested phrase to add it."
+        title="Control measures"
+        subtitle="Apply the hierarchy of control. PPE is the last resort. Click a section to add suggestions."
+        right={
+          suggestion && suggestionSig ? (
+            <button
+              type="button"
+              onClick={() => applyPatch(suggestionSig)}
+              className="btn-secondary"
+            >
+              <RotateCw size={14} /> Re-apply hierarchy
+            </button>
+          ) : undefined
+        }
       />
 
       {suggestion && suggestionSig ? (
@@ -424,107 +443,159 @@ export function ControlsSection() {
         </div>
       )}
 
-      <div className="space-y-3">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="card p-4">
-            <SuggestionField
-              label="Elimination / Substitution"
-              hint="Remove or replace with a less hazardous option."
-              suggestions={ELIM_SUB_SUGGESTIONS}
-              value={controls.elimination + (controls.substitution ? '\n' + controls.substitution : '')}
-              onChange={(v) => update({ elimination: v, substitution: '' })}
-              onAppend={(s) =>
-                update({
-                  elimination: append(
-                    controls.elimination + (controls.substitution ? '\n' + controls.substitution : ''),
-                    s,
-                  ),
-                  substitution: '',
-                })
-              }
-              placeholder="Record whether the substance or process can be removed, replaced, pre-diluted, bought ready-to-use, or changed to a lower hazard grade."
-            />
-          </div>
-          <div className="card p-4">
-            <SuggestionField
-              label="Reduction"
-              hint="Reduce quantity, concentration or duration."
-              suggestions={REDUCTION_SUGGESTIONS}
-              value={controls.reduction}
-              onChange={(v) => update({ reduction: v })}
-              onAppend={(s) => update({ reduction: append(controls.reduction, s) })}
-              placeholder="Record how quantity, concentration, batch size, exposure time, frequency and number of people exposed will be kept as low as practicable."
-            />
-          </div>
-        </div>
-
-        <div className="card p-4">
-          <SuggestionField
-            label="Engineering Controls"
-            hint="LEV, fume hoods, enclosures, interlocks."
-            required
-            suggestions={ENGINEERING_SUGGESTIONS}
-            value={controls.engineering}
-            onChange={(v) => update({ engineering: v })}
-            onAppend={(s) => update({ engineering: append(controls.engineering, s) })}
-            placeholder="Record the physical controls used to prevent or capture exposure, such as enclosure, LEV, fume cupboard, shielding, closed transfer, splash control, interlocks, inspection and maintenance."
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="card p-4">
-            <SuggestionField
-              label="Administrative Controls"
-              hint="SOPs, training, permits, signage."
-              required
-              suggestions={ADMIN_SUGGESTIONS}
-              value={controls.administrative}
-              onChange={(v) => update({ administrative: v })}
-              onAppend={(s) => update({ administrative: append(controls.administrative, s) })}
-              placeholder="Record procedural controls such as SOP reference, training, briefing, authorisation, supervision, signage, housekeeping, lone-working limits and review triggers."
-            />
-          </div>
-          <div className="card p-4">
-            <SuggestionField
-              label="PPE"
-              hint="Last resort — gloves, eye, RPE."
-              required
-              suggestions={PPE_TYPE_SUGGESTIONS}
-              value={controls.ppe.type}
-              onChange={(v) => update({ ppe: { ...controls.ppe, type: v } })}
-              onAppend={(s) =>
-                update({ ppe: { ...controls.ppe, type: append(controls.ppe.type, s) } })
-              }
-              placeholder="Record PPE selected for the substance and task: glove material and change frequency, eye/face protection, clothing, footwear and any RPE with fit-test and maintenance requirements."
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="card p-4">
-            <SuggestionField
-              label="Air Monitoring"
-              required
-              suggestions={AIR_MONITORING_SUGGESTIONS}
-              value={controls.airMonitoring}
-              onChange={(v) => update({ airMonitoring: v })}
-              onAppend={(s) => update({ airMonitoring: append(controls.airMonitoring, s) })}
-              placeholder="Record whether air monitoring is required, why it is or is not needed, relevant WELs, sampling type, review frequency and triggers for reassessment."
-            />
-          </div>
-          <div className="card p-4">
-            <SuggestionField
-              label="Health Surveillance"
-              required
-              suggestions={HEALTH_SURVEILLANCE_SUGGESTIONS}
-              value={controls.healthSurveillance}
-              onChange={(v) => update({ healthSurveillance: v })}
-              onAppend={(s) => update({ healthSurveillance: append(controls.healthSurveillance, s) })}
-              placeholder="Record any Occupational Health referral, health-surveillance decision, symptom reporting route, exposure records and review triggers."
-            />
-          </div>
-        </div>
+      <div className="mb-4 text-sm font-medium text-zinc-800">Hierarchy of control</div>
+      <div className="card overflow-hidden">
+        <ControlRow
+          number={1}
+          icon={<Ban size={25} />}
+          iconClass="bg-emerald-500 text-white"
+          label="Elimination / Substitution"
+          hint="Remove or replace with a less hazardous option."
+          suggestions={ELIM_SUB_SUGGESTIONS}
+          value={controls.elimination + (controls.substitution ? '\n' + controls.substitution : '')}
+          onChange={(v) => update({ elimination: v, substitution: '' })}
+          onAppend={(s) =>
+            update({
+              elimination: append(
+                controls.elimination + (controls.substitution ? '\n' + controls.substitution : ''),
+                s,
+              ),
+              substitution: '',
+            })
+          }
+          placeholder="Record whether the substance or process can be removed, replaced, pre-diluted, bought ready-to-use, or changed to a lower hazard grade."
+        />
+        <ControlRow
+          number={2}
+          icon={<BarChart3 size={25} />}
+          iconClass="bg-teal-500 text-white"
+          label="Reduction"
+          hint="Reduce quantity, concentration or duration."
+          suggestions={REDUCTION_SUGGESTIONS}
+          value={controls.reduction}
+          onChange={(v) => update({ reduction: v })}
+          onAppend={(s) => update({ reduction: append(controls.reduction, s) })}
+          placeholder="Record how quantity, concentration, batch size, exposure time, frequency and number of people exposed will be kept as low as practicable."
+        />
+        <ControlRow
+          number={3}
+          icon={<Wrench size={25} />}
+          iconClass="bg-sky-500 text-white"
+          label="Engineering controls"
+          hint="Isolate people from the hazard."
+          required
+          suggestions={ENGINEERING_SUGGESTIONS}
+          value={controls.engineering}
+          onChange={(v) => update({ engineering: v })}
+          onAppend={(s) => update({ engineering: append(controls.engineering, s) })}
+          placeholder="Record the physical controls used to prevent or capture exposure, such as enclosure, LEV, fume cupboard, shielding, closed transfer, splash control, interlocks, inspection and maintenance."
+        />
+        <ControlRow
+          number={4}
+          icon={<FileText size={25} />}
+          iconClass="bg-violet-500 text-white"
+          label="Administrative controls"
+          hint="Change the way people work."
+          required
+          suggestions={ADMIN_SUGGESTIONS}
+          value={controls.administrative}
+          onChange={(v) => update({ administrative: v })}
+          onAppend={(s) => update({ administrative: append(controls.administrative, s) })}
+          placeholder="Record procedural controls such as SOP reference, training, briefing, authorisation, supervision, signage, housekeeping, lone-working limits and review triggers."
+        />
+        <ControlRow
+          number={5}
+          icon={<Hand size={25} />}
+          iconClass="bg-pink-500 text-white"
+          label="PPE (last resort)"
+          hint="Protect the worker."
+          required
+          suggestions={PPE_TYPE_SUGGESTIONS}
+          value={controls.ppe.type}
+          onChange={(v) => update({ ppe: { ...controls.ppe, type: v } })}
+          onAppend={(s) =>
+            update({ ppe: { ...controls.ppe, type: append(controls.ppe.type, s) } })
+          }
+          placeholder="Record PPE selected for the substance and task: glove material and change frequency, eye/face protection, clothing, footwear and any RPE with fit-test and maintenance requirements."
+        />
+        <ControlRow
+          number={6}
+          icon={<Wind size={25} />}
+          iconClass="bg-cyan-500 text-white"
+          label="Air monitoring"
+          hint="Confirm exposure stays controlled."
+          required
+          suggestions={AIR_MONITORING_SUGGESTIONS}
+          value={controls.airMonitoring}
+          onChange={(v) => update({ airMonitoring: v })}
+          onAppend={(s) => update({ airMonitoring: append(controls.airMonitoring, s) })}
+          placeholder="Record whether air monitoring is required, why it is or is not needed, relevant WELs, sampling type, review frequency and triggers for reassessment."
+        />
+        <ControlRow
+          number={7}
+          icon={<Stethoscope size={25} />}
+          iconClass="bg-rose-500 text-white"
+          label="Health surveillance"
+          hint="Record any OH decision or trigger."
+          required
+          suggestions={HEALTH_SURVEILLANCE_SUGGESTIONS}
+          value={controls.healthSurveillance}
+          onChange={(v) => update({ healthSurveillance: v })}
+          onAppend={(s) => update({ healthSurveillance: append(controls.healthSurveillance, s) })}
+          placeholder="Record any Occupational Health referral, health-surveillance decision, symptom reporting route, exposure records and review triggers."
+        />
       </div>
     </section>
+  );
+}
+
+function ControlRow({
+  number,
+  icon,
+  iconClass,
+  label,
+  hint,
+  suggestions,
+  value,
+  onChange,
+  onAppend,
+  placeholder,
+  required,
+}: {
+  number: number;
+  icon: React.ReactNode;
+  iconClass: string;
+  label: string;
+  hint: string;
+  suggestions: string[];
+  value: string;
+  onChange: (v: string) => void;
+  onAppend: (s: string) => void;
+  placeholder: string;
+  required?: boolean;
+}) {
+  return (
+    <div className="grid grid-cols-1 gap-3 border-b border-zinc-200 px-4 py-4 last:border-b-0 xl:grid-cols-[3.5rem_minmax(220px,0.9fr)_minmax(520px,2.4fr)] xl:items-center">
+      <div className={clsx('flex h-12 w-12 items-center justify-center rounded-full shadow-soft', iconClass)}>
+        {icon}
+      </div>
+      <div>
+        <div className="text-sm font-semibold text-zinc-950">
+          {number}. {label}
+          {required && <span className="text-red-600 ml-0.5">*</span>}
+        </div>
+        <div className="mt-1 text-xs text-zinc-500">{hint}</div>
+      </div>
+      <div className="min-w-0">
+        <SuggestionField
+          label=""
+          suggestions={suggestions}
+          value={value}
+          onChange={onChange}
+          onAppend={onAppend}
+          placeholder={placeholder}
+        />
+      </div>
+    </div>
   );
 }

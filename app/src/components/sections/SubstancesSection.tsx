@@ -1,6 +1,7 @@
 import {
-  Plus, Trash2, RefreshCw, ChevronDown, ChevronRight, ExternalLink, Sparkles,
-  AlertCircle, FlaskConical, Wand2, Loader2, CheckCircle2, Copy,
+  Plus, Trash2, RefreshCw, ChevronDown, ChevronRight, ChevronUp, ExternalLink,
+  AlertCircle, FlaskConical, Wand2, Loader2, CheckCircle2, Copy, MoreVertical,
+  GripVertical, Save,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import clsx from 'clsx';
@@ -27,14 +28,6 @@ const ROUTES: { key: keyof ExposureRoutes; label: string }[] = [
   { key: 'ingestion', label: 'Ingestion' },
   { key: 'eye', label: 'Eye' },
 ];
-
-const STEP_COLOURS = [
-  'bg-accent-600 text-white',
-  'bg-amber-500 text-white',
-  'bg-indigo-500 text-white',
-  'bg-rose-500 text-white',
-  'bg-violet-600 text-white',
-] as const;
 
 const Req = () => <span className="text-red-600 ml-0.5" aria-label="required">*</span>;
 
@@ -77,11 +70,11 @@ export function SubstancesSection() {
   return (
     <section>
       <SectionHeader
-        title="Process Steps & Chemicals"
+        title="Process steps"
         subtitle="Add each step of the activity, then attach the chemicals used in that step."
         right={
           <button className="btn-primary" onClick={addStep}>
-            <Plus size={14} /> Add process step
+            <Plus size={14} /> Add step
           </button>
         }
       />
@@ -92,10 +85,24 @@ export function SubstancesSection() {
           No process steps yet. Add one to begin.
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="card overflow-hidden">
           {steps.map((step, idx) => (
             <ProcessStepCard key={step.id} step={step} index={idx} />
           ))}
+          <div className="flex items-center justify-between gap-3 border-t border-zinc-200 bg-white px-4 py-3">
+            <div className="inline-flex items-center gap-2 text-xs text-zinc-500">
+              <GripVertical size={15} className="text-zinc-400" />
+              Drag to reorder steps
+            </div>
+            <div className="flex items-center gap-2">
+              <button type="button" className="btn-secondary text-xs">
+                <Save size={13} /> Save
+              </button>
+              <button type="button" className="btn-primary text-xs">
+                <Save size={13} /> Save all steps
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </section>
@@ -109,7 +116,7 @@ function ProcessStepCard({ step, index }: { step: ProcessStep; index: number }) 
   const allSteps = useAssessment((s) => s.assessment.processSteps);
   const [showSuggest, setShowSuggest] = useState(false);
   const [adding, setAdding] = useState<string | null>(null);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(index !== 0);
   const [showReuse, setShowReuse] = useState(false);
 
   // Build a unique catalogue of chemicals from prior steps for the "copy
@@ -192,73 +199,67 @@ function ProcessStepCard({ step, index }: { step: ProcessStep; index: number }) 
 
   if (collapsed) {
     return (
-      <div className="card overflow-hidden">
+      <div className="border-b border-zinc-200 last:border-b-0 bg-white">
         <button
           type="button"
           onClick={() => setCollapsed(false)}
-          className="w-full text-left p-3 flex items-center gap-3 hover:bg-zinc-50"
+          className="w-full text-left px-4 py-3 flex items-center gap-4 hover:bg-zinc-50"
         >
           <div
             className={clsx(
-              'shrink-0 w-7 h-7 rounded-full text-sm font-semibold flex items-center justify-center shadow-soft',
-              STEP_COLOURS[index % STEP_COLOURS.length],
+              'shrink-0 w-8 h-8 rounded-full text-sm font-semibold flex items-center justify-center shadow-soft',
+              'bg-accent-600 text-white',
             )}
           >
             {index + 1}
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-medium text-zinc-900 truncate">
-                {step.step.trim() || <span className="italic text-zinc-400">No description</span>}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-              <span className="text-[11px] text-zinc-500">
-                {step.chemicals.length} chemical{step.chemicals.length === 1 ? '' : 's'}
-              </span>
-              {aggregatedPictograms.length > 0 && (
-                <>
-                  <span className="text-zinc-300">·</span>
-                  <GhsRow ids={aggregatedPictograms} size={18} />
-                </>
-              )}
-            </div>
-          </div>
+          <span className="text-sm font-semibold text-accent-700 truncate">
+            {step.step.trim() || <span className="italic text-zinc-400">No description</span>}
+          </span>
+          <span className="text-sm text-zinc-500">
+            {step.chemicals.length} chemical{step.chemicals.length === 1 ? '' : 's'}
+          </span>
+          {aggregatedPictograms.length > 0 && <GhsRow ids={aggregatedPictograms} size={20} />}
+          <div className="flex-1" />
           {isStepComplete ? (
-            <span className="inline-flex items-center gap-1 text-emerald-700 text-[11px] font-medium shrink-0">
+            <span className="hidden sm:inline-flex items-center gap-1 text-emerald-700 text-[11px] font-medium shrink-0">
               <CheckCircle2 size={14} /> Complete
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 text-amber-700 text-[11px] font-medium shrink-0">
+            <span className="hidden sm:inline-flex items-center gap-1 text-amber-700 text-[11px] font-medium shrink-0">
               <AlertCircle size={14} />
               {!step.step.trim() || step.chemicals.length === 0
                 ? 'Incomplete'
                 : `${incompleteCount} to finish`}
             </span>
           )}
-          <ChevronRight size={16} className="text-zinc-400 shrink-0" />
+          <ChevronDown size={16} className="text-zinc-600 shrink-0" />
+          <MoreVertical size={17} className="text-zinc-500 shrink-0" />
         </button>
       </div>
     );
   }
 
   return (
-    <div className="card overflow-hidden">
-      <div className="p-4 flex items-start gap-3">
+    <div className="border-b border-zinc-200 last:border-b-0 bg-white">
+      <div className="px-4 py-3 flex items-center gap-4">
         <div
           className={clsx(
-            'shrink-0 w-7 h-7 rounded-full text-sm font-semibold flex items-center justify-center mt-0.5 shadow-soft',
-            STEP_COLOURS[index % STEP_COLOURS.length],
+            'shrink-0 w-8 h-8 rounded-full text-sm font-semibold flex items-center justify-center shadow-soft',
+            'bg-accent-600 text-white',
           )}
         >
           {index + 1}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-baseline justify-between mb-1">
-            <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium">
-              Process step<Req />
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-semibold text-accent-700 truncate">
+              {step.step.trim() || 'New process step'}
             </span>
-            <div className="flex items-center gap-2">
+            <span className="text-sm text-zinc-500">
+              {step.chemicals.length} chemical{step.chemicals.length === 1 ? '' : 's'}
+            </span>
+            <div className="ml-auto flex items-center gap-1.5">
               {suggestions.length > 0 && (
                 <button
                   type="button"
@@ -271,11 +272,11 @@ function ProcessStepCard({ step, index }: { step: ProcessStep; index: number }) 
               )}
               <button
                 type="button"
-                className="btn-ghost text-xs px-2 py-1 text-zinc-600 hover:bg-zinc-100"
+                className="btn-ghost !px-2 !py-1 text-zinc-600 hover:bg-zinc-100"
                 onClick={() => setCollapsed(true)}
                 title="Collapse step"
               >
-                <ChevronDown size={14} /> Collapse
+                <ChevronUp size={16} />
               </button>
               <button
                 className="btn-ghost text-red-600 hover:bg-red-50 !px-2 !py-1"
@@ -286,16 +287,29 @@ function ProcessStepCard({ step, index }: { step: ProcessStep; index: number }) 
               </button>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="px-4 pb-4">
+        <div className="border-t border-zinc-100 pt-4">
+          <div className="text-sm font-semibold text-zinc-900 mb-3">Step details</div>
+          <label className="block mb-3">
+            <span className="field-label">Step name<Req /></span>
+            <input
+              className={clsx('field-input', !step.step.trim() && 'field-missing')}
+              value={step.step}
+              onChange={(e) => updateStep(step.id, { step: e.target.value })}
+              placeholder="e.g. Reaction"
+              autoFocus={!step.step}
+            />
+          </label>
+          <label className="block">
+            <span className="field-label">Description (optional)</span>
           <textarea
-            className={clsx(
-              'field-textarea bg-white text-sm',
-              !step.step.trim() && 'field-missing',
-            )}
-            value={step.step}
-            onChange={(e) => updateStep(step.id, { step: e.target.value })}
-            placeholder="Describe this step — e.g. dispense 500 mL acetone and 200 mL methanol into 1 L reactor"
-            autoFocus={!step.step}
+              className="field-textarea !min-h-[78px] bg-white text-sm"
+              placeholder="e.g. Add slowly with stirring"
           />
+          </label>
         </div>
       </div>
 
@@ -327,10 +341,10 @@ function ProcessStepCard({ step, index }: { step: ProcessStep; index: number }) 
         </div>
       )}
 
-      <div className="border-t border-zinc-100 bg-zinc-50/40 px-4 py-3">
+      <div className="border-t border-zinc-100 bg-white px-4 py-3">
         <div className="flex items-center justify-between mb-2 gap-2">
-          <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium">
-            Chemicals in this step ({step.chemicals.length})
+          <span className="text-sm font-semibold text-zinc-900">
+            Chemicals in this step
           </span>
           <div className="flex items-center gap-1">
             {reusableChemicals.length > 0 && (
@@ -396,8 +410,14 @@ function ProcessStepCard({ step, index }: { step: ProcessStep; index: number }) 
           </div>
         ) : (
           <div className="space-y-1.5">
-            {step.chemicals.map((c) => (
-              <ChemicalRow key={c.id} stepId={step.id} chemical={c} />
+            {step.chemicals.map((c, chemIndex) => (
+              <ChemicalRow
+                key={c.id}
+                stepId={step.id}
+                chemical={c}
+                index={chemIndex}
+                defaultOpen={chemIndex === 0}
+              />
             ))}
           </div>
         )}
@@ -406,11 +426,21 @@ function ProcessStepCard({ step, index }: { step: ProcessStep; index: number }) 
   );
 }
 
-function ChemicalRow({ stepId, chemical: c }: { stepId: string; chemical: Substance }) {
+function ChemicalRow({
+  stepId,
+  chemical: c,
+  index,
+  defaultOpen,
+}: {
+  stepId: string;
+  chemical: Substance;
+  index: number;
+  defaultOpen?: boolean;
+}) {
   const update = useAssessment((st) => st.updateChemical);
   const remove = useAssessment((st) => st.removeChemical);
   const incomplete = isChemicalIncomplete(c);
-  const [open, setOpen] = useState(incomplete);
+  const [open, setOpen] = useState(incomplete || Boolean(defaultOpen));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -469,66 +499,85 @@ function ChemicalRow({ stepId, chemical: c }: { stepId: string; chemical: Substa
         incomplete && !open && 'border-red-200 bg-red-50/40',
       )}
     >
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="w-full text-left flex items-center gap-2 px-3 py-2 hover:bg-zinc-50"
-      >
-        <span className="text-zinc-400">
-          {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        </span>
-        {incomplete ? (
-          <span
-            className="text-red-600 inline-flex items-center gap-1 font-medium text-sm"
-            title="Click to add details"
+      <div className="grid grid-cols-[1fr_auto] items-start gap-2 px-3 py-2 hover:bg-zinc-50">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="flex min-w-0 items-center gap-2 text-left"
           >
-            <AlertCircle size={14} />
-            <span className="text-red-700">*</span>
-            {c.name.trim() ? c.name : 'New chemical — click to add details'}
-          </span>
-        ) : (
-          <span className="text-sm text-zinc-900 font-medium">{c.name}</span>
-        )}
+            <span className="text-zinc-400">
+              {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </span>
+            <span
+              className={clsx(
+                'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold',
+                incomplete ? 'bg-red-500 text-white' : 'bg-accent-600 text-white',
+              )}
+            >
+              {index + 1}
+            </span>
+            {incomplete ? (
+              <span
+                className="text-red-600 inline-flex items-center gap-1 font-medium text-sm"
+                title="Click to add details"
+              >
+                {c.name.trim() ? c.name : 'New chemical'}
+              </span>
+            ) : (
+              <span className="text-sm text-accent-700 font-semibold">{c.name}</span>
+            )}
 
-        {c.cas && (
-          <span className="text-[11px] text-zinc-500 font-mono">· {c.cas}</span>
-        )}
+            {c.cas && (
+              <span className="text-[11px] text-zinc-500 font-mono">· {c.cas}</span>
+            )}
+            {c.pubchemCid && (
+              <span className="pill !text-[10px] !py-0">CID {c.pubchemCid}</span>
+            )}
+          </button>
 
-        <div className="flex-1" />
+          {c.ghsPictograms.length > 0 && (
+            <GhsRow ids={c.ghsPictograms} size={22} />
+          )}
+          {c.hazardStatements.length > 0 && (
+            <span className="pill">{c.hazardStatements.length} H</span>
+          )}
+          {c.wel.twa && (
+            <span className="pill" title={c.wel.source ? `Source: ${c.wel.source}` : undefined}>
+              WEL {c.wel.twa}
+            </span>
+          )}
+          {c.sdsUrl && (
+            <a
+              href={c.sdsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-0.5 text-[11px] text-accent-700 hover:underline"
+            >
+              SDS <ExternalLink size={10} />
+            </a>
+          )}
+        </div>
 
-        {c.ghsPictograms.length > 0 && (
-          <GhsRow ids={c.ghsPictograms} size={24} />
-        )}
-        {c.hazardStatements.length > 0 && (
-          <span className="pill">{c.hazardStatements.length} H</span>
-        )}
-        {(c.wel.twa || c.wel.stel) && (
-          <span className="pill" title={c.wel.source ? `Source: ${c.wel.source}` : undefined}>
-            WEL{c.wel.twa ? ` ${c.wel.twa}` : ''}{c.wel.stel ? ` · STEL ${c.wel.stel}` : ''}
-          </span>
-        )}
-        {c.quantity && <span className="text-[11px] text-zinc-500">· {c.quantity}</span>}
-        {c.sdsUrl && (
-          <a
-            href={c.sdsUrl}
-            target="_blank"
-            rel="noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center gap-0.5 text-[11px] text-accent-700 hover:underline"
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            className="text-zinc-500 hover:bg-zinc-100 p-1 rounded shrink-0"
+            title="More options"
+            aria-label="More chemical options"
           >
-            SDS <ExternalLink size={10} />
-          </a>
-        )}
-
-        <button
-          type="button"
-          className="text-red-500 hover:bg-red-50 p-1 rounded shrink-0"
-          onClick={(e) => { e.stopPropagation(); remove(stepId, c.id); }}
-          aria-label="Remove chemical"
-        >
-          <Trash2 size={13} />
-        </button>
-      </button>
+            <MoreVertical size={15} />
+          </button>
+          <button
+            type="button"
+            className="text-red-500 hover:bg-red-50 p-1 rounded shrink-0"
+            onClick={() => remove(stepId, c.id)}
+            aria-label="Remove chemical"
+          >
+            <Trash2 size={13} />
+          </button>
+        </div>
+      </div>
 
       {open && (() => {
         const miss = {
@@ -541,205 +590,176 @@ function ChemicalRow({ stepId, chemical: c }: { stepId: string; chemical: Substa
           routes: !Object.values(c.exposureRoutes).some(Boolean),
         };
         return (
-        <div className="border-t border-zinc-100 px-3 py-2.5 bg-zinc-50/40">
+        <div className="border-t border-zinc-100 px-4 py-3 bg-white">
           {error && <div className="text-xs text-red-600 mb-2">{error}</div>}
 
-          <div className="grid grid-cols-2 gap-2.5">
-            {/* Q1 — Identity */}
-            <div className="space-y-1.5">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Identity</div>
-              <div>
-                <span className="field-label">Chemical name<Req /></span>
-                <ChemicalAutocomplete
-                  value={c.name}
-                  onChange={(v) => onChange({ name: v })}
-                  onSelect={(selection) => {
-                    onChange({ name: selection.name });
-                    lookup(false, selection.cid ?? selection.name);
-                  }}
-                  placeholder="e.g. acetone or 67-64-1"
-                  disabled={busy}
-                  invalid={miss.name}
-                />
-              </div>
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-zinc-500">
-                <span className="font-medium text-zinc-600">CAS</span>
-                <input
-                  className={clsx(
-                    'bg-transparent border-0 border-b border-dashed border-zinc-300 focus:border-accent-500 focus:ring-0 outline-none px-0 py-0 text-[11px] font-mono w-24',
-                    miss.cas && 'border-red-400',
-                  )}
-                  value={c.cas ?? ''}
-                  onChange={(e) => onChange({ cas: e.target.value })}
-                  placeholder="—"
-                  aria-label="CAS number"
-                />
-                {c.pubchemCid && (
-                  <>
-                    <span className="text-zinc-300">·</span>
-                    <span className="pill !text-[10px] !py-0"><Sparkles size={9} /> CID {c.pubchemCid}</span>
-                  </>
-                )}
-                {c.sdsUrl && (
-                  <>
-                    <span className="text-zinc-300">·</span>
-                    <a href={c.sdsUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 text-accent-700 hover:underline">
-                      SDS{c.sdsSource ? ` (${c.sdsSource})` : ''} <ExternalLink size={10} />
-                    </a>
-                  </>
-                )}
+          {(!c.name.trim() || !c.cas?.trim()) && (
+            <div className="mb-3 rounded-md border border-amber-200 bg-amber-50/60 p-3">
+              <div className="grid grid-cols-1 md:grid-cols-[1fr_11rem_auto] gap-2.5 items-end">
+                <div>
+                  <span className="field-label">Chemical name<Req /></span>
+                  <ChemicalAutocomplete
+                    value={c.name}
+                    onChange={(v) => onChange({ name: v })}
+                    onSelect={(selection) => {
+                      onChange({ name: selection.name });
+                      lookup(false, selection.cid ?? selection.name);
+                    }}
+                    placeholder="e.g. acetone or 67-64-1"
+                    disabled={busy}
+                    invalid={miss.name}
+                  />
+                </div>
+                <label>
+                  <span className="field-label">CAS<Req /></span>
+                  <input
+                    className={clsx('field-input !py-1.5 text-xs font-mono', miss.cas && 'field-missing')}
+                    value={c.cas ?? ''}
+                    onChange={(e) => onChange({ cas: e.target.value })}
+                    placeholder="67-64-1"
+                  />
+                </label>
                 <button
                   type="button"
-                  className="ml-auto inline-flex items-center gap-1 text-accent-700 hover:underline disabled:opacity-50"
+                  className="btn-secondary text-xs"
                   disabled={busy || !c.name.trim()}
                   onClick={() => lookup(true)}
-                  title={c.pubchemCid ? 'Refresh from PubChem (bypasses cache)' : 'Look up on PubChem'}
                 >
-                  <RefreshCw size={11} className={busy ? 'animate-spin' : ''} />
-                  {c.pubchemCid ? 'Refresh' : 'Look up'}
+                  <RefreshCw size={12} className={busy ? 'animate-spin' : ''} />
+                  Lookup
                 </button>
               </div>
             </div>
+          )}
 
-            {/* Q2 — Physical state */}
-            <div className="space-y-1.5">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Physical state</div>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_1fr]">
+            <label>
+              <span className="field-label">Physical state</span>
+              <select
+                className="field-input !py-1.5 text-xs"
+                value={c.form}
+                onChange={(e) => {
+                  const nextForm = e.target.value as SubstanceForm;
+                  const { value, unit } = splitQuantity(c.quantity);
+                  const allowed = UNITS_BY_FORM[nextForm];
+                  const nextUnit = allowed.includes(unit) ? unit : defaultUnit(nextForm);
+                  onChange({
+                    form: nextForm,
+                    quantity: joinQuantity(value, nextUnit),
+                  });
+                }}
+              >
+                {FORMS.map((f) => <option key={f} value={f}>{f}</option>)}
+              </select>
+            </label>
+
+            {c.form === 'liquid' ? (
               <label>
-                <span className="field-label">Form<Req /></span>
+                <span className="field-label">Volatility <span className="text-zinc-400 font-normal text-[10px]">COSHH</span></span>
                 <select
                   className="field-input !py-1.5 text-xs"
-                  value={c.form}
-                  onChange={(e) => {
-                    const nextForm = e.target.value as SubstanceForm;
-                    const { value, unit } = splitQuantity(c.quantity);
-                    const allowed = UNITS_BY_FORM[nextForm];
-                    const nextUnit = allowed.includes(unit) ? unit : defaultUnit(nextForm);
-                    onChange({
-                      form: nextForm,
-                      quantity: joinQuantity(value, nextUnit),
-                    });
-                  }}
+                  value={c.volatility ?? ''}
+                  onChange={(e) => onChange({ volatility: (e.target.value || undefined) as Substance['volatility'] })}
                 >
-                  {FORMS.map((f) => <option key={f} value={f}>{f}</option>)}
+                  <option value="">{typeof c.boilingPointC === 'number' ? `Auto from BP (${formatAutoVolatility(c.boilingPointC)})` : '— select —'}</option>
+                  <option value="low">{'Low (>150 °C)'}</option>
+                  <option value="medium">Medium (50–150 °C)</option>
+                  <option value="high">{'High (<50 °C)'}</option>
+                </select>
+                {typeof c.boilingPointC === 'number' && (
+                  <div className="text-[10px] text-zinc-500 mt-0.5">BP ≈ {c.boilingPointC} °C</div>
+                )}
+              </label>
+            ) : (
+              <label>
+                <span className="field-label">Dustiness <span className="text-zinc-400 font-normal text-[10px]">COSHH</span></span>
+                <select
+                  className="field-input !py-1.5 text-xs"
+                  value={c.dustiness ?? ''}
+                  disabled={c.form !== 'solid' && c.form !== 'powder'}
+                  onChange={(e) => onChange({ dustiness: (e.target.value || undefined) as Substance['dustiness'] })}
+                >
+                  <option value="">{c.form === 'solid' || c.form === 'powder' ? '— select —' : 'Not applicable'}</option>
+                  <option value="low">Low (pellet / waxy)</option>
+                  <option value="medium">Medium (granular)</option>
+                  <option value="high">High (fine powder)</option>
                 </select>
               </label>
-              {c.form === 'liquid' && (
-                <label>
-                  <span className="field-label">Volatility <span className="text-zinc-400 font-normal text-[10px]">COSHH</span></span>
-                  <select
-                    className="field-input !py-1.5 text-xs"
-                    value={c.volatility ?? ''}
-                    onChange={(e) => onChange({ volatility: (e.target.value || undefined) as Substance['volatility'] })}
-                  >
-                    <option value="">{typeof c.boilingPointC === 'number' ? `Auto from BP (${formatAutoVolatility(c.boilingPointC)})` : '— select —'}</option>
-                    <option value="low">{'Low (>150 °C)'}</option>
-                    <option value="medium">Medium (50–150 °C)</option>
-                    <option value="high">{'High (<50 °C)'}</option>
-                  </select>
-                  {typeof c.boilingPointC === 'number' && (
-                    <div className="text-[10px] text-zinc-500 mt-0.5">BP ≈ {c.boilingPointC} °C</div>
-                  )}
-                </label>
-              )}
-              {(c.form === 'solid' || c.form === 'powder') && (
-                <label>
-                  <span className="field-label">Dustiness <span className="text-zinc-400 font-normal text-[10px]">COSHH</span></span>
-                  <select
-                    className="field-input !py-1.5 text-xs"
-                    value={c.dustiness ?? ''}
-                    onChange={(e) => onChange({ dustiness: (e.target.value || undefined) as Substance['dustiness'] })}
-                  >
-                    <option value="">— select —</option>
-                    <option value="low">Low (pellet / waxy)</option>
-                    <option value="medium">Medium (granular)</option>
-                    <option value="high">High (fine powder)</option>
-                  </select>
-                </label>
-              )}
-              <label>
-                <span className="field-label">Quantity<Req /></span>
-                <QuantityInput
-                  value={c.quantity}
-                  form={c.form}
-                  onChange={(next) => onChange({ quantity: next })}
-                  invalid={miss.quantity}
-                />
-              </label>
+            )}
+
+            <label>
+              <span className="field-label">Quantity</span>
+              <QuantityInput
+                value={c.quantity}
+                form={c.form}
+                onChange={(next) => onChange({ quantity: next })}
+                invalid={miss.quantity}
+              />
+            </label>
+
+            <div>
+              <span className="field-label">Exposure routes</span>
+              <div className={clsx('flex flex-wrap gap-1 rounded-md', miss.routes && 'field-missing p-1')}>
+                {ROUTES.map(({ key, label }) => {
+                  const on = c.exposureRoutes[key];
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => onChange({ exposureRoutes: { ...c.exposureRoutes, [key]: !on } })}
+                      className={
+                        'px-2.5 py-0.5 rounded-full text-xs border transition ' +
+                        (on
+                          ? 'bg-white text-zinc-800 border-zinc-200 shadow-sm'
+                          : 'bg-zinc-50 text-zinc-500 border-zinc-200 hover:bg-white')
+                      }
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* Q3 — WEL */}
-            <div className="space-y-1.5">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Workplace exposure limits</div>
-              <div className="grid grid-cols-2 gap-1.5">
-                <label>
-                  <span className="field-label">TWA (8 h)<Req /></span>
-                  <input
-                    className={clsx('field-input !py-1.5 text-xs', miss.wel && 'field-missing')}
-                    value={c.wel.twa ?? ''}
-                    onChange={(e) => onChange({ wel: { ...c.wel, twa: e.target.value, source: e.target.value && !c.wel.source ? 'Manual' : c.wel.source } })}
-                    placeholder="value or n/a"
-                  />
-                </label>
-                <label>
-                  <span className="field-label">STEL (15 min)<Req /></span>
-                  <input
-                    className={clsx('field-input !py-1.5 text-xs', miss.wel && 'field-missing')}
-                    value={c.wel.stel ?? ''}
-                    onChange={(e) => onChange({ wel: { ...c.wel, stel: e.target.value, source: e.target.value && !c.wel.source ? 'Manual' : c.wel.source } })}
-                    placeholder="value or n/a"
-                  />
-                </label>
-              </div>
-              <div className="text-[10px] text-zinc-500">Enter "n/a" if no UK WEL applies.</div>
-            </div>
+            <ChipPickerInput
+              label="Duration"
+              required
+              invalid={miss.duration}
+              value={c.exposureDuration}
+              onChange={(v) => onChange({ exposureDuration: v })}
+              options={['< 15 min', '15 min', '30 min', '1 h', '2 h', '4 h', '8 h shift']}
+              placeholder="e.g. 30 min"
+            />
+            <ChipPickerInput
+              label="Frequency"
+              required
+              invalid={miss.frequency}
+              value={c.exposureFrequency}
+              onChange={(v) => onChange({ exposureFrequency: v })}
+              options={['Daily', 'Weekly', 'Monthly', 'Occasional', 'One-off']}
+              placeholder="e.g. weekly"
+            />
+          </div>
 
-            {/* Q4 — Exposure */}
-            <div className="space-y-1.5">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Exposure</div>
-              <div>
-                <span className="field-label">Routes<Req /></span>
-                <div className={clsx('flex flex-wrap gap-1 mt-0.5 rounded-md', miss.routes && 'field-missing p-1')}>
-                  {ROUTES.map(({ key, label }) => {
-                    const on = c.exposureRoutes[key];
-                    return (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => onChange({ exposureRoutes: { ...c.exposureRoutes, [key]: !on } })}
-                        className={
-                          'px-2.5 py-0.5 rounded-full text-xs border transition ' +
-                          (on
-                            ? 'bg-accent-600 text-white border-accent-600'
-                            : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50')
-                        }
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-1.5">
-                <ChipPickerInput
-                  label="Duration"
-                  required
-                  invalid={miss.duration}
-                  value={c.exposureDuration}
-                  onChange={(v) => onChange({ exposureDuration: v })}
-                  options={['< 15 min', '15 min', '30 min', '1 h', '2 h', '4 h', '8 h shift']}
-                  placeholder="e.g. 30 min"
-                />
-                <ChipPickerInput
-                  label="Frequency"
-                  required
-                  invalid={miss.frequency}
-                  value={c.exposureFrequency}
-                  onChange={(v) => onChange({ exposureFrequency: v })}
-                  options={['Daily', 'Weekly', 'Monthly', 'Occasional', 'One-off']}
-                  placeholder="e.g. weekly"
-                />
-              </div>
-            </div>
+          <div className="mt-3 grid grid-cols-1 gap-3 border-t border-zinc-100 pt-3 md:grid-cols-2">
+            <label>
+              <span className="field-label">TWA (8 h)<Req /></span>
+              <input
+                className={clsx('field-input !py-1.5 text-xs', miss.wel && 'field-missing')}
+                value={c.wel.twa ?? ''}
+                onChange={(e) => onChange({ wel: { ...c.wel, twa: e.target.value, source: e.target.value && !c.wel.source ? 'Manual' : c.wel.source } })}
+                placeholder="value or n/a"
+              />
+            </label>
+            <label>
+              <span className="field-label">STEL (15 min)</span>
+              <input
+                className={clsx('field-input !py-1.5 text-xs', miss.wel && 'field-missing')}
+                value={c.wel.stel ?? ''}
+                onChange={(e) => onChange({ wel: { ...c.wel, stel: e.target.value, source: e.target.value && !c.wel.source ? 'Manual' : c.wel.source } })}
+                placeholder="value or n/a"
+              />
+            </label>
           </div>
 
           {(c.hazardStatements.length > 0 || c.ghsPictograms.length > 0) && (

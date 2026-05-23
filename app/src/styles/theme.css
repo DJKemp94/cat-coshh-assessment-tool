@@ -22,8 +22,11 @@ body {
   .field-label {
     @apply block text-xs font-medium text-zinc-600 mb-1;
   }
+  .overview-label {
+    @apply mb-2 flex items-center gap-2 text-sm font-semibold text-zinc-700;
+  }
   .field-input {
-    @apply w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900
+    @apply w-full rounded-md border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900
            shadow-soft placeholder:text-zinc-400 focus:outline-none focus:ring-2
            focus:ring-accent-500 focus:border-accent-500 transition;
   }
