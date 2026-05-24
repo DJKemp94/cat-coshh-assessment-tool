@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import { Plus, Trash2 } from 'lucide-react';
+import { Flag, Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import { useAssessment } from '@/store/assessment';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { RiskMatrix } from '@/components/common/RiskMatrix';
@@ -21,7 +21,7 @@ export function TaskHazardsSection() {
     <section>
       <SectionHeader
         title="Non-Chemical Hazards"
-        subtitle="One row per hazard. Score before and after controls."
+        subtitle="Add and assess non-chemical hazards present in the workplace."
         right={
           <button
             className="btn-primary"
@@ -62,7 +62,7 @@ export function TaskHazardsSection() {
           </div>
         )
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-4">
           {hazards.map((h, idx) => (
             <HazardCard
               key={h.id}
@@ -92,6 +92,7 @@ function HazardCard({
   const hasRisk = riskRating(h.riskEvaluation) > 0;
   const hasFurtherAction = h.furtherAction.trim().length > 0;
   const missingHazard = h.hazard.trim().length === 0;
+  const tone = index % 2 === 0 ? 'indigo' : 'emerald';
 
   // When the assessor scores the initial risk, mirror it into residualRisk
   // (which they will lower once controls are recorded). Only do this when
@@ -106,64 +107,78 @@ function HazardCard({
   };
 
   return (
-    <div className="card p-3">
-      <div className="flex items-center justify-between mb-2">
-        <div className="text-[11px] uppercase tracking-wider text-zinc-500 font-medium">
-          Hazard {index + 1}
+    <div className={clsx('hazard-card', `hazard-card-${tone}`)}>
+      <div className="hazard-card-header">
+        <div className="flex items-center gap-4">
+          <span className={clsx('hazard-badge', `hazard-badge-${tone}`)}>
+            <ShieldCheck size={22} strokeWidth={2.8} />
+          </span>
+          <div className="text-sm uppercase tracking-wide font-extrabold text-slate-800">
+            Hazard
+          </div>
+          <span className={clsx('hazard-index', `hazard-index-${tone}`)}>{index + 1}</span>
         </div>
         <button
-          className="btn-ghost text-red-600 hover:bg-red-50 !px-2 !py-1"
+          className="hazard-delete"
           onClick={onRemove}
           aria-label="Remove hazard"
         >
-          <Trash2 size={13} />
+          <Trash2 size={16} />
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+      <div className="hazard-card-body">
         <label className="block">
-          <span className="field-label">What is the hazard?<Req /></span>
+          <span className="hazard-field-label">What is the hazard?<Req /></span>
           <textarea
-            className={clsx('field-textarea !min-h-[56px] text-sm', missingHazard && 'field-missing')}
+            className={clsx('hazard-textarea', missingHazard && 'field-missing')}
             rows={2}
             value={h.hazard}
             onChange={(e) => onChange({ hazard: e.target.value })}
-            placeholder="Slip, manual handling, electrical, sharps…"
+            placeholder="e.g. Slip, manual handling, electrical, sharps..."
           />
         </label>
         <label className="block">
-          <span className="field-label">How might harm occur?</span>
+          <span className="hazard-field-label">How might harm occur?</span>
           <textarea
-            className="field-textarea !min-h-[56px] text-sm"
+            className="hazard-textarea"
             rows={2}
             value={h.harmMechanism}
             onChange={(e) => onChange({ harmMechanism: e.target.value })}
-            placeholder="Mechanism of injury and who is exposed."
+            placeholder="e.g. Mechanism of injury and who is exposed."
           />
         </label>
 
         <div
           className={clsx(
-            'rounded-md border p-2',
-            hasRisk ? 'border-zinc-200 bg-zinc-50' : 'field-missing',
+            'hazard-risk-panel hazard-risk-initial',
+            !hasRisk && 'field-missing',
           )}
         >
-          <div className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1.5">
-            Risk evaluation (before controls)<Req />
+          <div className="hazard-panel-heading">
+            <span className="hazard-panel-icon hazard-panel-icon-amber">
+              <ShieldCheck size={18} />
+            </span>
+            <span>Risk evaluation (before controls)<Req /></span>
           </div>
           <RiskMatrix
             value={h.riskEvaluation}
             onChange={setInitialRisk}
           />
         </div>
-        <div className="rounded-md border border-zinc-200 p-2 bg-zinc-50">
-          <div className="text-[10px] uppercase tracking-wider text-zinc-500 mb-1.5">
-            Residual risk (with controls)
+        <div className="hazard-risk-panel hazard-risk-residual">
+          <div className="hazard-panel-heading">
+            <span className="hazard-panel-icon hazard-panel-icon-indigo">
+              <ShieldCheck size={18} />
+            </span>
+            <span>
+              Residual risk (with controls)
             {hasRisk && riskRating(h.residualRisk) > 0 && (
-              <span className="ml-1 text-[10px] normal-case tracking-normal text-zinc-400">
+              <span className="ml-1 font-medium text-slate-400">
                 · mirrors initial until lowered
               </span>
             )}
+            </span>
           </div>
           <RiskMatrix
             value={h.residualRisk}
@@ -171,63 +186,67 @@ function HazardCard({
           />
         </div>
 
-        {/* Controls in place and further action only appear once a risk has
-            been scored. Keeps the empty card short and focused. */}
-        {hasRisk && (
-          <>
-            <label className="block">
-              <span className="field-label">Control measures in place</span>
-              <textarea
-                className="field-textarea !min-h-[56px] text-sm"
-                rows={2}
-                value={h.controlsInPlace}
-                onChange={(e) => onChange({ controlsInPlace: e.target.value })}
-              />
-            </label>
-            <label className="block">
-              <span className="field-label">Further action required</span>
-              <textarea
-                className="field-textarea !min-h-[56px] text-sm"
-                rows={2}
-                value={h.furtherAction}
-                onChange={(e) => onChange({ furtherAction: e.target.value })}
-                placeholder="Leave blank if no further action is needed."
-              />
-            </label>
+        <label className="hazard-mini-panel">
+          <span className="hazard-panel-icon hazard-panel-icon-purple">
+            <ShieldCheck size={18} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="hazard-field-label mb-0">Control measures in place</span>
+            <textarea
+              className="hazard-inline-textarea"
+              rows={1}
+              value={h.controlsInPlace}
+              onChange={(e) => onChange({ controlsInPlace: e.target.value })}
+              placeholder="e.g. What controls are currently in place?"
+            />
+          </span>
+        </label>
+        <label className="hazard-mini-panel">
+          <span className="hazard-panel-icon hazard-panel-icon-plain">
+            <Flag size={18} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="hazard-field-label mb-0">Further action required</span>
+            <textarea
+              className="hazard-inline-textarea"
+              rows={1}
+              value={h.furtherAction}
+              onChange={(e) => onChange({ furtherAction: e.target.value })}
+              placeholder="e.g. Leave blank if no further action is needed."
+            />
+          </span>
+        </label>
 
-            {/* Owner / due-date only matter once there is further action. */}
-            {hasFurtherAction && (
-              <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                <label className="block">
-                  <span className="field-label">Action owner</span>
-                  <input
-                    className="field-input"
-                    value={h.owner}
-                    onChange={(e) => onChange({ owner: e.target.value })}
-                    placeholder="Who will close this out?"
-                  />
-                </label>
-                <label className="block">
-                  <span className="field-label">Due date</span>
-                  <input
-                    type="date"
-                    className="field-input"
-                    value={h.dueDate}
-                    onChange={(e) => onChange({ dueDate: e.target.value })}
-                  />
-                </label>
-                <label className="block">
-                  <span className="field-label">Completion date</span>
-                  <input
-                    type="date"
-                    className="field-input"
-                    value={h.completionDate}
-                    onChange={(e) => onChange({ completionDate: e.target.value })}
-                  />
-                </label>
-              </div>
-            )}
-          </>
+        {hasFurtherAction && (
+          <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <label className="block">
+              <span className="hazard-field-label">Action owner</span>
+              <input
+                className="field-input"
+                value={h.owner}
+                onChange={(e) => onChange({ owner: e.target.value })}
+                placeholder="Who will close this out?"
+              />
+            </label>
+            <label className="block">
+              <span className="hazard-field-label">Due date</span>
+              <input
+                type="date"
+                className="field-input"
+                value={h.dueDate}
+                onChange={(e) => onChange({ dueDate: e.target.value })}
+              />
+            </label>
+            <label className="block">
+              <span className="hazard-field-label">Completion date</span>
+              <input
+                type="date"
+                className="field-input"
+                value={h.completionDate}
+                onChange={(e) => onChange({ completionDate: e.target.value })}
+              />
+            </label>
+          </div>
         )}
       </div>
     </div>

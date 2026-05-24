@@ -25,9 +25,9 @@ export function RiskMatrix({ value, onChange, compact }: Props) {
     label: string,
     key: 'likelihood' | 'severity',
   ) => (
-    <div className="flex items-center gap-1.5">
-      <span className="text-[11px] text-zinc-500 w-16">{label}</span>
-      <div className="flex gap-1">
+    <div className="flex items-center gap-3">
+      <span className="text-xs text-slate-600 w-20">{label}</span>
+      <div className="flex gap-2">
         {LEVELS.map((n) => {
           const on = value[key] === n;
           return (
@@ -36,10 +36,10 @@ export function RiskMatrix({ value, onChange, compact }: Props) {
               type="button"
               onClick={() => onChange({ ...value, [key]: n })}
               className={clsx(
-                'w-6 h-6 rounded text-[11px] font-medium border transition',
+                'h-7 w-10 rounded-md text-sm font-semibold border transition shadow-soft',
                 on
                   ? 'bg-accent-600 text-white border-accent-600'
-                  : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50',
+                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50',
               )}
             >
               {n}
@@ -51,12 +51,12 @@ export function RiskMatrix({ value, onChange, compact }: Props) {
   );
 
   return (
-    <div className={clsx('flex flex-col gap-1', compact && 'text-xs')}>
+    <div className={clsx('flex flex-col gap-2', compact && 'text-xs')}>
       {select('Likelihood', 'likelihood')}
       {select('Severity', 'severity')}
-      <div className="flex items-center gap-2 mt-1">
-        <span className="text-[11px] text-zinc-500 w-16">Rating</span>
-        <span className={clsx('px-2 py-0.5 rounded text-[11px] font-medium', band.cls)}>
+      <div className="flex items-center gap-3">
+        <span className="text-xs text-slate-600 w-20">Rating</span>
+        <span className={clsx('px-3 py-1 rounded-md text-sm font-bold', band.cls)}>
           {rating || '—'} · {band.label}
         </span>
       </div>
