@@ -20,6 +20,8 @@ export interface PubChemResult {
   sdsSource?: string;
   /** Median boiling point in °C across reported sources, or undefined if unparseable. */
   boilingPointC?: number;
+  /** Molecular formula (e.g. "C2H6O"). Used to determine organic vs inorganic. */
+  molecularFormula?: string;
   fetchedAt: string;
 }
 
@@ -362,7 +364,40 @@ async function fetchPreferredName(cid: number): Promise<string | undefined> {
   }
 }
 
+async function fetchMolecularFormula(cid: number): Promise<string | undefined> {
+  try {
+    const r = await rateLimitedFetch(`${REST}/compound/cid/${cid}/property/MolecularFormula/JSON`);
+    if (!r.ok) return undefined;
+    const j = (await r.json()) as {
+      PropertyTable?: { Properties?: { MolecularFormula?: string }[] };
+    };
+    return j.PropertyTable?.Properties?.[0]?.MolecularFormula ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 // ---------- public API ----------
+
+/**
+ * Normalize a chemical name's casing after fetching from PubChem.
+ * PubChem returns names in inconsistent casing: sometimes ALL CAPS,
+ * sometimes lowercase, sometimes mixed. This converts all-uppercase
+ * names to title case and ensures the first letter is capitalized.
+ */
+function normalizeChemicalName(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) return trimmed;
+  // If the entire name is uppercase (contains at least one letter),
+  // convert to lowercase then title-case each word.
+  if (/[A-Z]/.test(trimmed) && trimmed === trimmed.toUpperCase()) {
+    return trimmed
+      .toLowerCase()
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+  // Otherwise just ensure the first letter is capitalized.
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+}
 
 export async function lookupChemical(
   query: string | number,
@@ -424,7 +459,9 @@ export async function lookupChemical(
   const physStrings = physNodes.flatMap((n) => infoStrings(n));
   const formInfo = parseForm(physStrings);
 
-  const name = (await fetchPreferredName(cid)) ?? (typeof query === 'string' ? query : `CID ${cid}`);
+  const name = normalizeChemicalName(
+    (await fetchPreferredName(cid)) ?? (typeof query === 'string' ? query : `CID ${cid}`)
+  );
 
   const sds = collectSds(record ?? undefined);
 

@@ -1,5 +1,5 @@
 export const APP_VERSION = '0.2.0';
-export const SCHEMA_VERSION = 2 as const;
+export const SCHEMA_VERSION = 3 as const;
 
 export type UUID = string;
 
@@ -128,12 +128,15 @@ export interface ControlMeasures {
   healthSurveillance: string;
 }
 
-export interface AdditionalRequirements {
+export interface StorageRequirements {
   cheminventoryLogged: boolean;
   sdsVersion: string;
   sdsDate: string;
   storage: string;
   incompatibles: string;
+}
+
+export interface EmergencyRequirements {
   emergencySpills: string;
   emergencyFirstAid: string;
   emergencyFire: string;
@@ -173,7 +176,8 @@ export interface Assessment {
   taskHazardsConfirmedNone?: boolean;
   processSteps: ProcessStep[];
   controls: ControlMeasures;
-  additional: AdditionalRequirements;
+  additional: StorageRequirements;
+  emergency: EmergencyRequirements;
   briefing: BriefingEntry[];
   meta: AssessmentMeta;
 }
@@ -241,12 +245,15 @@ export const emptyControls = (): ControlMeasures => ({
   healthSurveillance: '',
 });
 
-export const emptyAdditional = (): AdditionalRequirements => ({
+export const emptyStorage = (): StorageRequirements => ({
   cheminventoryLogged: false,
   sdsVersion: '',
   sdsDate: '',
   storage: '',
   incompatibles: '',
+});
+
+export const emptyEmergency = (): EmergencyRequirements => ({
   emergencySpills: '',
   emergencyFirstAid: '',
   emergencyFire: '',
@@ -295,7 +302,8 @@ export const newAssessment = (): Assessment => {
     taskHazards: [],
     processSteps: [],
     controls: emptyControls(),
-    additional: emptyAdditional(),
+    additional: emptyStorage(),
+    emergency: emptyEmergency(),
     briefing: [],
     meta: { createdAt: now, updatedAt: now, appVersion: APP_VERSION },
   };

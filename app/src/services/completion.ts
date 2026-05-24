@@ -6,6 +6,7 @@ export type CoreSectionId =
   | 'taskHazards'
   | 'controls'
   | 'additional'
+  | 'emergency'
   | 'briefing';
 
 /**
@@ -58,9 +59,12 @@ export function isSectionComplete(a: Assessment, id: CoreSectionId): boolean {
     }
     case 'additional': {
       const x = a.additional;
+      return Boolean(x.storage.trim());
+    }
+    case 'emergency': {
+      const x = a.emergency;
       return Boolean(
-        x.storage.trim() &&
-          x.emergencyFirstAid.trim() &&
+        x.emergencyFirstAid.trim() &&
           x.emergencySpills.trim() &&
           x.emergencyFire.trim() &&
           x.wasteHandling.trim(),

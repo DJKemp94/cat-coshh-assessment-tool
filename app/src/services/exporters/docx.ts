@@ -587,15 +587,19 @@ export async function exportDocx(a: Assessment): Promise<void> {
     ['SDS version / date', `${a.additional.sdsVersion || DASH}  ·  ${a.additional.sdsDate || DASH}`],
     ['Storage', a.additional.storage],
     ['Incompatible substances', a.additional.incompatibles],
-    ['Emergency — Spills', a.additional.emergencySpills],
-    ['Emergency — First aid', a.additional.emergencyFirstAid],
-    ['Emergency — Fire', a.additional.emergencyFire],
-    ['Waste handling', a.additional.wasteHandling],
-    ['Other', a.additional.other],
   ]));
 
-  // ── 07 Briefing Record ───────────────────────────────
-  children.push(sectionBanner(7, 'Briefing Record'));
+  children.push(sectionBanner(7, 'Emergency Response'));
+  children.push(kvTable([
+    ['Emergency — Spills', a.emergency.emergencySpills],
+    ['Emergency — First aid', a.emergency.emergencyFirstAid],
+    ['Emergency — Fire', a.emergency.emergencyFire],
+    ['Waste handling', a.emergency.wasteHandling],
+    ['Other', a.emergency.other],
+  ]));
+
+  // ── 08 Briefing Record ───────────────────────────────
+  children.push(sectionBanner(8, 'Briefing Record'));
   if (a.briefing.length === 0) {
     children.push(para('No briefing entries recorded.', { italics: true, color: MUTED }));
   } else {

@@ -1,60 +1,40 @@
 import { useMemo, useState } from 'react';
 import {
-  ChevronDown, ChevronRight, Plus, Lightbulb, RotateCw, Archive, Siren,
-  Cross, Droplets, Flame, Trash2, Sparkles, Info,
+  ChevronDown, ChevronRight, Plus, RotateCw, Archive,
+  Droplets, Flame, Info,
   CheckCircle2, AlertTriangle, Package, ShieldAlert, Skull,
   FlaskConical, ExternalLink, Download, Beaker, Biohazard,
+  Grid3X3, LockKeyhole, Fan, BookOpen,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAssessment } from '@/store/assessment';
 import { SectionHeader } from '@/components/common/SectionHeader';
-import { appendUnique, ChipSuggestion } from '@/components/common/SuggestionChips';
 import { SuggestionDisclaimer } from '@/components/common/SuggestionDisclaimer';
-import { suggestRequirements, RequirementField } from '@/services/suggestRequirements';
 import { GhsIcon } from '@/components/common/GhsPictograms';
 import { GhsPictogram, Substance } from '@/types/assessment';
 
 export function AdditionalSection() {
   const a = useAssessment((s) => s.assessment.additional);
   const assessment = useAssessment((s) => s.assessment);
-  const update = useAssessment((s) => s.updateAdditional);
+  const update = useAssessment((s) => s.updateStorage);
 
-  const suggestions = useMemo(() => suggestRequirements(assessment), [assessment]);
-
-  const totalChems = useMemo(
-    () => assessment.processSteps.reduce((n, st) => n + st.chemicals.length, 0),
-    [assessment.processSteps],
-  );
-  const allChems = useMemo(
-    () => assessment.processSteps.flatMap((st) => st.chemicals),
-    [assessment.processSteps],
-  );
-
-  const ta = (
-    key: keyof typeof a,
-    field: RequirementField | null,
-    label: string,
-    placeholder?: string,
-    required?: boolean,
-  ) => {
-    const value = a[key] as string;
-    return (
-      <Field
-        label={label}
-        value={value}
-        required={required}
-        suggestions={field ? suggestions[field] ?? [] : []}
-        onAppend={(s) => update({ [key]: appendUnique(value, s) } as Partial<typeof a>)}
-        onChange={(v) => update({ [key]: v } as Partial<typeof a>)}
-        placeholder={placeholder}
-      />
-    );
-  };
+  const allChems = useMemo(() => {
+    const seen = new Set<string>();
+    return assessment.processSteps
+      .flatMap((st) => st.chemicals)
+      .filter((c) => {
+        const key = (c.cas ?? c.name).toLowerCase().trim();
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+  }, [assessment.processSteps]);
+  const totalChems = allChems.length;
 
   return (
     <section>
       <SectionHeader
-        title="Storage &amp; Emergency"
+        title="Storage"
         subtitle={
           totalChems > 0
             ? `Suggestions below are derived from H-codes and GHS pictograms across the ${totalChems} chemical${totalChems === 1 ? '' : 's'} you've added.`
@@ -94,94 +74,6 @@ export function AdditionalSection() {
             cheminventoryLogged={a.cheminventoryLogged}
             onSetCheminventoryLogged={(cheminventoryLogged) => update({ cheminventoryLogged })}
           />
-        </Card>
-
-        <Card
-          title="Emergency response"
-          subtitle="Record actions for likely emergency scenarios."
-          icon={<Siren size={20} />}
-          iconClass="text-red-500"
-          defaultOpen
-          right={<button type="button" className="text-xs font-medium text-accent-700">Expand all</button>}
-        >
-          <div className="overflow-hidden rounded-md border border-zinc-200">
-            <EmergencyRow
-              title="First aid"
-              subtitle="For exposure to the substance"
-              icon={<Cross size={18} />}
-              iconClass="bg-sky-500 text-white"
-              field={ta(
-                'emergencyFirstAid',
-                'emergencyFirstAid',
-                'First aid',
-                'Record first-aid actions for credible exposure routes, when to seek medical advice, what SDS information must go with the person and how exposure incidents are reported.',
-                true,
-              )}
-              suggestions={suggestions.emergencyFirstAid.length}
-              preview={a.emergencyFirstAid}
-            />
-            <EmergencyRow
-              title="Spills"
-              subtitle="Spill control and clean up"
-              icon={<Droplets size={18} />}
-              iconClass="bg-amber-500 text-white"
-              field={ta(
-                'emergencySpills',
-                'emergencySpills',
-                'Spills',
-                'Record spill response for foreseeable quantities, including evacuation or isolation, PPE, ventilation, absorbents, drain protection, waste collection and when to escalate.',
-                true,
-              )}
-              suggestions={suggestions.emergencySpills.length}
-              preview={a.emergencySpills}
-            />
-            <EmergencyRow
-              title="Fire response"
-              subtitle="In case of fire"
-              icon={<Flame size={18} />}
-              iconClass="bg-red-500 text-white"
-              field={ta(
-                'emergencyFire',
-                'emergencyFire',
-                'Fire',
-                'Record relevant fire hazards, suitable extinguishing media from the SDS, substances that must not contact water, toxic fumes, cylinder risks and run-off control.',
-                true,
-              )}
-              suggestions={suggestions.emergencyFire.length}
-              preview={a.emergencyFire}
-            />
-            <EmergencyRow
-              title="Disposal"
-              subtitle="Waste and disposal"
-              icon={<Trash2 size={18} />}
-              iconClass="bg-violet-500 text-white"
-              field={ta(
-                'wasteHandling',
-                'wasteHandling',
-                'Disposal',
-                'Record waste containers, segregation, labelling, incompatible waste streams, temporary storage, collection route and any waste that needs specialist disposal.',
-                true,
-              )}
-              suggestions={suggestions.wasteHandling.length}
-              preview={a.wasteHandling}
-            />
-          </div>
-
-          <div className="rounded-md border border-zinc-200 p-3">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <div className="inline-flex items-center gap-2 text-sm font-medium text-zinc-900">
-                <Sparkles size={16} className="text-sky-500" />
-                Generated summary <span className="text-xs font-normal text-zinc-500">(editable)</span>
-              </div>
-              <span className="pill">{Math.max(1, suggestions.emergencyFire.length)} suggestion</span>
-            </div>
-            {ta(
-              'other',
-              null,
-              '',
-              'Summarise storage and emergency controls, or add other COSHH requirements that do not fit elsewhere.',
-            )}
-          </div>
         </Card>
       </div>
     </section>
@@ -272,15 +164,15 @@ type StorageGroupForDisplay = StorageGroup & {
 };
 
 const STORAGE_GROUP_DEFS: StorageGroupDef[] = [
-  { id: '1', title: 'Flammable Liquids', subtitle: 'Flammable liquids', icon: <Flame size={26} />, tone: 'text-red-600 bg-red-50', border: 'border-t-red-500', dot: 'bg-red-500', guidance: 'Store in a flammable cabinet. Keep away from oxidisers, heat and sparks.' },
-  { id: '2a', title: 'Acids, Inorganic', subtitle: 'Inorganic acids', icon: <ShieldAlert size={26} />, tone: 'text-orange-600 bg-orange-50', border: 'border-t-orange-500', dot: 'bg-orange-500', guidance: 'Store in corrosion-resistant storage. Keep away from alkalis, cyanides, sulphides and oxidisers unless compatibility is confirmed.' },
-  { id: '2b', title: 'Acids, Organic', subtitle: 'Organic acids', icon: <ShieldAlert size={26} />, tone: 'text-amber-600 bg-amber-50', border: 'border-t-amber-500', dot: 'bg-amber-500', guidance: 'Store as corrosive organic acid material. Keep away from alkalis and oxidisers unless compatibility is confirmed.' },
-  { id: '3', title: 'Alkalis (Bases)', subtitle: 'Bases / Alkalis', icon: <FlaskConical size={26} />, tone: 'text-blue-600 bg-blue-50', border: 'border-t-blue-500', dot: 'bg-blue-500', guidance: 'Store in compatible alkali storage. Keep away from acids.' },
-  { id: '4', title: 'Oxidizers', subtitle: 'Oxidizing substances', icon: <Beaker size={26} />, tone: 'text-emerald-600 bg-emerald-50', border: 'border-t-emerald-500', dot: 'bg-emerald-500', guidance: 'Store away from flammables, organic materials, acids and reducing agents.' },
-  { id: '5a', title: 'Poisons, Inorganic', subtitle: 'Inorganic poisons / toxics', icon: <Skull size={26} />, tone: 'text-violet-600 bg-violet-50', border: 'border-t-violet-500', dot: 'bg-violet-500', guidance: 'Store securely and segregate from organic materials and reducing agents.' },
-  { id: '5b', title: 'Poisons, Organic', subtitle: 'Organic poisons / toxics', icon: <Skull size={26} />, tone: 'text-purple-600 bg-purple-50', border: 'border-t-purple-500', dot: 'bg-purple-500', guidance: 'Store securely in compatible storage. Restrict access and keep in the original container.' },
-  { id: '5c', title: 'Schedule 1 Poisons', subtitle: 'Schedule 1 poisons', icon: <Biohazard size={26} />, tone: 'text-fuchsia-600 bg-fuchsia-50', border: 'border-t-fuchsia-500', dot: 'bg-fuchsia-500', guidance: 'Store in secure, locked storage with restricted access.' },
-  { id: '6', title: 'Air / Water Reactives', subtitle: 'Air / water reactive substances', icon: <Droplets size={26} />, tone: 'text-cyan-700 bg-cyan-50', border: 'border-t-cyan-500', dot: 'bg-cyan-500', guidance: 'Keep dry, tightly closed, and away from water, acids and incompatible materials.' },
+  { id: '1', title: 'Flammable Cabinet', subtitle: 'Flammable liquids', icon: <Flame size={26} />, tone: 'text-blue-700 bg-blue-50', border: 'border-t-blue-500', dot: 'bg-blue-500', guidance: 'Keep away from heat, sparks, ignition sources and oxidizers.' },
+  { id: '2a', title: 'Corrosives Cabinet (Acids)', subtitle: 'Inorganic acids', icon: <ShieldAlert size={26} />, tone: 'text-violet-700 bg-violet-50', border: 'border-t-violet-500', dot: 'bg-violet-500', guidance: 'Store acids separately from bases, cyanides, sulphides and oxidizers.' },
+  { id: '2b', title: 'Organic Acids Cabinet', subtitle: 'Organic acids', icon: <ShieldAlert size={26} />, tone: 'text-amber-700 bg-amber-50', border: 'border-t-amber-500', dot: 'bg-amber-500', guidance: 'Store organic acids separately from bases and oxidizers unless the SDS confirms compatibility.' },
+  { id: '3', title: 'Corrosives Cabinet (Bases)', subtitle: 'Bases / Alkalis', icon: <FlaskConical size={26} />, tone: 'text-orange-700 bg-orange-50', border: 'border-t-orange-500', dot: 'bg-orange-500', guidance: 'Store bases separately from acids and oxidizers.' },
+  { id: '4', title: 'Oxidizers Cabinet', subtitle: 'Oxidizing substances', icon: <Beaker size={26} />, tone: 'text-amber-700 bg-amber-50', border: 'border-t-amber-500', dot: 'bg-amber-500', guidance: 'Keep away from organic materials, flammables, acids and reducing agents.' },
+  { id: '5a', title: 'Toxins Cabinet', subtitle: 'Inorganic poisons / toxics', icon: <Skull size={26} />, tone: 'text-rose-700 bg-rose-50', border: 'border-t-rose-500', dot: 'bg-rose-500', guidance: 'Store securely with restricted access and compatible secondary containment.' },
+  { id: '5b', title: 'Toxins Cabinet', subtitle: 'Organic poisons / toxics', icon: <Skull size={26} />, tone: 'text-rose-700 bg-rose-50', border: 'border-t-rose-500', dot: 'bg-rose-500', guidance: 'Store securely with restricted access. Keep liquids below solids where practicable.' },
+  { id: '5c', title: 'Locked Poisons Cabinet', subtitle: 'Schedule 1 poisons', icon: <Biohazard size={26} />, tone: 'text-pink-700 bg-pink-50', border: 'border-t-pink-500', dot: 'bg-pink-500', guidance: 'Store in locked storage with access restricted to authorised users.' },
+  { id: '6', title: 'Reactive Materials Cabinet', subtitle: 'Air / water reactive substances', icon: <Droplets size={26} />, tone: 'text-cyan-700 bg-cyan-50', border: 'border-t-cyan-500', dot: 'bg-cyan-500', guidance: 'Keep dry, tightly closed, and away from water, acids and incompatible materials.' },
 ];
 
 const COMPATIBILITY: Record<StorageGroupId, Record<StorageGroupId, boolean>> = {
@@ -296,6 +188,20 @@ const COMPATIBILITY: Record<StorageGroupId, Record<StorageGroupId, boolean>> = {
 };
 
 const groupById = (id: StorageGroupId) => STORAGE_GROUP_DEFS.find((g) => g.id === id)!;
+const storageGroupLabel = (group: Pick<StorageGroupDef, 'id' | 'title'>) => {
+  switch (group.id) {
+    case '1': return 'Flammable liquids';
+    case '2a': return 'Corrosive acids';
+    case '2b': return 'Organic acids';
+    case '3': return 'Corrosive bases';
+    case '4': return 'Oxidizers';
+    case '5a': return 'Inorganic toxins';
+    case '5b': return 'Organic toxins';
+    case '5c': return 'Schedule 1 poisons';
+    case '6': return 'Reactive materials';
+    default: return group.title.replace(/\s+Cabinet\b/g, '');
+  }
+};
 const hasPictogram = (c: Substance, p: GhsPictogram) => c.ghsPictograms.includes(p);
 const codeList = (c: Substance) => c.hazardStatements.map((h) => h.code.trim().toUpperCase()).filter(Boolean);
 const hasHCode = (c: Substance, codes: string[]) => codeList(c).some((code) => codes.includes(code));
@@ -377,7 +283,7 @@ function classifyChemical(
   const incompatible = group
     ? STORAGE_GROUP_DEFS
       .filter((candidate) => candidate.id !== group.id && !COMPATIBILITY[group.id][candidate.id])
-      .map((candidate) => candidate.title)
+      .map((candidate) => storageGroupLabel(candidate))
     : [];
   const alert = !group
     ? 'Check SDS sections 7 and 10'
@@ -447,7 +353,7 @@ function StorageSdsPanel({
   const matrixAlerts = activeDisplayGroups.flatMap((group, groupIndex) =>
     activeDisplayGroups
       .filter((other, otherIndex) => otherIndex > groupIndex && !COMPATIBILITY[group.id][other.id])
-      .map((other) => `${group.title} must be stored separately from ${other.title}.`),
+      .map((other) => `${storageGroupLabel(group)} must be stored separately from ${storageGroupLabel(other)}.`),
   );
   const addManualChemical = (groupId: StorageGroupId, name: string) => {
     const trimmed = name.trim();
@@ -469,36 +375,16 @@ function StorageSdsPanel({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 rounded-lg border border-zinc-200 p-4 lg:grid-cols-4">
-        <SummaryMetric icon={<Package size={17} />} value={chemicals.length} label="Chemicals added" tone="text-accent-700" />
-        <SummaryMetric icon={<FlaskConical size={17} />} value={activeDisplayGroups.length} label="Storage groups created" tone="text-blue-700" />
-        <SummaryMetric icon={<ShieldAlert size={17} />} value={matrixAlerts.length} label="Segregation rules applied" tone="text-violet-700" />
-        <SummaryMetric icon={<AlertTriangle size={17} />} value={actionCount} label="Action required" tone="text-red-600" />
-      </div>
-
-      <div className="rounded-lg border border-zinc-200 p-4">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2 text-sm font-semibold text-zinc-900">
-            Recommended storage groups <Info size={14} className="text-zinc-400" />
-          </div>
-          <button type="button" className="text-xs font-medium text-accent-700">View full guidance</button>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {displayGroups.map((group) => (
-            <StorageGroupCard
-              key={group.id}
-              group={group}
-              highlighted={hoveredPair?.includes(group.id) ?? false}
-              onAddManualChemical={addManualChemical}
-              onRemoveManualChemical={removeManualChemical}
-            />
-          ))}
-        </div>
-        <p className="mt-3 text-xs text-zinc-500">
-          Groups are created automatically from GHS pictograms, H-codes and compatibility rules. Acid/base and organic/inorganic splits should be verified against the SDS where the name is ambiguous.
-        </p>
-      </div>
+      <StoragePlanDashboard
+        chemicals={chemicals}
+        groups={displayGroups}
+        assignments={assignments}
+        highlightedGroupIds={hoveredPair ?? []}
+        matrixAlertCount={matrixAlerts.length}
+        actionCount={actionCount}
+        onAddManualChemical={addManualChemical}
+        onRemoveManualChemical={removeManualChemical}
+      />
 
       <div className="rounded-lg border border-zinc-200 p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -580,7 +466,7 @@ function StorageSdsPanel({
         </div>
       </div>
 
-      <div className="rounded-lg border border-zinc-200 p-4">
+      <div id="storage-compatibility-matrix" className="rounded-lg border border-zinc-200 p-4">
         <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-900">
           Compatibility between storage groups <Info size={14} className="text-zinc-400" />
         </div>
@@ -645,18 +531,278 @@ function StorageSdsPanel({
   );
 }
 
-function StorageGroupCard({
+const CABINET_STYLE: Record<StorageGroupId, {
+  border: string;
+  header: string;
+  text: string;
+  soft: string;
+  shelf: string;
+}> = {
+  '1': {
+    border: 'border-blue-400',
+    header: 'bg-blue-50 text-blue-700',
+    text: 'text-blue-700',
+    soft: 'bg-blue-50/80 border-blue-200',
+    shelf: 'from-blue-50/45',
+  },
+  '2a': {
+    border: 'border-violet-400',
+    header: 'bg-violet-50 text-violet-700',
+    text: 'text-violet-700',
+    soft: 'bg-violet-50/80 border-violet-200',
+    shelf: 'from-violet-50/45',
+  },
+  '2b': {
+    border: 'border-amber-400',
+    header: 'bg-amber-50 text-amber-700',
+    text: 'text-amber-700',
+    soft: 'bg-amber-50/80 border-amber-200',
+    shelf: 'from-amber-50/45',
+  },
+  '3': {
+    border: 'border-orange-400',
+    header: 'bg-orange-50 text-orange-700',
+    text: 'text-orange-700',
+    soft: 'bg-orange-50/80 border-orange-200',
+    shelf: 'from-orange-50/45',
+  },
+  '4': {
+    border: 'border-amber-400',
+    header: 'bg-amber-50 text-amber-700',
+    text: 'text-amber-700',
+    soft: 'bg-amber-50/80 border-amber-200',
+    shelf: 'from-amber-50/45',
+  },
+  '5a': {
+    border: 'border-rose-400',
+    header: 'bg-rose-50 text-rose-700',
+    text: 'text-rose-700',
+    soft: 'bg-rose-50/80 border-rose-200',
+    shelf: 'from-rose-50/45',
+  },
+  '5b': {
+    border: 'border-rose-400',
+    header: 'bg-rose-50 text-rose-700',
+    text: 'text-rose-700',
+    soft: 'bg-rose-50/80 border-rose-200',
+    shelf: 'from-rose-50/45',
+  },
+  '5c': {
+    border: 'border-pink-400',
+    header: 'bg-pink-50 text-pink-700',
+    text: 'text-pink-700',
+    soft: 'bg-pink-50/80 border-pink-200',
+    shelf: 'from-pink-50/45',
+  },
+  '6': {
+    border: 'border-cyan-400',
+    header: 'bg-cyan-50 text-cyan-700',
+    text: 'text-cyan-700',
+    soft: 'bg-cyan-50/80 border-cyan-200',
+    shelf: 'from-cyan-50/45',
+  },
+};
+
+const STORAGE_LAYOUT_ORDER: StorageGroupId[] = ['1', '2a', '3', '4', '2b', '5a', '5b', '5c', '6'];
+
+const hasGroupChemicals = (group: StorageGroupForDisplay) =>
+  group.chemicals.length > 0 || group.manualChemicals.length > 0;
+
+const cabinetZoneLabels = (groupId: StorageGroupId) => {
+  switch (groupId) {
+    case '1':
+      return ['Organic solvents and organic acids', 'Volatile poisons and chlorinated solvents'];
+    case '2a':
+      return ['Non-oxidizing organic and mineral acids', 'Oxidizing acids in double containment'];
+    case '2b':
+      return ['Organic acids', 'Organic acids in secondary containment'];
+    case '3':
+      return ['Liquid bases', 'Liquid bases'];
+    case '4':
+      return ['Oxidizers'];
+    case '5a':
+    case '5b':
+    case '5c':
+      return ['Non-volatile poisons - dry', 'Non-volatile poisons - liquid'];
+    case '6':
+      return ['Air / water reactive materials', 'Keep dry and isolated'];
+    default:
+      return ['Compatible materials', 'Compatible materials'];
+  }
+};
+
+function StoragePlanDashboard({
+  chemicals,
+  groups,
+  assignments,
+  highlightedGroupIds,
+  matrixAlertCount,
+  actionCount,
+  onAddManualChemical,
+  onRemoveManualChemical,
+}: {
+  chemicals: Substance[];
+  groups: StorageGroupForDisplay[];
+  assignments: ChemicalStorageAssignment[];
+  highlightedGroupIds: StorageGroupId[];
+  matrixAlertCount: number;
+  actionCount: number;
+  onAddManualChemical: (groupId: StorageGroupId, name: string) => void;
+  onRemoveManualChemical: (groupId: StorageGroupId, id: string) => void;
+}) {
+  const orderedGroups = STORAGE_LAYOUT_ORDER
+    .map((id) => groups.find((group) => group.id === id))
+    .filter(Boolean) as StorageGroupForDisplay[];
+  const visibleGroups = orderedGroups.filter(hasGroupChemicals);
+  const unassigned = assignments.filter((assignment) => !assignment.group);
+  const activeGroupCount = visibleGroups.length + (unassigned.length > 0 ? 1 : 0);
+
+  return (
+    <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-soft">
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2 text-xl font-semibold text-zinc-950">
+            <Archive size={23} className="text-zinc-800" />
+            Storage Plan
+          </div>
+          <p className="mt-1 max-w-2xl text-sm text-zinc-600">
+            Recommended storage updates automatically from each chemical's hazard classification and physical state.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-4 text-xs text-zinc-600">
+          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> Optimal</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-amber-500" /> Caution</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-rose-500" /> Not allowed</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.08fr)]">
+        <div className="rounded-lg border border-zinc-200 bg-white p-4">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold text-zinc-900">Chemicals in Assessment</h3>
+            <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-0.5 text-xs font-semibold text-zinc-700">{chemicals.length}</span>
+          </div>
+          <div className="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2">
+            {assignments.map((assignment) => (
+              <StorageChemicalListItem key={assignment.chemical.id} assignment={assignment} />
+            ))}
+            {assignments.length === 0 && (
+              <p className="rounded-md border border-dashed border-zinc-200 p-3 text-sm text-zinc-500 sm:col-span-2">
+                Add chemicals in Process Steps to generate a cabinet layout.
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-zinc-200 bg-white p-4">
+          <h3 className="text-sm font-semibold text-zinc-900">Storage Guidance</h3>
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <StorageGuidanceItem icon={<LockKeyhole size={17} />} title="Store in original containers" text="Keep containers tightly closed and clearly labelled." />
+            <StorageGuidanceItem icon={<Package size={17} />} title="Keep secondary containment" text="Use trays or bunds for liquids and incompatible materials." />
+            <StorageGuidanceItem icon={<Fan size={17} />} title="Ensure good ventilation" text="Use cool, well-ventilated storage and local rules for volatile substances." />
+            <StorageGuidanceItem icon={<BookOpen size={17} />} title="Check SDS for full guidance" text="Confirm sections 7 and 10 before final storage." />
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-lg border border-zinc-200 bg-white p-4">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold text-zinc-900">Recommended Storage Layout</h3>
+              <p className="mt-1 text-sm text-zinc-600">Store chemicals in separate cabinets based on compatibility.</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="pill">{activeGroupCount} active group{activeGroupCount === 1 ? '' : 's'}</span>
+              <span className={clsx('pill', matrixAlertCount > 0 && '!border-rose-200 !bg-rose-50 !text-rose-700')}>{matrixAlertCount} separation alert{matrixAlertCount === 1 ? '' : 's'}</span>
+              <span className={clsx('pill', actionCount > 0 && '!border-amber-200 !bg-amber-50 !text-amber-800')}>{actionCount} review item{actionCount === 1 ? '' : 's'}</span>
+              <a href="#storage-compatibility-matrix" className="btn-secondary text-xs">
+                <Grid3X3 size={14} /> View compatibility matrix
+              </a>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
+            {visibleGroups.map((group) => (
+              <StorageCabinetCard
+                key={group.id}
+                group={group}
+                compact={visibleGroups.length > 4}
+                highlighted={highlightedGroupIds.includes(group.id)}
+                onAddManualChemical={onAddManualChemical}
+                onRemoveManualChemical={onRemoveManualChemical}
+              />
+            ))}
+            {unassigned.length > 0 && <GeneralShelvingCard assignments={unassigned} />}
+            {visibleGroups.length === 0 && unassigned.length === 0 && (
+              <div className="rounded-md border border-dashed border-zinc-200 p-6 text-center text-sm text-zinc-500">
+                Add chemicals in Process Steps to generate active storage cabinets.
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-xs text-zinc-600">
+            <span><strong className="text-zinc-800">Important note:</strong> This layout is guidance based on recorded GHS/H-code data. Always verify SDS sections 7 and 10 and local chemical storage rules.</span>
+            <button type="button" className="btn-secondary text-xs">
+              <Download size={14} /> Download Storage Plan
+            </button>
+          </div>
+      </div>
+    </div>
+  );
+}
+
+function StorageChemicalListItem({ assignment }: { assignment: ChemicalStorageAssignment }) {
+  const { chemical, group } = assignment;
+  return (
+    <div className="grid grid-cols-[0.25rem_1fr] gap-3 rounded-md py-1">
+      <span className={clsx('rounded-full', group?.dot ?? 'bg-amber-400')} />
+      <div className="min-w-0">
+        <div className="truncate text-sm font-medium text-zinc-950">{chemical.name || chemical.cas || 'Unnamed chemical'}</div>
+        <div className="truncate text-xs text-zinc-600">
+          {(assignment.primaryHazards[0] ?? group?.subtitle ?? 'Review SDS')} · {formatChemicalState(chemical)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StorageGuidanceItem({
+  icon,
+  title,
+  text,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  text: string;
+}) {
+  return (
+    <div className="grid grid-cols-[2rem_1fr] gap-3">
+      <span className="flex h-8 w-8 items-center justify-center rounded-md bg-zinc-50 text-zinc-700 ring-1 ring-zinc-200">
+        {icon}
+      </span>
+      <span>
+        <span className="block font-semibold text-zinc-900">{title}</span>
+        <span className="block text-xs leading-relaxed text-zinc-600">{text}</span>
+      </span>
+    </div>
+  );
+}
+
+function StorageCabinetCard({
   group,
+  compact,
   highlighted,
   onAddManualChemical,
   onRemoveManualChemical,
 }: {
   group: StorageGroupForDisplay;
+  compact?: boolean;
   highlighted?: boolean;
   onAddManualChemical: (groupId: StorageGroupId, name: string) => void;
   onRemoveManualChemical: (groupId: StorageGroupId, id: string) => void;
 }) {
   const [manualName, setManualName] = useState('');
+  const style = CABINET_STYLE[group.id];
   const totalChemicals = group.chemicals.length + group.manualChemicals.length;
   const addManual = () => {
     onAddManualChemical(group.id, manualName);
@@ -664,78 +810,187 @@ function StorageGroupCard({
   };
 
   return (
-    <div className={clsx('min-h-44 rounded-lg border border-zinc-200 border-t-4 bg-white p-4 shadow-sm transition', group.border, highlighted && 'ring-2 ring-red-300 bg-red-50/30')}>
-      <div className="flex items-start gap-3">
-        <div className="flex flex-col items-center gap-2">
-          <span className={clsx('inline-flex h-6 min-w-6 items-center justify-center rounded-md px-1 text-xs font-bold', group.tone)}>
-            {group.id}
-          </span>
-          <span className={clsx('flex h-11 w-11 items-center justify-center rounded-full', group.tone)}>
-            {group.icon}
-          </span>
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="text-base font-semibold text-zinc-900">{group.title}</div>
-          <div className="mt-1 text-sm text-zinc-600">{group.subtitle}</div>
-        </div>
-      </div>
-      <div className="mt-4 border-t border-zinc-100 pt-3">
-        <div className="text-xs font-semibold text-zinc-700">
-          Chemicals ({totalChemicals})
-        </div>
-        {totalChemicals > 0 ? (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {group.chemicals.map(({ chemical }) => (
-              <span key={chemical.id} className="inline-flex max-w-full items-center rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs font-semibold text-zinc-900 shadow-sm">
-                {chemical.name || chemical.cas || 'Unnamed chemical'}
-              </span>
-            ))}
-            {group.manualChemicals.map((chemical) => (
-              <span key={chemical.id} className="inline-flex max-w-full items-center gap-1 rounded-md border border-accent-200 bg-accent-50 px-2 py-1 text-xs font-semibold text-accent-900 shadow-sm">
-                <span className="truncate">{chemical.name}</span>
-                <button
-                  type="button"
-                  onClick={() => onRemoveManualChemical(group.id, chemical.id)}
-                  className="rounded text-accent-700 hover:bg-accent-100"
-                  aria-label={`Remove ${chemical.name} from ${group.title}`}
-                >
-                  x
-                </button>
-              </span>
-            ))}
-          </div>
-        ) : (
-          <div className="mt-1 text-xs text-zinc-500">No chemicals in this group</div>
-        )}
+    <div
+      className={clsx('overflow-hidden rounded-lg border bg-white transition', style.border, highlighted && 'ring-2 ring-rose-300')}
+      data-storage-cabinet={group.id}
+    >
+      <div className={clsx('flex items-center gap-2 border-b px-3 py-3 text-sm font-semibold', style.header, style.border)}>
+        <span className={style.text}>{group.icon}</span>
+        <span className="min-w-0 leading-tight">{group.title}</span>
       </div>
 
-      <div className="mt-3 flex gap-2">
-        <input
-          className="min-w-0 flex-1 rounded-md border border-zinc-200 px-2 py-1 text-xs outline-none focus:border-accent-300 focus:ring-2 focus:ring-accent-100"
-          value={manualName}
-          onChange={(e) => setManualName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              addManual();
-            }
-          }}
-          placeholder="Add chemical manually"
-        />
-        <button type="button" onClick={addManual} className="inline-flex items-center gap-1 rounded-md border border-zinc-200 px-2 py-1 text-[11px] font-medium text-zinc-700 hover:bg-zinc-50">
-          <Plus size={12} /> Add
-        </button>
-      </div>
-      <div className="mt-2">
-        {group.chemicals.length > 0 && (
-          <span className="inline-flex rounded-md bg-accent-50 px-2 py-1 text-[11px] font-medium text-accent-800">Auto-generated</span>
-        )}
+      <div className="p-2">
+        <CabinetShelf group={group} compact={compact} />
+        <p className="mt-2 min-h-8 text-center text-xs leading-snug text-zinc-600">{group.guidance}</p>
+        <div className={clsx('mt-3 rounded-md border p-3 text-xs', style.soft)}>
+          <div className={clsx('font-semibold', style.text)}>What can be stored:</div>
+          <p className="mt-1 leading-relaxed text-zinc-700">{group.subtitle}. {group.guidance}</p>
+        </div>
+
+        <div className="mt-3 flex gap-2">
+          <input
+            className="min-w-0 flex-1 rounded-md border border-zinc-200 px-2 py-1 text-xs outline-none focus:border-accent-300 focus:ring-2 focus:ring-accent-100"
+            value={manualName}
+            onChange={(e) => setManualName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                addManual();
+              }
+            }}
+            placeholder="Add chemical"
+          />
+          <button type="button" onClick={addManual} className="inline-flex items-center gap-1 rounded-md border border-zinc-200 px-2 py-1 text-[11px] font-medium text-zinc-700 hover:bg-zinc-50">
+            <Plus size={12} /> Add
+          </button>
+        </div>
+        {totalChemicals === 0 && <div className="mt-2 text-center text-[11px] text-zinc-400">No chemicals assigned</div>}
         {group.manualChemicals.length > 0 && (
-          <span className="ml-1 inline-flex rounded-md bg-zinc-100 px-2 py-1 text-[11px] font-medium text-zinc-700">Manual</span>
+          <div className="mt-2 flex flex-wrap gap-1">
+            {group.manualChemicals.map((chemical) => (
+              <button
+                key={chemical.id}
+                type="button"
+                onClick={() => onRemoveManualChemical(group.id, chemical.id)}
+                className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[11px] text-zinc-700 hover:bg-zinc-100"
+                title="Click to remove"
+              >
+                {chemical.name} x
+              </button>
+            ))}
+          </div>
         )}
       </div>
     </div>
   );
+}
+
+function CabinetShelf({ group, compact }: { group: StorageGroupForDisplay; compact?: boolean }) {
+  const singleShelf = group.id === '4';
+  const slotCount = singleShelf ? 3 : compact ? 4 : 6;
+  const items = [
+    ...group.chemicals.map((assignment) => ({ id: assignment.chemical.id, name: assignment.chemical.name || assignment.chemical.cas || 'Unnamed chemical', form: assignment.chemical.form, assignment })),
+    ...group.manualChemicals.map((chemical) => ({ id: chemical.id, name: chemical.name, form: 'liquid' as Substance['form'] })),
+  ].slice(0, slotCount);
+  const placeholders = Array.from({ length: Math.max(0, slotCount - items.length) });
+  const style = CABINET_STYLE[group.id];
+  const zones = cabinetZoneLabels(group.id);
+  const rows = singleShelf ? [0] : [0, 1];
+
+  return (
+    <div
+      className={clsx(
+        'relative grid overflow-hidden rounded-md border border-zinc-200 bg-gradient-to-br to-white shadow-inner',
+        singleShelf ? 'min-h-44 grid-rows-1' : compact ? 'min-h-64 grid-rows-2' : 'min-h-72 grid-rows-2',
+        style.shelf,
+      )}
+    >
+      {rows.map((row) => (
+        <div key={row} className="relative grid grid-cols-3 items-end gap-2 border-b border-zinc-200/80 px-3 pb-5 pt-9 last:border-b-0">
+          <div
+            className={clsx('absolute inset-x-0 top-0 min-h-7 border-b px-2 py-1 text-center text-[10px] font-semibold leading-tight', style.header, style.border)}
+            data-zone-label
+          >
+            {zones[row]}
+          </div>
+          <div className="absolute inset-x-0 bottom-0 h-3 border-t border-zinc-200 bg-zinc-100/80" data-shelf-bottom />
+          <div className="pointer-events-none absolute bottom-3 left-3 right-3 h-5 border-x border-b border-zinc-300/90" />
+          {items.slice(row * 3, row * 3 + 3).map((item) => (
+            <ChemicalContainer key={item.id} name={item.name} form={item.form} tone={group.id} />
+          ))}
+          {row === rows[rows.length - 1] && placeholders.map((_, index) => (
+            <ChemicalContainer key={`placeholder-${index}`} name="" form="liquid" muted />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ChemicalContainer({
+  name,
+  form,
+  tone,
+  muted,
+}: {
+  name: string;
+  form: Substance['form'];
+  tone?: StorageGroupId;
+  muted?: boolean;
+}) {
+  const isGas = form === 'gas' || form === 'vapour' || form === 'aerosol' || form === 'mist';
+  const isSolid = form === 'solid' || form === 'powder';
+  const color = muted
+    ? 'bg-zinc-100 border-zinc-200 opacity-40'
+    : tone === '1'
+      ? 'bg-orange-700 border-orange-800'
+      : tone === '5a' || tone === '5b' || tone === '5c'
+        ? 'bg-zinc-800 border-zinc-900'
+        : 'bg-white border-zinc-300';
+  const cap = tone === '1' || tone === '5a' || tone === '5b' || tone === '5c' ? 'bg-red-600' : tone === '3' ? 'bg-blue-600' : 'bg-zinc-100';
+
+  return (
+    <div className="relative z-10 flex min-w-0 flex-col items-center justify-end gap-1">
+      <div
+        data-muted-container={muted ? true : undefined}
+        className={clsx(
+          'relative border shadow-sm',
+          isGas
+            ? 'h-16 w-9 rounded-full'
+            : isSolid
+              ? 'h-11 w-12 rounded-md'
+              : 'h-14 w-9 rounded-b-md rounded-t-lg',
+          color,
+        )}
+      >
+        {!isSolid && <span className={clsx('absolute -top-2 left-1/2 h-2 w-5 -translate-x-1/2 rounded-t-sm border border-zinc-300', cap)} />}
+        {!muted && !isGas && !isSolid && <span className="absolute inset-x-0 bottom-3 h-4 bg-white/75" />}
+        {!muted && isGas && <span className="absolute left-1/2 top-2 h-3 w-3 -translate-x-1/2 rounded-full bg-white/70" />}
+      </div>
+      {name ? (
+        <div className="max-w-[5.25rem] text-center text-[10px] font-medium leading-tight text-zinc-900" data-chemical-label>
+          <span className="line-clamp-2">{name}</span>
+          <span className="block text-[9px] font-normal text-zinc-500">{formatChemicalState({ form } as Substance)}</span>
+        </div>
+      ) : (
+        <div className={muted ? 'h-0' : 'h-6'} />
+      )}
+    </div>
+  );
+}
+
+function GeneralShelvingCard({ assignments }: { assignments: ChemicalStorageAssignment[] }) {
+  return (
+    <div className="overflow-hidden rounded-lg border border-emerald-300 bg-white">
+      <div className="flex items-center gap-2 border-b border-emerald-300 bg-emerald-50 px-3 py-3 text-sm font-semibold text-emerald-700">
+        <Package size={22} />
+        <span>General Shelving</span>
+      </div>
+      <div className="p-2">
+        <div className="relative grid min-h-28 grid-cols-6 items-end gap-2 overflow-hidden rounded-md border border-zinc-200 bg-gradient-to-br from-emerald-50/50 to-white px-4 pb-4 shadow-inner">
+          <div className="absolute inset-x-0 bottom-0 h-3 border-t border-zinc-200 bg-zinc-100/70" />
+          {assignments.slice(0, 6).map((assignment) => (
+            <ChemicalContainer key={assignment.chemical.id} name={assignment.chemical.name || assignment.chemical.cas || 'Unnamed chemical'} form={assignment.chemical.form} />
+          ))}
+          {assignments.length === 0 && Array.from({ length: 6 }).map((_, index) => (
+            <ChemicalContainer key={index} name="" form="liquid" muted />
+          ))}
+        </div>
+        <p className="mt-2 text-center text-xs text-zinc-600">For non-hazardous items and compatible materials. Review SDS before assigning uncertain chemicals here.</p>
+        <div className="mt-3 rounded-md border border-emerald-200 bg-emerald-50/80 p-3 text-xs">
+          <div className="font-semibold text-emerald-700">What can be stored:</div>
+          <p className="mt-1 leading-relaxed text-zinc-700">Dry solids and other compatible low-hazard materials.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function formatChemicalState(chemical: Pick<Substance, 'form'>) {
+  const form = chemical.form || 'other';
+  if (form === 'powder') return 'Powder / solid';
+  if (form === 'vapour' || form === 'mist') return form[0].toUpperCase() + form.slice(1);
+  return form[0].toUpperCase() + form.slice(1);
 }
 
 function chemicalNamesForGroup(groups: StorageGroupForDisplay[], groupId: StorageGroupId) {
@@ -767,7 +1022,7 @@ function CompatibilityMatrix({
             {STORAGE_GROUP_DEFS.map((group) => (
               <th key={group.id} className={clsx('border border-zinc-200 bg-zinc-50 p-2 font-semibold text-zinc-700', activeGroupIds.includes(group.id) && 'bg-accent-50 text-accent-900')}>
                 <div>{group.id}</div>
-                <div className="mx-auto mt-1 max-w-16 leading-tight">{group.title}</div>
+                <div className="mx-auto mt-1 max-w-16 leading-tight">{storageGroupLabel(group)}</div>
               </th>
             ))}
           </tr>
@@ -777,7 +1032,7 @@ function CompatibilityMatrix({
             <tr key={row.id}>
               <th className={clsx('border border-zinc-200 bg-zinc-50 p-2 text-left font-semibold text-zinc-700', activeGroupIds.includes(row.id) && 'bg-accent-50 text-accent-900')}>
                 <span className={clsx('mr-2 inline-flex h-5 min-w-5 items-center justify-center rounded px-1 text-[10px]', row.tone)}>{row.id}</span>
-                {row.title}
+                {storageGroupLabel(row)}
               </th>
               {STORAGE_GROUP_DEFS.map((col) => {
                 const ok = COMPATIBILITY[row.id][col.id];
@@ -804,7 +1059,7 @@ function CompatibilityMatrix({
                         className="mx-auto flex h-6 w-6 items-center justify-center rounded text-base font-bold text-red-600 outline-none focus:ring-2 focus:ring-red-300"
                         onFocus={() => onHoverPair([row.id, col.id])}
                         onBlur={() => onHoverPair(null)}
-                        aria-label={`${row.title} must be separated from ${col.title}. ${row.title}: ${rowChemicals.join(', ') || 'No chemicals'}. ${col.title}: ${colChemicals.join(', ') || 'No chemicals'}.`}
+                        aria-label={`${storageGroupLabel(row)} must be separated from ${storageGroupLabel(col)}. ${storageGroupLabel(row)}: ${rowChemicals.join(', ') || 'No chemicals'}. ${storageGroupLabel(col)}: ${colChemicals.join(', ') || 'No chemicals'}.`}
                       >
                         x
                       </button>
@@ -817,8 +1072,8 @@ function CompatibilityMatrix({
                       <div className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 hidden w-72 -translate-x-1/2 rounded-lg border border-zinc-200 bg-white p-3 text-left shadow-lg group-hover:block group-focus-within:block">
                         <div className="text-xs font-semibold text-zinc-900">Separate these storage groups</div>
                         <div className="mt-2 grid grid-cols-2 gap-3">
-                          <MatrixChemicalList title={row.title} chemicals={rowChemicals} tone={row.tone} />
-                          <MatrixChemicalList title={col.title} chemicals={colChemicals} tone={col.tone} />
+                          <MatrixChemicalList title={storageGroupLabel(row)} chemicals={rowChemicals} tone={row.tone} />
+                          <MatrixChemicalList title={storageGroupLabel(col)} chemicals={colChemicals} tone={col.tone} />
                         </div>
                       </div>
                     )}
@@ -901,10 +1156,10 @@ function ClassificationRow({
             onChange={(e) => onOverride(e.target.value as StorageGroupId | 'review' | 'suggested')}
           >
             <option value="suggested">
-              {assignment.suggestedGroup ? `${assignment.suggestedGroup.id} - ${assignment.suggestedGroup.title}` : 'Review SDS'}
+              {assignment.suggestedGroup ? `${assignment.suggestedGroup.id} - ${storageGroupLabel(assignment.suggestedGroup)}` : 'Review SDS'}
             </option>
             {STORAGE_GROUP_DEFS.map((g) => (
-              <option key={g.id} value={g.id}>{g.id} - {g.title}</option>
+              <option key={g.id} value={g.id}>{g.id} - {storageGroupLabel(g)}</option>
             ))}
             <option value="review">Review SDS / unassigned</option>
           </select>
@@ -1030,10 +1285,10 @@ function StorageGroupSelect({
         onChange={(e) => onOverride(e.target.value as StorageGroupId | 'review' | 'suggested')}
       >
         <option value="suggested">
-          {assignment.suggestedGroup ? `${assignment.suggestedGroup.id} - ${assignment.suggestedGroup.title}` : 'Review SDS'}
+          {assignment.suggestedGroup ? `${assignment.suggestedGroup.id} - ${storageGroupLabel(assignment.suggestedGroup)}` : 'Review SDS'}
         </option>
         {STORAGE_GROUP_DEFS.map((g) => (
-          <option key={g.id} value={g.id}>{g.id} - {g.title}</option>
+          <option key={g.id} value={g.id}>{g.id} - {storageGroupLabel(g)}</option>
         ))}
         <option value="review">Review SDS / unassigned</option>
       </select>
@@ -1042,159 +1297,3 @@ function StorageGroupSelect({
   );
 }
 
-function SummaryMetric({ icon, value, label, tone }: { icon: React.ReactNode; value: number; label: string; tone: string }) {
-  return (
-    <div className="grid grid-cols-[2rem_3rem_1fr] items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2">
-      <span className={tone}>{icon}</span>
-      <span className="text-lg font-semibold text-zinc-700">{value}</span>
-      <span className="text-xs text-zinc-500">{label}</span>
-    </div>
-  );
-}
-
-function EmergencyRow({
-  title,
-  subtitle,
-  icon,
-  iconClass,
-  field,
-  suggestions,
-  preview,
-}: {
-  title: string;
-  subtitle: string;
-  icon: React.ReactNode;
-  iconClass: string;
-  field: React.ReactNode;
-  suggestions: number;
-  preview: string;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="border-b border-zinc-200 last:border-b-0">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="grid w-full grid-cols-[2.5rem_8rem_1fr_auto_1.5rem] items-center gap-3 px-3 py-3 text-left hover:bg-zinc-50"
-      >
-        <span className={clsx('flex h-8 w-8 items-center justify-center rounded-full', iconClass)}>{icon}</span>
-        <span className="font-semibold text-zinc-900">{title}</span>
-        <span className="hidden text-xs text-zinc-500 sm:block">{preview || subtitle}</span>
-        <span className="pill">{suggestions || 1} suggestion{suggestions === 1 ? '' : 's'}</span>
-        {open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-      </button>
-      {open && <div className="border-t border-zinc-100 bg-zinc-50/50 p-3">{field}</div>}
-    </div>
-  );
-}
-
-function Field({
-  label,
-  value,
-  suggestions,
-  onAppend,
-  onChange,
-  placeholder,
-  required,
-}: {
-  label: string;
-  value: string;
-  suggestions: ChipSuggestion[];
-  onAppend: (text: string) => void;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  required?: boolean;
-}) {
-  // Auto-show chips while the field is empty; collapse once the user has typed
-  // or inserted anything. User can still toggle manually.
-  const isEmpty = value.trim().length === 0;
-  const [forced, setForced] = useState<boolean | null>(null);
-  const showChips = forced ?? (isEmpty && suggestions.length > 0);
-  const missing = required && isEmpty;
-
-  return (
-    <div>
-      <div className="flex items-center justify-between gap-2 mb-1">
-        <span className="field-label !mb-0">
-          {label}
-          {required && (
-            <span className="text-red-600 ml-0.5" aria-label="required">*</span>
-          )}
-        </span>
-        {suggestions.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setForced(!showChips)}
-            className={clsx(
-              'inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border transition',
-              showChips
-                ? 'bg-accent-50 border-accent-200 text-accent-800'
-                : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50',
-            )}
-            aria-expanded={showChips}
-          >
-            <Lightbulb size={11} />
-            {suggestions.length} suggestion{suggestions.length === 1 ? '' : 's'}
-            {showChips ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
-          </button>
-        )}
-      </div>
-
-      {showChips && (
-        <ScrollableChipRow
-          suggestions={suggestions}
-          value={value}
-          onAppend={(t) => {
-            onAppend(t);
-            // Once the user has clicked something, leave it as user-preference;
-            // don't force-collapse — they may want another.
-          }}
-        />
-      )}
-
-      <textarea
-        className={clsx('field-textarea', missing && 'field-missing')}
-        value={value}
-        placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
-      />
-    </div>
-  );
-}
-
-function ScrollableChipRow({
-  suggestions,
-  value,
-  onAppend,
-}: {
-  suggestions: ChipSuggestion[];
-  value: string;
-  onAppend: (text: string) => void;
-}) {
-  return (
-    <div className="relative mb-2">
-      <div className="flex flex-wrap gap-1.5">
-        {suggestions.map((s) => {
-          const inUse = value.toLowerCase().includes(s.text.toLowerCase());
-          return (
-            <button
-              key={s.text}
-              type="button"
-              onClick={() => onAppend(s.text)}
-              title={s.hint || (inUse ? 'Already added' : 'Click to add')}
-              className={clsx(
-                'inline-flex items-start gap-1 px-2.5 py-1 rounded-md border text-xs text-left transition max-w-full',
-                inUse
-                  ? 'bg-accent-100 border-accent-300 text-accent-900 cursor-default'
-                  : 'bg-white border-zinc-200 text-zinc-700 hover:bg-accent-50 hover:border-accent-200',
-              )}
-            >
-              {!inUse && <Plus size={11} className="text-zinc-400 mt-0.5 shrink-0" />}
-              {s.text}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}

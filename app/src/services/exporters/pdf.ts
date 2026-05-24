@@ -613,15 +613,19 @@ export async function exportPdf(a: Assessment): Promise<void> {
     ['SDS version / date', `${a.additional.sdsVersion || '—'}  ·  ${a.additional.sdsDate || '—'}`],
     ['Storage', a.additional.storage],
     ['Incompatible substances', a.additional.incompatibles],
-    ['Emergency — Spills', a.additional.emergencySpills],
-    ['Emergency — First aid', a.additional.emergencyFirstAid],
-    ['Emergency — Fire', a.additional.emergencyFire],
-    ['Waste handling', a.additional.wasteHandling],
-    ['Other', a.additional.other],
+  ]);
+
+  sectionBanner(ctx, 7, 'Emergency Response');
+  kvBlock(ctx, [
+    ['Emergency — Spills', a.emergency.emergencySpills],
+    ['Emergency — First aid', a.emergency.emergencyFirstAid],
+    ['Emergency — Fire', a.emergency.emergencyFire],
+    ['Waste handling', a.emergency.wasteHandling],
+    ['Other', a.emergency.other],
   ]);
 
   // 06 Briefing
-  sectionBanner(ctx, 7, 'Briefing Record');
+  sectionBanner(ctx, 8, 'Briefing Record');
   if (a.briefing.length === 0) {
     drawText(ctx, 'No briefing entries recorded.', { color: MUTED });
   } else {

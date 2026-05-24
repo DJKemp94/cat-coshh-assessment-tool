@@ -11,7 +11,8 @@ import {
   BriefingEntry,
   Overview,
   ControlMeasures,
-  AdditionalRequirements,
+  StorageRequirements,
+  EmergencyRequirements,
   ProcessStep,
 } from '@/types/assessment';
 import { migrateAssessment } from '@/services/migrate';
@@ -26,6 +27,7 @@ export type SectionId =
   | 'substances'
   | 'controls'
   | 'additional'
+  | 'emergency'
   | 'briefing'
   | 'settings'
   | 'help';
@@ -45,7 +47,8 @@ interface AssessmentState {
 
   updateOverview: (patch: Partial<Overview>) => void;
   updateControls: (patch: Partial<ControlMeasures>) => void;
-  updateAdditional: (patch: Partial<AdditionalRequirements>) => void;
+  updateStorage: (patch: Partial<StorageRequirements>) => void;
+  updateEmergency: (patch: Partial<EmergencyRequirements>) => void;
 
   addHazard: () => void;
   updateHazard: (id: string, patch: Partial<TaskHazard>) => void;
@@ -55,6 +58,7 @@ interface AssessmentState {
   addProcessStep: () => void;
   updateProcessStep: (id: string, patch: Partial<ProcessStep>) => void;
   removeProcessStep: (id: string) => void;
+  reorderProcessSteps: (fromIndex: number, toIndex: number) => void;
 
   addChemical: (stepId: string, seed?: Partial<Substance>) => void;
   updateChemical: (stepId: string, chemId: string, patch: Partial<Substance>) => void;
@@ -184,8 +188,10 @@ export const useAssessment = create<AssessmentState>((set, get) => {
       }),
     updateControls: (patch) =>
       apply((a) => ({ ...a, controls: { ...a.controls, ...patch } })),
-    updateAdditional: (patch) =>
+    updateStorage: (patch) =>
       apply((a) => ({ ...a, additional: { ...a.additional, ...patch } })),
+    updateEmergency: (patch) =>
+      apply((a) => ({ ...a, emergency: { ...a.emergency, ...patch } })),
 
     addHazard: () =>
       apply((a) => ({
@@ -209,6 +215,14 @@ export const useAssessment = create<AssessmentState>((set, get) => {
       mutStep(id, (s) => ({ ...s, ...patch })),
     removeProcessStep: (id) =>
       apply((a) => ({ ...a, processSteps: a.processSteps.filter((s) => s.id !== id) })),
+
+    reorderProcessSteps: (fromIndex, toIndex) =>
+      apply((a) => {
+        const steps = [...a.processSteps];
+        const [moved] = steps.splice(fromIndex, 1);
+        steps.splice(toIndex, 0, moved);
+        return { ...a, processSteps: steps };
+      }),
 
     addChemical: (stepId, seed) =>
       mutStep(stepId, (s) => ({

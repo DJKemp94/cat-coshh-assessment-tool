@@ -3,7 +3,7 @@ import {
   AlertCircle, FlaskConical, Wand2, Loader2, CheckCircle2, Copy, MoreVertical,
   GripVertical, Save,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import clsx from 'clsx';
 import { useAssessment } from '@/store/assessment';
 import { SectionHeader } from '@/components/common/SectionHeader';
@@ -66,6 +66,36 @@ function joinQuantity(value: string, unit: string): string {
 export function SubstancesSection() {
   const steps = useAssessment((s) => s.assessment.processSteps);
   const addStep = useAssessment((s) => s.addProcessStep);
+  const reorder = useAssessment((s) => s.reorderProcessSteps);
+  const lastStepEmpty =
+    steps.length > 0 && steps[steps.length - 1].step.trim().length === 0;
+
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const handleDragStart = (_e: React.DragEvent, index: number) => {
+    setDragIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (dragIndex !== null && dragIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDrop = (_e: React.DragEvent, index: number) => {
+    if (dragIndex !== null && dragIndex !== index) {
+      reorder(dragIndex, index);
+    }
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
 
   return (
     <section>
@@ -73,7 +103,12 @@ export function SubstancesSection() {
         title="Process steps"
         subtitle="Add each step of the activity, then attach the chemicals used in that step."
         right={
-          <button className="btn-primary" onClick={addStep}>
+          <button
+            className="btn-primary"
+            onClick={addStep}
+            disabled={lastStepEmpty}
+            title={lastStepEmpty ? 'Name the last step before adding another' : undefined}
+          >
             <Plus size={14} /> Add step
           </button>
         }
@@ -87,12 +122,22 @@ export function SubstancesSection() {
       ) : (
         <div className="card overflow-hidden">
           {steps.map((step, idx) => (
-            <ProcessStepCard key={step.id} step={step} index={idx} />
+            <ProcessStepCard
+              key={step.id}
+              step={step}
+              index={idx}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+              onDragEnd={handleDragEnd}
+              isDragging={dragIndex === idx}
+              isDragOver={dragOverIndex === idx}
+            />
           ))}
           <div className="flex items-center justify-between gap-3 border-t border-zinc-200 bg-white px-4 py-3">
             <div className="inline-flex items-center gap-2 text-xs text-zinc-500">
               <GripVertical size={15} className="text-zinc-400" />
-              Drag to reorder steps
+              Drag steps to reorder
             </div>
             <div className="flex items-center gap-2">
               <button type="button" className="btn-secondary text-xs">
@@ -109,15 +154,52 @@ export function SubstancesSection() {
   );
 }
 
-function ProcessStepCard({ step, index }: { step: ProcessStep; index: number }) {
+function ProcessStepCard({
+  step,
+  index,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
+  isDragging,
+  isDragOver,
+}: {
+  step: ProcessStep;
+  index: number;
+  onDragStart: (e: React.DragEvent, index: number) => void;
+  onDragOver: (e: React.DragEvent, index: number) => void;
+  onDrop: (e: React.DragEvent, index: number) => void;
+  onDragEnd: () => void;
+  isDragging: boolean;
+  isDragOver: boolean;
+}) {
   const updateStep = useAssessment((s) => s.updateProcessStep);
   const removeStep = useAssessment((s) => s.removeProcessStep);
   const addChemical = useAssessment((s) => s.addChemical);
   const allSteps = useAssessment((s) => s.assessment.processSteps);
   const [showSuggest, setShowSuggest] = useState(false);
   const [adding, setAdding] = useState<string | null>(null);
-  const [collapsed, setCollapsed] = useState(index !== 0);
+  const [collapsed, setCollapsed] = useState(true);
+  const prevTotalSteps = useRef(allSteps.length);
+
+  // Auto-expand when this step is newly created (added to the end).
+  useEffect(() => {
+    if (allSteps.length > prevTotalSteps.current && index === allSteps.length - 1) {
+      setCollapsed(false);
+    }
+    prevTotalSteps.current = allSteps.length;
+  }, [allSteps.length, index]);
   const [showReuse, setShowReuse] = useState(false);
+  const [openChemIndex, setOpenChemIndex] = useState<number | null>(null);
+  const prevChemCount = useRef(step.chemicals.length);
+
+  // When a new chemical is added, expand it; otherwise keep accordion closed by default.
+  useEffect(() => {
+    if (step.chemicals.length > prevChemCount.current) {
+      setOpenChemIndex(step.chemicals.length - 1);
+    }
+    prevChemCount.current = step.chemicals.length;
+  }, [step.chemicals.length]);
 
   // Build a unique catalogue of chemicals from prior steps for the "copy
   // from previous step" affordance. Deduplicated by CAS/name+CID so adding
@@ -143,6 +225,8 @@ function ProcessStepCard({ step, index }: { step: ProcessStep; index: number }) 
   }, [allSteps, index, step.chemicals]);
 
   const incompleteCount = step.chemicals.filter(isChemicalIncomplete).length;
+  const lastChemicalIncomplete =
+    step.chemicals.length > 0 && isChemicalIncomplete(step.chemicals[step.chemicals.length - 1]);
   const isStepComplete =
     step.step.trim().length > 0 && step.chemicals.length > 0 && incompleteCount === 0;
   const aggregatedPictograms = useMemo(() => {
@@ -199,11 +283,22 @@ function ProcessStepCard({ step, index }: { step: ProcessStep; index: number }) 
 
   if (collapsed) {
     return (
-      <div className="border-b border-zinc-200 last:border-b-0 bg-white">
+      <div
+        className={clsx(
+          'border-b border-zinc-200 last:border-b-0 bg-white',
+          isDragging && 'opacity-50',
+          isDragOver && 'border-t-2 border-t-accent-500',
+        )}
+        draggable
+        onDragStart={(e) => onDragStart(e, index)}
+        onDragOver={(e) => onDragOver(e, index)}
+        onDrop={(e) => onDrop(e, index)}
+        onDragEnd={onDragEnd}
+      >
         <button
           type="button"
           onClick={() => setCollapsed(false)}
-          className="w-full text-left px-4 py-3 flex items-center gap-4 hover:bg-zinc-50"
+          className="w-full text-left px-4 py-3 flex items-center gap-4 hover:bg-zinc-50 border-l-4 border-l-accent-600"
         >
           <div
             className={clsx(
@@ -241,8 +336,30 @@ function ProcessStepCard({ step, index }: { step: ProcessStep; index: number }) 
   }
 
   return (
-    <div className="border-b border-zinc-200 last:border-b-0 bg-white">
-      <div className="px-4 py-3 flex items-center gap-4">
+    <div
+      className={clsx(
+        'border-b border-zinc-200 last:border-b-0 bg-white',
+        isDragging && 'opacity-50',
+        isDragOver && 'border-t-2 border-t-accent-500',
+      )}
+      draggable
+      onDragStart={(e) => onDragStart(e, index)}
+      onDragOver={(e) => onDragOver(e, index)}
+      onDrop={(e) => onDrop(e, index)}
+      onDragEnd={onDragEnd}
+    >
+      <div
+        className="px-4 py-3 flex items-center gap-4 cursor-pointer hover:bg-zinc-50 border-l-4 border-l-accent-600"
+        onClick={() => setCollapsed(true)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setCollapsed(true);
+          }
+        }}
+      >
         <div
           className={clsx(
             'shrink-0 w-8 h-8 rounded-full text-sm font-semibold flex items-center justify-center shadow-soft',
@@ -264,7 +381,7 @@ function ProcessStepCard({ step, index }: { step: ProcessStep; index: number }) 
                 <button
                   type="button"
                   className="btn-ghost text-xs px-2 py-1 text-accent-700 hover:bg-accent-50"
-                  onClick={() => setShowSuggest((v) => !v)}
+                  onClick={(e) => { e.stopPropagation(); setShowSuggest((v) => !v); }}
                 >
                   <Wand2 size={12} />
                   Suggest {suggestions.length} chemical{suggestions.length === 1 ? '' : 's'}
@@ -273,14 +390,14 @@ function ProcessStepCard({ step, index }: { step: ProcessStep; index: number }) 
               <button
                 type="button"
                 className="btn-ghost !px-2 !py-1 text-zinc-600 hover:bg-zinc-100"
-                onClick={() => setCollapsed(true)}
+                onClick={(e) => { e.stopPropagation(); setCollapsed(true); }}
                 title="Collapse step"
               >
                 <ChevronUp size={16} />
               </button>
               <button
                 className="btn-ghost text-red-600 hover:bg-red-50 !px-2 !py-1"
-                onClick={() => removeStep(step.id)}
+                onClick={(e) => { e.stopPropagation(); removeStep(step.id); }}
                 aria-label="Remove step"
               >
                 <Trash2 size={14} />
@@ -326,7 +443,7 @@ function ProcessStepCard({ step, index }: { step: ProcessStep; index: number }) 
                 <button
                   key={(m.cas ?? m.name) + m.matchedTerm}
                   type="button"
-                  disabled={adding !== null}
+                  disabled={adding !== null || lastChemicalIncomplete}
                   onClick={() => addSuggested(m)}
                   className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white border border-accent-200 text-accent-800 text-xs hover:bg-accent-100 disabled:opacity-50"
                   title={m.cas ? `CAS ${m.cas} — adds with PubChem details` : undefined}
@@ -357,8 +474,10 @@ function ProcessStepCard({ step, index }: { step: ProcessStep; index: number }) 
               </button>
             )}
             <button
-              className="btn-ghost text-xs px-2 py-1 text-accent-700 hover:bg-accent-50"
+              className="btn-ghost text-xs px-2 py-1 text-accent-700 hover:bg-accent-50 disabled:opacity-40"
               onClick={() => addChemical(step.id)}
+              disabled={lastChemicalIncomplete}
+              title={lastChemicalIncomplete ? 'Complete the last chemical first' : undefined}
             >
               <Plus size={12} /> Add chemical
             </button>
@@ -367,13 +486,14 @@ function ProcessStepCard({ step, index }: { step: ProcessStep; index: number }) 
         {showReuse && reusableChemicals.length > 0 && (
           <div className="mb-2 rounded-md border border-zinc-200 bg-white p-2">
             <div className="text-[10px] text-zinc-500 mb-1.5">
-              Click a chemical to copy it into this step. Quantity / exposure are not copied — set them for this step.
+              Click a chemical to copy it into this step. Quantity, duration and frequency are not copied — set them for this step.
             </div>
             <div className="flex flex-wrap gap-1.5">
               {reusableChemicals.map(({ key, from, chem }) => (
                 <button
                   key={key}
                   type="button"
+                  disabled={lastChemicalIncomplete}
                   onClick={() => {
                     addChemical(step.id, {
                       pubchemCid: chem.pubchemCid,
@@ -383,6 +503,7 @@ function ProcessStepCard({ step, index }: { step: ProcessStep; index: number }) 
                       ghsPictograms: chem.ghsPictograms,
                       wel: { ...chem.wel },
                       form: chem.form,
+                      exposureRoutes: { ...chem.exposureRoutes },
                       sdsUrl: chem.sdsUrl,
                       sdsSource: chem.sdsSource,
                       boilingPointC: chem.boilingPointC,
@@ -416,7 +537,10 @@ function ProcessStepCard({ step, index }: { step: ProcessStep; index: number }) 
                 stepId={step.id}
                 chemical={c}
                 index={chemIndex}
-                defaultOpen={chemIndex === 0}
+                isOpen={chemIndex === openChemIndex}
+                onToggle={() =>
+                  setOpenChemIndex(chemIndex === openChemIndex ? null : chemIndex)
+                }
               />
             ))}
           </div>
@@ -430,17 +554,18 @@ function ChemicalRow({
   stepId,
   chemical: c,
   index,
-  defaultOpen,
+  isOpen,
+  onToggle,
 }: {
   stepId: string;
   chemical: Substance;
   index: number;
-  defaultOpen?: boolean;
+  isOpen: boolean;
+  onToggle: () => void;
 }) {
   const update = useAssessment((st) => st.updateChemical);
   const remove = useAssessment((st) => st.removeChemical);
   const incomplete = isChemicalIncomplete(c);
-  const [open, setOpen] = useState(incomplete || Boolean(defaultOpen));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -495,19 +620,30 @@ function ChemicalRow({
     <div
       className={clsx(
         'rounded-md border bg-white',
-        open ? 'border-accent-200 ring-1 ring-accent-100' : 'border-zinc-200',
-        incomplete && !open && 'border-red-200 bg-red-50/40',
+        isOpen ? 'border-accent-200 ring-1 ring-accent-100' : 'border-zinc-200',
+        incomplete && !isOpen && 'border-red-200 bg-red-50/40',
       )}
     >
-      <div className="grid grid-cols-[1fr_auto] items-start gap-2 px-3 py-2 hover:bg-zinc-50">
+      <div
+        className="grid grid-cols-[1fr_auto] items-start gap-2 px-3 py-2 hover:bg-zinc-50 cursor-pointer"
+        onClick={onToggle}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onToggle();
+          }
+        }}
+      >
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={() => setOpen((v) => !v)}
-            className="flex min-w-0 items-center gap-2 text-left"
+            onClick={(e) => e.stopPropagation()}
+            className="flex min-w-0 items-center gap-2 text-left pointer-events-none"
           >
             <span className="text-zinc-400">
-              {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+              {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
             </span>
             <span
               className={clsx(
@@ -553,6 +689,7 @@ function ChemicalRow({
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-0.5 text-[11px] text-accent-700 hover:underline"
+              onClick={(e) => e.stopPropagation()}
             >
               SDS <ExternalLink size={10} />
             </a>
@@ -565,13 +702,14 @@ function ChemicalRow({
             className="text-zinc-500 hover:bg-zinc-100 p-1 rounded shrink-0"
             title="More options"
             aria-label="More chemical options"
+            onClick={(e) => e.stopPropagation()}
           >
             <MoreVertical size={15} />
           </button>
           <button
             type="button"
             className="text-red-500 hover:bg-red-50 p-1 rounded shrink-0"
-            onClick={() => remove(stepId, c.id)}
+            onClick={(e) => { e.stopPropagation(); remove(stepId, c.id); }}
             aria-label="Remove chemical"
           >
             <Trash2 size={13} />
@@ -579,7 +717,7 @@ function ChemicalRow({
         </div>
       </div>
 
-      {open && (() => {
+      {isOpen && (() => {
         const miss = {
           name: !c.name.trim(),
           cas: !c.cas?.trim(),
@@ -710,8 +848,8 @@ function ChemicalRow({
                       className={
                         'px-2.5 py-0.5 rounded-full text-xs border transition ' +
                         (on
-                          ? 'bg-white text-zinc-800 border-zinc-200 shadow-sm'
-                          : 'bg-zinc-50 text-zinc-500 border-zinc-200 hover:bg-white')
+                          ? 'bg-accent-100 border-accent-300 text-accent-900'
+                          : 'bg-white border-zinc-200 text-zinc-600 hover:bg-accent-50 hover:border-accent-200')
                       }
                     >
                       {label}

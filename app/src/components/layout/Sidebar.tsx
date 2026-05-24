@@ -5,6 +5,7 @@ import {
   FlaskConical,
   ShieldCheck,
   PackageOpen,
+  Siren,
   Users,
   Check,
   Lock,
@@ -26,7 +27,8 @@ const NAV: NavItem[] = [
   { id: 'substances', label: 'Process Steps', Icon: FlaskConical },
   { id: 'taskHazards', label: 'Non-Chemical Hazards', Icon: AlertTriangle },
   { id: 'controls', label: 'Controls', Icon: ShieldCheck },
-  { id: 'additional', label: 'Storage & Emergency', Icon: PackageOpen },
+  { id: 'additional', label: 'Storage', Icon: PackageOpen },
+  { id: 'emergency', label: 'Emergency Response', Icon: Siren },
   { id: 'briefing', label: 'Briefing & Sign-off', Icon: Users },
 ];
 
