@@ -93,17 +93,19 @@ body {
     @apply grid grid-cols-1 gap-4 p-5 md:grid-cols-2;
   }
   .hazard-badge {
-    @apply inline-flex h-10 w-10 items-center justify-center rounded-xl border text-white;
+    @apply inline-flex h-10 w-10 items-center justify-center rounded-xl border;
   }
   .hazard-badge-indigo {
-    background: #4f46e5;
-    border-color: #4338ca;
-    box-shadow: 0 10px 20px rgba(79,70,229,0.28);
+    background: #eef2ff;
+    border-color: #c7d2fe;
+    color: #4f46e5;
+    box-shadow: 0 10px 20px rgba(79,70,229,0.16);
   }
   .hazard-badge-emerald {
-    background: #059669;
-    border-color: #047857;
-    box-shadow: 0 10px 20px rgba(5,150,105,0.28);
+    background: #d1fae5;
+    border-color: #a7f3d0;
+    color: #059669;
+    box-shadow: 0 10px 20px rgba(5,150,105,0.16);
   }
   .hazard-index {
     @apply inline-flex h-7 min-w-7 items-center justify-center rounded-full border bg-white px-2 text-sm font-bold;
