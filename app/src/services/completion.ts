@@ -50,9 +50,7 @@ export function isSectionComplete(a: Assessment, id: CoreSectionId): boolean {
     case 'controls': {
       const c = a.controls;
       return Boolean(
-        c.engineering.trim() &&
-          c.administrative.trim() &&
-          c.ppe.type.trim() &&
+        c.administrative.trim() &&
           c.airMonitoring.trim() &&
           c.healthSurveillance.trim(),
       );

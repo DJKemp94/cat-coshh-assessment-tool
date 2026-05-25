@@ -4,7 +4,7 @@ import { lookupEh40 } from '@/services/eh40';
 const REST = 'https://pubchem.ncbi.nlm.nih.gov/rest/pug';
 const VIEW = 'https://pubchem.ncbi.nlm.nih.gov/rest/pug_view';
 const AUTOCOMPLETE = 'https://pubchem.ncbi.nlm.nih.gov/rest/autocomplete/compound';
-const CACHE_PREFIX = 'cat.pubchem.v4.';
+const CACHE_PREFIX = 'cat.pubchem.v5.';
 const CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 90; // 90 days
 
 export interface PubChemResult {
@@ -22,6 +22,13 @@ export interface PubChemResult {
   boilingPointC?: number;
   /** Molecular formula (e.g. "C2H6O"). Used to determine organic vs inorganic. */
   molecularFormula?: string;
+  canonicalSmiles?: string;
+  connectivitySmiles?: string;
+  isomericSmiles?: string;
+  inchi?: string;
+  iupacName?: string;
+  title?: string;
+  xlogp?: number;
   fetchedAt: string;
 }
 
@@ -362,6 +369,34 @@ async function fetchPreferredName(cid: number): Promise<string | undefined> {
   }
 }
 
+interface PubChemPropertyRow {
+  MolecularFormula?: string;
+  CanonicalSMILES?: string;
+  ConnectivitySMILES?: string;
+  IsomericSMILES?: string;
+  InChI?: string;
+  IUPACName?: string;
+  Title?: string;
+  XLogP?: number;
+}
+
+async function fetchProperties(cid: number): Promise<PubChemPropertyRow> {
+  const props = [
+    'MolecularFormula',
+    'CanonicalSMILES',
+    'ConnectivitySMILES',
+    'IsomericSMILES',
+    'InChI',
+    'IUPACName',
+    'Title',
+    'XLogP',
+  ].join(',');
+  const r = await rateLimitedFetch(`${REST}/compound/cid/${cid}/property/${props}/JSON`);
+  if (!r.ok) return {};
+  const j = (await r.json()) as { PropertyTable?: { Properties?: PubChemPropertyRow[] } };
+  return j.PropertyTable?.Properties?.[0] ?? {};
+}
+
 async function fetchSynonyms(cid: number): Promise<string[]> {
   const r = await rateLimitedFetch(`${REST}/compound/cid/${cid}/synonyms/JSON`);
   if (!r.ok) return [];
@@ -407,6 +442,7 @@ export async function lookupChemical(
   }
 
   const record = await fetchPugView(cid);
+  const properties = await fetchProperties(cid);
   const ghsNodes = record ? walk(record, 'GHS Classification') : [];
   const expNodes = record ? walk(record, 'Exposure Limits') : [];
   const physNodes = record ? walk(record, 'Physical Description') : [];
@@ -481,6 +517,14 @@ export async function lookupChemical(
     sdsUrl: sds.url,
     sdsSource: sds.source,
     boilingPointC,
+    molecularFormula: properties.MolecularFormula,
+    canonicalSmiles: properties.CanonicalSMILES,
+    connectivitySmiles: properties.ConnectivitySMILES,
+    isomericSmiles: properties.IsomericSMILES,
+    inchi: properties.InChI,
+    iupacName: properties.IUPACName,
+    title: properties.Title,
+    xlogp: properties.XLogP,
     fetchedAt: new Date().toISOString(),
   };
 
@@ -534,7 +578,7 @@ export function clearPubChemCache() {
     const keys: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
-      if (k && k.startsWith(CACHE_PREFIX)) keys.push(k);
+      if (k && k.startsWith('cat.pubchem.')) keys.push(k);
     }
     keys.forEach((k) => localStorage.removeItem(k));
   } catch {

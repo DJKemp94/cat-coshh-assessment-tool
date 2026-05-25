@@ -115,6 +115,15 @@ export interface Substance {
   dustiness?: CoshhBand;
   /** Boiling point in °C from PubChem (median of reported values). Informational + drives auto volatility band. */
   boilingPointC?: number;
+  /** Structural fields from PubChem used for storage classification. */
+  molecularFormula?: string;
+  canonicalSmiles?: string;
+  connectivitySmiles?: string;
+  isomericSmiles?: string;
+  inchi?: string;
+  iupacName?: string;
+  pubchemTitle?: string;
+  xlogp?: number;
 }
 
 export interface StepControls {

@@ -21,6 +21,16 @@ const MUTED = rgb(100 / 255, 116 / 255, 139 / 255);
 const LINE = rgb(226 / 255, 232 / 255, 240 / 255);
 const ZEBRA = rgb(248 / 255, 250 / 255, 252 / 255);
 const WHITE = rgb(1, 1, 1);
+const DASH = '—';
+
+const formatStepControlList = (values: string[] | undefined) =>
+  values && values.length > 0 ? values.join(', ') : DASH;
+
+const formatStepControls = (step: { controls?: { engineering?: string[]; ppe?: string[]; other?: string } }) => [
+  ['Engineering controls', formatStepControlList(step.controls?.engineering)],
+  ['PPE', formatStepControlList(step.controls?.ppe)],
+  ['Other step controls', step.controls?.other?.trim() || DASH],
+] as [string, string][];
 
 interface Ctx {
   doc: PDFDocument;
@@ -517,6 +527,7 @@ export async function exportPdf(a: Assessment): Promise<void> {
   } else {
     a.processSteps.forEach((step, si) => {
       subHeading(ctx, `Step ${si + 1} — ${step.step || '—'}`);
+      kvBlock(ctx, formatStepControls(step));
       if (step.chemicals.length === 0) {
         drawText(ctx, 'No chemicals recorded for this step.', { color: MUTED, size: 9 });
       }
@@ -599,9 +610,7 @@ export async function exportPdf(a: Assessment): Promise<void> {
     ['Elimination', a.controls.elimination],
     ['Substitution', a.controls.substitution],
     ['Reduction', a.controls.reduction],
-    ['Engineering', a.controls.engineering],
     ['Administrative', a.controls.administrative],
-    ['PPE', `${a.controls.ppe.type || '—'}${a.controls.ppe.standard ? `  (${a.controls.ppe.standard})` : ''}`],
     ['Air Monitoring', a.controls.airMonitoring],
     ['Health Surveillance', a.controls.healthSurveillance],
   ]);

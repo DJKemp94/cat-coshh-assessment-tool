@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Sparkles, AlertTriangle, ExternalLink, ChevronDown, ChevronRight, Info,
-  Undo2, RotateCw, Ban, BarChart3, Wrench, FileText, Hand, Wind,
-  Stethoscope,
+  Ban, BarChart3, FileText, Wind, Stethoscope,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAssessment } from '@/store/assessment';
@@ -10,7 +9,7 @@ import { SectionHeader } from '@/components/common/SectionHeader';
 import { appendUnique } from '@/components/common/SuggestionChips';
 import { SuggestionField } from '@/components/common/SuggestionField';
 import { suggestControls, OverallSuggestion, SubstanceAnalysis, Approach, APPROACH_LABEL } from '@/services/coshhEssentials';
-import { ControlMeasures } from '@/types/assessment';
+import { ProcessStep } from '@/types/assessment';
 
 const ELIM_SUB_SUGGESTIONS = [
   'Elimination considered; the substance is required for this activity.',
@@ -25,27 +24,12 @@ const REDUCTION_SUGGESTIONS = [
   'Prepare small aliquots instead of handling the parent container where practicable.',
 ];
 
-const ENGINEERING_SUGGESTIONS = [
-  'Use suitable capture, extraction or containment where airborne exposure may occur.',
-  'Keep containers closed except during transfer, dispensing or use.',
-  'Use enclosed transfer, splash control or shielding where practicable.',
-  'Inspect and maintain control equipment; keep statutory LEV examination records where LEV is used.',
-];
-
 const ADMIN_SUGGESTIONS = [
   'Work must follow the approved SOP or safe working procedure.',
   'Users must be briefed on the COSHH assessment before starting work.',
   'Restrict the activity to trained and authorised personnel.',
   'Keep the work area clean; report and clean spills promptly.',
   'Review the assessment if the substance, quantity, frequency, process or controls change.',
-];
-
-const PPE_TYPE_SUGGESTIONS = [
-  'Chemical-resistant gloves selected for the substance, contact time and task.',
-  'Eye protection suitable for the splash or impact risk.',
-  'Face protection where splash, spray or pressure release could occur.',
-  'Protective clothing appropriate to the contamination risk.',
-  'Respiratory protective equipment only where exposure cannot be adequately controlled by other means.',
 ];
 
 const AIR_MONITORING_SUGGESTIONS = [
@@ -61,6 +45,22 @@ const HEALTH_SURVEILLANCE_SUGGESTIONS = [
 ];
 
 const append = appendUnique;
+
+const ENGINEERING_LABELS: Record<string, string> = {
+  'Fume hood': 'Fume hood',
+  'Glove box': 'Glove box',
+  'Inert atmosphere': 'Inert atmosphere',
+  Other: 'Other',
+};
+
+const PPE_LABELS: Record<string, string> = {
+  Gloves: 'Gloves',
+  Goggles: 'Goggles',
+  'Lab coat': 'Lab coat',
+  'Face shield': 'Face shield',
+  Respirator: 'Respirator',
+  'Safety footwear': 'Safety footwear',
+};
 
 const APPROACH_COLOR: Record<number, string> = {
   1: 'bg-emerald-50 text-emerald-800 border-emerald-200',
@@ -91,22 +91,20 @@ const APPROACH_HELP = [
   ['4', 'Specialist advice: the banding screen is not enough to select controls by itself.'],
 ] as const;
 
+interface ProcessStepReviewItem {
+  message: string;
+  details?: string[];
+}
+
 function CoshhEssentialsPanel({
   s,
-  signature,
-  appliedKey,
-  onApply,
-  onUndo,
+  reviewItems,
 }: {
   s: OverallSuggestion;
-  signature: string;
-  appliedKey: string | null;
-  onApply: () => void;
-  onUndo: () => void;
+  reviewItems: ProcessStepReviewItem[];
 }) {
   const [open, setOpen] = useState(false);
   const [showGlossary, setShowGlossary] = useState(false);
-  const justApplied = appliedKey === signature;
 
   return (
     <div className="card p-4 mb-5">
@@ -121,7 +119,10 @@ function CoshhEssentialsPanel({
               className="flex min-w-0 flex-1 items-center gap-1.5 flex-wrap text-left"
             >
               {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-              <span className="font-medium">COSHH Essentials suggestion</span>
+              <span className="font-medium">COSHH Essentials screening</span>
+              <span className="text-xs font-normal text-zinc-500">
+                Click for substance-level bands, assumptions and guidance sheets.
+              </span>
               {(() => {
                 const present = [...new Set(s.analyses.map((a) => a.approach))].sort((a, b) => a - b);
                 const multiple = present.length > 1;
@@ -159,39 +160,25 @@ function CoshhEssentialsPanel({
             </button>
           </div>
 
-          {/* Inline status row: shows applied state with a one-click undo */}
-          <div className="mt-2 flex items-center justify-between flex-wrap gap-2">
-            {justApplied ? (
-              <div className="inline-flex items-center gap-2 text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-1">
-                <Sparkles size={12} />
-                Suggestions applied to control fields — review and edit below.
-                <button
-                  type="button"
-                  onClick={onUndo}
-                  className="inline-flex items-center gap-1 ml-1 font-medium underline hover:no-underline"
-                >
-                  <Undo2 size={11} /> Undo
-                </button>
+          {reviewItems.length > 0 && (
+            <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-900">
+              <div className="flex items-center gap-1 font-medium">
+                <AlertTriangle size={12} /> Process-step controls to review
               </div>
-            ) : (
-              <div className="text-xs text-zinc-500">
-                Driven by{' '}
-                <strong className="text-zinc-700">{s.driver?.name}</strong>
-                {s.driver && s.driver.drivingHCodes.length > 0 && (
-                  <> ({s.driver.drivingHCodes.join(', ')})</>
-                )}.
-              </div>
-            )}
-            <button
-              type="button"
-              onClick={onApply}
-              className="btn-secondary text-xs"
-              title="Insert the suggested starter text into the control fields below"
-            >
-              <Sparkles size={12} />
-              {justApplied ? 'Re-apply' : 'Apply suggestion'}
-            </button>
-          </div>
+              <ul className="ml-4 mt-1 list-disc space-y-1">
+                {reviewItems.map((item) => (
+                  <li key={item.message}>
+                    {item.message}
+                    {item.details && item.details.length > 0 && (
+                      <ul className="ml-4 mt-0.5 list-[circle] space-y-0.5">
+                        {item.details.map((detail) => <li key={detail}>{detail}</li>)}
+                      </ul>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {showGlossary && (
             <div className="mt-3 rounded-md border border-accent-200 bg-accent-50/60 p-3 text-xs text-zinc-800">
@@ -277,7 +264,7 @@ function CoshhEssentialsPanel({
                     })}
                     <div className="text-[10px] text-zinc-500">
                       * assumed value used because input was missing or unparseable.
-                      The highest approach across all substances drives the recommended controls (HSE COSHH Essentials).
+                      The highest approach across all substances drives the screening result (HSE COSHH Essentials).
                     </div>
                   </div>
                 );
@@ -308,6 +295,152 @@ function CoshhEssentialsPanel({
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function labelList(values: string[], labels: Record<string, string>) {
+  return values.map((value) => labels[value] ?? value);
+}
+
+function controlsForStep(step: ProcessStep) {
+  return {
+    engineering: labelList(step.controls?.engineering ?? [], ENGINEERING_LABELS),
+    ppe: labelList(step.controls?.ppe ?? [], PPE_LABELS),
+    other: step.controls?.other?.trim() ?? '',
+  };
+}
+
+function hasLevOrEnclosureControl(controls: ReturnType<typeof controlsForStep>) {
+  const joined = [...controls.engineering, controls.other].join(' ').toLowerCase();
+  return /\b(fume hood|glove box|lev|local exhaust|extract|extraction|enclos|contain|capture|ventilat|inert atmosphere)\b/.test(joined);
+}
+
+function substanceAnalysisKey(substance: ProcessStep['chemicals'][number]) {
+  return String(substance.pubchemCid ?? substance.cas ?? substance.name).trim().toLowerCase();
+}
+
+function processStepControlReviewItems(
+  steps: ProcessStep[],
+  suggestion: OverallSuggestion | null,
+): ProcessStepReviewItem[] {
+  if (!suggestion) return [];
+  const analysisBySubstance = new Map(suggestion.analyses.map((a) => [a.substanceId, a]));
+  const analysisByChemicalKey = new Map<string, SubstanceAnalysis>();
+  for (const step of steps) {
+    for (const chemical of step.chemicals) {
+      const analysis = analysisBySubstance.get(chemical.id);
+      const key = substanceAnalysisKey(chemical);
+      if (analysis && key && !analysisByChemicalKey.has(key)) {
+        analysisByChemicalKey.set(key, analysis);
+      }
+    }
+  }
+  const approach4Chemicals = new Set<string>();
+  const missingEngineeringSteps: string[] = [];
+  const missingPpeSteps: string[] = [];
+  for (const [index, step] of steps.entries()) {
+    const analyses = step.chemicals
+      .map((chemical) =>
+        analysisBySubstance.get(chemical.id) ??
+        analysisByChemicalKey.get(substanceAnalysisKey(chemical)),
+      )
+      .filter((a): a is SubstanceAnalysis => Boolean(a));
+    if (analyses.length === 0) continue;
+
+    const maxApproach = Math.max(...analyses.map((a) => a.approach)) as Approach;
+    const controls = controlsForStep(step);
+    const stepName = step.step.trim() || `Step ${index + 1}`;
+    if (maxApproach >= 2 && !hasLevOrEnclosureControl(controls)) {
+      missingEngineeringSteps.push(stepName);
+    }
+    if (controls.ppe.length === 0) {
+      missingPpeSteps.push(stepName);
+    }
+    analyses
+      .filter((analysis) => analysis.approach === 4)
+      .forEach((analysis) => approach4Chemicals.add(analysis.name));
+  }
+
+  const out: ProcessStepReviewItem[] = [];
+  if (approach4Chemicals.size > 0) {
+    out.push({
+      message: 'Approach 4: specialist controls may be needed. Check the SDS and competent H&S advice.',
+      details: [...approach4Chemicals].map((name) => `Chemical: ${name}`),
+    });
+  }
+  if (missingEngineeringSteps.length > 0) {
+    out.push({
+      message: 'No LEV/enclosure-style engineering control is recorded. Confirm whether the selected step controls are sufficient.',
+      details: [...new Set(missingEngineeringSteps)].map((stepName) => `Step: ${stepName}`),
+    });
+  }
+  if (missingPpeSteps.length > 0) {
+    out.push({
+      message: 'No PPE is recorded. Confirm whether PPE is genuinely not required.',
+      details: [...new Set(missingPpeSteps)].map((stepName) => `Step: ${stepName}`),
+    });
+  }
+  return out;
+}
+
+function StepControlsSummary({
+  steps,
+  onOpenStep,
+}: {
+  steps: ProcessStep[];
+  onOpenStep: (stepId: string) => void;
+}) {
+  return (
+    <div className="card mb-5 overflow-hidden">
+      <div className="border-b border-zinc-100 px-4 py-3">
+        <div className="text-sm font-semibold text-zinc-950">Engineering and PPE by process step</div>
+        <div className="mt-1 text-xs text-zinc-500">
+          Engineering controls and PPE are recorded against each process step. Update them in Process Steps if the task controls change.
+        </div>
+      </div>
+      {steps.length === 0 ? (
+        <div className="px-4 py-4 text-sm text-zinc-500">Add process steps to record task-specific engineering controls and PPE.</div>
+      ) : (
+        <div className="divide-y divide-zinc-100">
+          {steps.map((step, index) => {
+            const controls = controlsForStep(step);
+            const stepName = step.step.trim() || `Step ${index + 1}`;
+            return (
+              <button
+                key={step.id}
+                type="button"
+                onClick={() => onOpenStep(step.id)}
+                className="grid w-full grid-cols-1 gap-3 px-4 py-3 text-left transition hover:bg-accent-50/50 focus:bg-accent-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-accent-300 lg:grid-cols-[minmax(12rem,0.7fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]"
+              >
+                <div>
+                  <div className="text-sm font-semibold text-accent-800">{index + 1}. {stepName}</div>
+                  <div className="mt-0.5 text-xs text-zinc-500">{step.chemicals.length} chemical{step.chemicals.length === 1 ? '' : 's'}</div>
+                </div>
+                <SummaryChipGroup title="Engineering" values={controls.engineering} />
+                <SummaryChipGroup title="PPE" values={controls.ppe} />
+                <div>
+                  <div className="text-[11px] font-semibold text-zinc-500">Other</div>
+                  <div className="mt-1 text-sm text-zinc-700">{controls.other || <span className="text-zinc-400">None recorded</span>}</div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SummaryChipGroup({ title, values }: { title: string; values: string[] }) {
+  return (
+    <div>
+      <div className="text-[11px] font-semibold text-zinc-500">{title}</div>
+      <div className="mt-1 flex flex-wrap gap-1.5">
+        {values.length > 0
+          ? values.map((value) => <span key={value} className="pill">{value}</span>)
+          : <span className="text-sm text-zinc-400">None selected</span>}
       </div>
     </div>
   );
@@ -350,6 +483,7 @@ export function ControlsSection() {
   const controls = useAssessment((s) => s.assessment.controls);
   const update = useAssessment((s) => s.updateControls);
   const processSteps = useAssessment((s) => s.assessment.processSteps);
+  const setSection = useAssessment((s) => s.setSection);
 
   const allSubstances = useMemo(
     () => processSteps.flatMap((s) => s.chemicals),
@@ -360,88 +494,35 @@ export function ControlsSection() {
     () => suggestControls(allSubstances),
     [allSubstances],
   );
-
-  // Stable identifier for the current driver+approach, used to gate the
-  // one-time auto-apply and to label the active "Applied" banner.
-  const suggestionSig = suggestion
-    ? `${suggestion.approach}|${suggestion.driver?.substanceId ?? ''}|${suggestion.analyses
-        .map((a) => `${a.substanceId}:${a.approach}`)
-        .sort()
-        .join(',')}`
-    : null;
-
-  // Auto-apply the patch once per unique driver signature, and only when the
-  // target fields are still empty — so we never silently overwrite an
-  // assessor's own work.
-  const autoAppliedRef = useRef<string | null>(null);
-  const [appliedKey, setAppliedKey] = useState<string | null>(null);
-  const [snapshot, setSnapshot] = useState<ControlMeasures | null>(null);
-
-  const applyPatch = (sig: string) => {
-    if (!suggestion) return;
-    setSnapshot(controls);
-    update(suggestion.controlsPatch);
-    setAppliedKey(sig);
-  };
-
-  const undoPatch = () => {
-    if (!snapshot) return;
-    update(snapshot);
-    setSnapshot(null);
-    setAppliedKey(null);
-  };
-
-  useEffect(() => {
-    if (!suggestion || !suggestionSig) return;
-    if (autoAppliedRef.current === suggestionSig) return;
-    const fieldsEmpty =
-      !controls.elimination.trim() &&
-      !controls.substitution.trim() &&
-      !controls.reduction.trim() &&
-      !controls.engineering.trim() &&
-      !controls.administrative.trim() &&
-      !controls.ppe.type.trim() &&
-      !controls.airMonitoring.trim() &&
-      !controls.healthSurveillance.trim();
-    if (fieldsEmpty) {
-      autoAppliedRef.current = suggestionSig;
-      applyPatch(suggestionSig);
+  const reviewItems = useMemo(
+    () => processStepControlReviewItems(processSteps, suggestion),
+    [processSteps, suggestion],
+  );
+  const openProcessStep = (stepId: string) => {
+    try {
+      sessionStorage.setItem('cat.focusProcessStep', stepId);
+    } catch {
+      /* ignore */
     }
-    // We intentionally depend only on the suggestion signature.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [suggestionSig]);
+    setSection('substances');
+  };
 
   return (
     <section>
       <SectionHeader
         title="Control measures"
-        subtitle="Apply the hierarchy of control. PPE is the last resort. Click a section to add suggestions."
-        right={
-          suggestion && suggestionSig ? (
-            <button
-              type="button"
-              onClick={() => applyPatch(suggestionSig)}
-              className="btn-secondary"
-            >
-              <RotateCw size={14} /> Re-apply hierarchy
-            </button>
-          ) : undefined
-        }
+        subtitle="Apply the hierarchy of control. Click a section to add suggestions."
       />
 
-      {suggestion && suggestionSig ? (
-        <CoshhEssentialsPanel
-          s={suggestion}
-          signature={suggestionSig}
-          appliedKey={appliedKey}
-          onApply={() => applyPatch(suggestionSig)}
-          onUndo={undoPatch}
-        />
+      {suggestion ? (
+        <CoshhEssentialsPanel s={suggestion} reviewItems={reviewItems} />
       ) : (
         <div className="card p-3 mb-4 text-xs text-zinc-500">
-          Add chemicals in <strong>Process Steps</strong> to see COSHH Essentials suggestions here.
+          Add chemicals in <strong>Process Steps</strong> to see the COSHH Essentials screening here.
         </div>
       )}
+
+      <StepControlsSummary steps={processSteps} onOpenStep={openProcessStep} />
 
       <div className="mb-4 text-sm font-medium text-zinc-800">Hierarchy of control</div>
       <div className="card overflow-hidden">
@@ -479,19 +560,6 @@ export function ControlsSection() {
         />
         <ControlRow
           number={3}
-          icon={<Wrench size={25} />}
-          iconClass="bg-sky-500 text-white"
-          label="Engineering controls"
-          hint="Isolate people from the hazard."
-          required
-          suggestions={ENGINEERING_SUGGESTIONS}
-          value={controls.engineering}
-          onChange={(v) => update({ engineering: v })}
-          onAppend={(s) => update({ engineering: append(controls.engineering, s) })}
-          placeholder="Record the physical controls used to prevent or capture exposure, such as enclosure, LEV, fume cupboard, shielding, closed transfer, splash control, interlocks, inspection and maintenance."
-        />
-        <ControlRow
-          number={4}
           icon={<FileText size={25} />}
           iconClass="bg-violet-500 text-white"
           label="Administrative controls"
@@ -504,22 +572,7 @@ export function ControlsSection() {
           placeholder="Record procedural controls such as SOP reference, training, briefing, authorisation, supervision, signage, housekeeping, lone-working limits and review triggers."
         />
         <ControlRow
-          number={5}
-          icon={<Hand size={25} />}
-          iconClass="bg-pink-500 text-white"
-          label="PPE (last resort)"
-          hint="Protect the worker."
-          required
-          suggestions={PPE_TYPE_SUGGESTIONS}
-          value={controls.ppe.type}
-          onChange={(v) => update({ ppe: { ...controls.ppe, type: v } })}
-          onAppend={(s) =>
-            update({ ppe: { ...controls.ppe, type: append(controls.ppe.type, s) } })
-          }
-          placeholder="Record PPE selected for the substance and task: glove material and change frequency, eye/face protection, clothing, footwear and any RPE with fit-test and maintenance requirements."
-        />
-        <ControlRow
-          number={6}
+          number={4}
           icon={<Wind size={25} />}
           iconClass="bg-cyan-500 text-white"
           label="Air monitoring"
@@ -532,7 +585,7 @@ export function ControlsSection() {
           placeholder="Record whether air monitoring is required, why it is or is not needed, relevant WELs, sampling type, review frequency and triggers for reassessment."
         />
         <ControlRow
-          number={7}
+          number={5}
           icon={<Stethoscope size={25} />}
           iconClass="bg-rose-500 text-white"
           label="Health surveillance"

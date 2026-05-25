@@ -1,4 +1,5 @@
 import { Assessment, Substance, GhsPictogram } from '@/types/assessment';
+import { classifyStorage, StorageSuggestionGroup } from '@/services/storageClassifier';
 
 export type RequirementField =
   | 'storage'
@@ -120,22 +121,8 @@ interface ChemicalProfile extends ChemicalSignal {
   id: string;
   name: string;
   search: string;
-  groups: Set<StorageGroup>;
+  groups: Set<StorageSuggestionGroup>;
 }
-
-type StorageGroup =
-  | 'group1Flammable'
-  | 'group2VolatilePoison'
-  | 'group3OxidisingAcid'
-  | 'group4NonOxidisingAcid'
-  | 'group5LiquidBase'
-  | 'group6OxidiserPeroxide'
-  | 'group7Poison'
-  | 'group9DrySolid'
-  | 'waterReactive'
-  | 'pyrophoric'
-  | 'cyanide'
-  | 'sulfide';
 
 const collectSignals = (chems: Substance[]): { all: ChemicalSignal; byChem: Map<string, ChemicalSignal> } => {
   const all: ChemicalSignal = { hCodes: new Set(), pictograms: new Set() };
@@ -155,44 +142,13 @@ const ruleMatchesSignal = (r: Rule, sig: ChemicalSignal): boolean => {
   return false;
 };
 
-const hasAny = (set: Set<string>, values: string[]) => values.some((v) => set.has(v));
-
 function profileFor(c: Substance): ChemicalProfile {
-  const hCodes = new Set(c.hazardStatements.map((h) => h.code));
+  const classification = classifyStorage(c);
+  const hCodes = new Set(classification.hCodes);
   const pictograms = new Set(c.ghsPictograms);
   const name = c.name || c.cas || 'Unnamed substance';
   const search = `${c.name} ${c.cas ?? ''}`.toLowerCase();
-  const groups = new Set<StorageGroup>();
-  const isFlammable = hasAny(hCodes, FLAMMABLE) || pictograms.has('flammable');
-  const isOxidiser = hasAny(hCodes, OXIDISING) || pictograms.has('oxidising');
-  const isOxidisingAcid = /\b(nitric|sulphuric|sulfuric|perchloric|chromic|phosphoric)\s+acid\b/.test(search);
-  const isAcid = /\b(acid|hydrochloric|trifluoroacetic|trichloroacetic|formic|acetic)\b/.test(search);
-  const isBase = /\b(hydroxide|ammonia|amine|sodium carbonate|potassium carbonate|base|alkali)\b/.test(search);
-  const isHalogenatedSolvent =
-    /\b(chloroform|dichloromethane|methylene chloride|carbon tetrachloride|trichloro|tetrachloro|chlorinated solvent|halogenated solvent)\b/.test(search);
-  const isVolatilePoison =
-    isHalogenatedSolvent || /\b(mercaptoethanol|phenol|formamide)\b/.test(search);
-  const isPoison =
-    hasAny(hCodes, [...ALL_ACUTE_TOX, ...CMR]) ||
-    /\b(cyanide|sulfide|sulphide|acrylamide|ethidium bromide|uncured epoxy)\b/.test(search);
-
-  // FBMH table: when a substance has multiple physical hazards, consider the
-  // higher physical hazard. Example given: acetic acid is both corrosive and
-  // flammable; the higher physical risk is fire.
-  if (hasAny(hCodes, WATER_REACTIVE)) groups.add('waterReactive');
-  if (hasAny(hCodes, PYROPHORIC)) groups.add('pyrophoric');
-  if (isFlammable) groups.add('group1Flammable');
-  if (isVolatilePoison && !isFlammable) groups.add('group2VolatilePoison');
-  if (isOxidisingAcid) groups.add('group3OxidisingAcid');
-  else if (isAcid && !isFlammable) groups.add('group4NonOxidisingAcid');
-  if (isBase && c.form !== 'solid' && c.form !== 'powder') groups.add('group5LiquidBase');
-  if ((isOxidiser || /\b(peroxide|peracetic)\b/.test(search) || hasAny(hCodes, ['H240', 'H241', 'H242'])) && !isOxidisingAcid) {
-    groups.add('group6OxidiserPeroxide');
-  }
-  if (isPoison && !isVolatilePoison) groups.add('group7Poison');
-  if ((c.form === 'solid' || c.form === 'powder') && groups.size === 0) groups.add('group9DrySolid');
-  if (/\bcyanide\b/.test(search)) groups.add('cyanide');
-  if (/\b(sulfide|sulphide)\b/.test(search)) groups.add('sulfide');
+  const groups = new Set<StorageSuggestionGroup>(classification.suggestionGroups);
 
   return { id: c.id, name, search, hCodes, pictograms, groups };
 }
@@ -200,7 +156,7 @@ function profileFor(c: Substance): ChemicalProfile {
 const names = (profiles: ChemicalProfile[]) =>
   profiles.map((p) => p.name).filter(Boolean).slice(0, 4).join(', ');
 
-function groupMembers(profiles: ChemicalProfile[], group: StorageGroup) {
+function groupMembers(profiles: ChemicalProfile[], group: StorageSuggestionGroup) {
   return profiles.filter((p) => p.groups.has(group));
 }
 
@@ -299,6 +255,15 @@ function selectedStorageSuggestions(chems: Substance[]): Suggestion[] {
     fbmh('Group 5: liquid bases'),
   );
 
+  const group5Solid = groupMembers(profiles, 'group5SolidBase');
+  pushStorageSuggestion(
+    out,
+    seen,
+    group5Solid,
+    `Store solid bases/alkalis (${names(group5Solid)}) in compatible corrosives storage, dry and protected from contact with acids, halogenated solvents and liquid spills.`,
+    fbmh('Group 5: solid bases / alkalis; segregate from acids and incompatible liquids'),
+  );
+
   const group6 = groupMembers(profiles, 'group6OxidiserPeroxide');
   pushStorageSuggestion(
     out,
@@ -382,6 +347,7 @@ function selectedIncompatibilitySuggestions(chems: Substance[]): Suggestion[] {
   const group3 = groupMembers(profiles, 'group3OxidisingAcid');
   const group4 = groupMembers(profiles, 'group4NonOxidisingAcid');
   const group5 = groupMembers(profiles, 'group5LiquidBase');
+  const group5Solid = groupMembers(profiles, 'group5SolidBase');
   const group6 = groupMembers(profiles, 'group6OxidiserPeroxide');
   const group7 = groupMembers(profiles, 'group7Poison');
   const group9 = groupMembers(profiles, 'group9DrySolid');
@@ -396,6 +362,10 @@ function selectedIncompatibilitySuggestions(chems: Substance[]): Suggestion[] {
   );
   pushPairSuggestion(out, seen, group1, group5,
     `Segregate flammables/combustibles (${names(group1)}) from liquid bases (${names(group5)}).`,
+    fbmh('Group 1 must be isolated from bases'),
+  );
+  pushPairSuggestion(out, seen, group1, group5Solid,
+    `Segregate flammables/combustibles (${names(group1)}) from solid bases/alkalis (${names(group5Solid)}).`,
     fbmh('Group 1 must be isolated from bases'),
   );
   pushPairSuggestion(out, seen, group1, group6,
@@ -423,6 +393,10 @@ function selectedIncompatibilitySuggestions(chems: Substance[]): Suggestion[] {
     `Segregate volatile poisons/halogenated solvents (${names(group2)}) from liquid bases (${names(group5)}).`,
     fbmh('Group 2 must be isolated from strong bases; Group 5 must be isolated from halogenated solvents'),
   );
+  pushPairSuggestion(out, seen, group2, group5Solid,
+    `Segregate volatile poisons/halogenated solvents (${names(group2)}) from solid bases/alkalis (${names(group5Solid)}).`,
+    fbmh('Group 2 must be isolated from strong bases; Group 5 must be isolated from halogenated solvents'),
+  );
   pushPairSuggestion(out, seen, group2, group6,
     `Segregate volatile poisons/halogenated solvents (${names(group2)}) from oxidisers/organic peroxides (${names(group6)}).`,
     fbmh('Group 2 must be isolated from oxidizers; Group 6 is isolated from all other storage groups'),
@@ -436,6 +410,10 @@ function selectedIncompatibilitySuggestions(chems: Substance[]): Suggestion[] {
     `Store oxidising inorganic acids (${names(group3)}) separately from liquid bases (${names(group5)}).`,
     fbmh('Group 3 must be isolated from bases'),
   );
+  pushPairSuggestion(out, seen, group3, group5Solid,
+    `Store oxidising inorganic acids (${names(group3)}) separately from solid bases/alkalis (${names(group5Solid)}).`,
+    fbmh('Group 3 must be isolated from bases'),
+  );
   pushPairSuggestion(out, seen, group3, group7,
     `Segregate oxidising inorganic acids (${names(group3)}) from poison/toxin storage (${names(group7)}).`,
     fbmh('Group 3 must be isolated from organic poisons'),
@@ -443,6 +421,10 @@ function selectedIncompatibilitySuggestions(chems: Substance[]): Suggestion[] {
 
   pushPairSuggestion(out, seen, group4, group5,
     `Store non-oxidising organic/mineral acids (${names(group4)}) separately from liquid bases (${names(group5)}).`,
+    fbmh('Group 4 must be isolated from bases'),
+  );
+  pushPairSuggestion(out, seen, group4, group5Solid,
+    `Store non-oxidising organic/mineral acids (${names(group4)}) separately from solid bases/alkalis (${names(group5Solid)}).`,
     fbmh('Group 4 must be isolated from bases'),
   );
   pushPairSuggestion(out, seen, group4, group6,
@@ -456,6 +438,10 @@ function selectedIncompatibilitySuggestions(chems: Substance[]): Suggestion[] {
 
   pushPairSuggestion(out, seen, group5, group6,
     `Segregate liquid bases (${names(group5)}) from oxidisers/organic peroxides (${names(group6)}).`,
+    fbmh('Group 5 must be isolated from oxidizing substances; Group 6 is isolated from all other storage groups'),
+  );
+  pushPairSuggestion(out, seen, group5Solid, group6,
+    `Segregate solid bases/alkalis (${names(group5Solid)}) from oxidisers/organic peroxides (${names(group6)}).`,
     fbmh('Group 5 must be isolated from oxidizing substances; Group 6 is isolated from all other storage groups'),
   );
 

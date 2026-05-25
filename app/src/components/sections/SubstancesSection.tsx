@@ -198,6 +198,8 @@ function ProcessStepCard({
   const [showSuggest, setShowSuggest] = useState(false);
   const [adding, setAdding] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(true);
+  const [focusHighlight, setFocusHighlight] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const prevTotalSteps = useRef(allSteps.length);
 
   // Auto-expand when this step is newly created (added to the end).
@@ -207,6 +209,30 @@ function ProcessStepCard({
     }
     prevTotalSteps.current = allSteps.length;
   }, [allSteps.length, index]);
+
+  useEffect(() => {
+    let targetStepId: string | null = null;
+    try {
+      targetStepId = sessionStorage.getItem('cat.focusProcessStep');
+    } catch {
+      return;
+    }
+    if (targetStepId !== step.id) return;
+
+    try {
+      sessionStorage.removeItem('cat.focusProcessStep');
+    } catch {
+      // Non-critical: the navigation still works without clearing storage.
+    }
+
+    setCollapsed(false);
+    setFocusHighlight(true);
+    window.setTimeout(() => setFocusHighlight(false), 1600);
+    window.requestAnimationFrame(() => {
+      rootRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, [step.id]);
+
   const [showReuse, setShowReuse] = useState(false);
   const [openChemIndex, setOpenChemIndex] = useState<number | null>(null);
   const prevChemCount = useRef(step.chemicals.length);
@@ -306,6 +332,14 @@ function ProcessStepCard({
         sdsUrl: r.sdsUrl,
         sdsSource: r.sdsSource,
         boilingPointC: r.boilingPointC,
+        molecularFormula: r.molecularFormula,
+        canonicalSmiles: r.canonicalSmiles,
+        connectivitySmiles: r.connectivitySmiles,
+        isomericSmiles: r.isomericSmiles,
+        inchi: r.inchi,
+        iupacName: r.iupacName,
+        pubchemTitle: r.title,
+        xlogp: r.xlogp,
         pubchemFetchedAt: r.fetchedAt,
       });
     } catch {
@@ -320,10 +354,13 @@ function ProcessStepCard({
   if (collapsed) {
     return (
       <div
+        ref={rootRef}
+        data-process-step-id={step.id}
         className={clsx(
-          'border-b border-zinc-200 last:border-b-0 bg-white',
+          'border-b border-zinc-200 last:border-b-0 bg-white transition-colors',
           isDragging && 'opacity-50',
           isDragOver && 'border-t-2 border-t-accent-500',
+          focusHighlight && 'bg-accent-50/50 ring-2 ring-inset ring-accent-300',
         )}
         draggable
         onDragStart={(e) => onDragStart(e, index)}
@@ -373,10 +410,13 @@ function ProcessStepCard({
 
   return (
     <div
+      ref={rootRef}
+      data-process-step-id={step.id}
       className={clsx(
-        'border-b border-zinc-200 last:border-b-0 bg-white',
+        'border-b border-zinc-200 last:border-b-0 bg-white transition-colors',
         isDragging && 'opacity-50',
         isDragOver && 'border-t-2 border-t-accent-500',
+        focusHighlight && 'bg-accent-50/50 ring-2 ring-inset ring-accent-300',
       )}
       draggable
       onDragStart={(e) => onDragStart(e, index)}
@@ -754,6 +794,14 @@ function ChemicalRow({
         sdsUrl: r.sdsUrl ?? (isDifferentChemical ? undefined : c.sdsUrl),
         sdsSource: r.sdsSource ?? (isDifferentChemical ? undefined : c.sdsSource),
         boilingPointC: bp,
+        molecularFormula: r.molecularFormula ?? (isDifferentChemical ? undefined : c.molecularFormula),
+        canonicalSmiles: r.canonicalSmiles ?? (isDifferentChemical ? undefined : c.canonicalSmiles),
+        connectivitySmiles: r.connectivitySmiles ?? (isDifferentChemical ? undefined : c.connectivitySmiles),
+        isomericSmiles: r.isomericSmiles ?? (isDifferentChemical ? undefined : c.isomericSmiles),
+        inchi: r.inchi ?? (isDifferentChemical ? undefined : c.inchi),
+        iupacName: r.iupacName ?? (isDifferentChemical ? undefined : c.iupacName),
+        pubchemTitle: r.title ?? (isDifferentChemical ? undefined : c.pubchemTitle),
+        xlogp: r.xlogp ?? (isDifferentChemical ? undefined : c.xlogp),
         volatility: derivedVolatility,
         dustiness: isDifferentChemical ? undefined : c.dustiness,
         pubchemFetchedAt: r.fetchedAt,

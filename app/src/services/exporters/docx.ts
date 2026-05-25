@@ -23,6 +23,15 @@ const WHITE = 'ffffff';
 const FONT = 'Calibri';
 const DASH = '—';
 
+const formatStepControlList = (values: string[] | undefined) =>
+  values && values.length > 0 ? values.join(', ') : DASH;
+
+const formatStepControls = (step: { controls?: { engineering?: string[]; ppe?: string[]; other?: string } }) => [
+  ['Engineering controls', formatStepControlList(step.controls?.engineering)],
+  ['PPE', formatStepControlList(step.controls?.ppe)],
+  ['Other step controls', step.controls?.other?.trim() || DASH],
+] as [string, string][];
+
 const txt = (
   s: string,
   opts: { bold?: boolean; italics?: boolean; size?: number; color?: string } = {},
@@ -486,6 +495,7 @@ export async function exportDocx(a: Assessment): Promise<void> {
   } else {
     a.processSteps.forEach((step, si) => {
       children.push(subHeading(`Step ${si + 1} — ${step.step || DASH}`));
+      children.push(kvTable(formatStepControls(step)));
       if (step.chemicals.length === 0) {
         children.push(para('No chemicals recorded for this step.', { italics: true, color: MUTED }));
       }
@@ -573,9 +583,7 @@ export async function exportDocx(a: Assessment): Promise<void> {
     ['Elimination', a.controls.elimination],
     ['Substitution', a.controls.substitution],
     ['Reduction', a.controls.reduction],
-    ['Engineering', a.controls.engineering],
     ['Administrative', a.controls.administrative],
-    ['PPE', `${a.controls.ppe.type || DASH}${a.controls.ppe.standard ? `  (${a.controls.ppe.standard})` : ''}`],
     ['Air Monitoring', a.controls.airMonitoring],
     ['Health Surveillance', a.controls.healthSurveillance],
   ]));

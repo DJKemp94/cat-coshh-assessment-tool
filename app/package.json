@@ -8,6 +8,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "test:storage": "node scripts/test-storage-classifier.mjs",
     "extract-eh40": "node scripts/parse-eh40.mjs"
   },
   "dependencies": {
