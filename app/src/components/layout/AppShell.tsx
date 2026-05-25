@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
-import { ExportRail } from './ExportRail';
 import { useAssessment } from '@/store/assessment';
 import { OverviewSection } from '@/components/sections/OverviewSection';
 import { TaskHazardsSection } from '@/components/sections/TaskHazardsSection';
@@ -10,6 +9,7 @@ import { ControlsSection } from '@/components/sections/ControlsSection';
 import { AdditionalSection } from '@/components/sections/AdditionalSection';
 import { EmergencySection } from '@/components/sections/EmergencySection';
 import { BriefingSection } from '@/components/sections/BriefingSection';
+import { CompleteExportSection } from '@/components/sections/CompleteExportSection';
 import { SettingsSection } from '@/components/sections/SettingsSection';
 import { HelpSection } from '@/components/sections/HelpSection';
 import { PrivacyModal } from '@/components/common/PrivacyModal';
@@ -41,6 +41,7 @@ export function AppShell() {
       case 'additional': return <AdditionalSection />;
       case 'emergency': return <EmergencySection />;
       case 'briefing': return <BriefingSection />;
+      case 'completeExport': return <CompleteExportSection />;
       default: return <OverviewSection />;
     }
   })();
@@ -58,7 +59,6 @@ export function AppShell() {
             <div className={`${section === 'additional' || section === 'emergency' ? 'max-w-7xl' : 'max-w-5xl'} mx-auto p-6`}>{content}</div>
           </main>
         </div>
-        <ExportRail />
       </div>
       {!ackd && <PrivacyModal />}
       <Modal

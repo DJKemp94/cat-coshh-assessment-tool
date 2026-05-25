@@ -1,5 +1,8 @@
-import { Settings as SettingsIcon, HelpCircle } from 'lucide-react';
+import { Settings as SettingsIcon, HelpCircle, Save, Upload } from 'lucide-react';
+import { useState } from 'react';
+import type { ChangeEvent } from 'react';
 import { useAssessment } from '@/store/assessment';
+import { downloadCatdraft, importCatdraftFile } from '@/services/exporters/catdraft';
 
 interface Props {
   onOpenSettings: () => void;
@@ -8,9 +11,33 @@ interface Props {
 
 export function TopBar({ onOpenSettings, onOpenHelp }: Props) {
   const assessment = useAssessment((s) => s.assessment);
+  const replace = useAssessment((s) => s.replaceAssessment);
+  const [busy, setBusy] = useState<string | null>(null);
 
   const title = assessment.overview.activityTitle || 'New COSHH Assessment';
   const ref = assessment.overview.riskAssessmentRef;
+
+  const run = async (label: string, fn: () => Promise<void> | void) => {
+    setBusy(label);
+    try {
+      await fn();
+    } catch (err) {
+      console.error(`${label} failed`, err);
+      alert(`${label} failed. See console.`);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleImport = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    run('Import', async () => {
+      const imported = await importCatdraftFile(file);
+      replace(imported);
+      e.target.value = '';
+    });
+  };
 
   return (
     <header className="h-14 shrink-0 border-b border-zinc-200 bg-white flex items-center px-5 gap-3">
@@ -21,6 +48,30 @@ export function TopBar({ onOpenSettings, onOpenHelp }: Props) {
         </div>
       </div>
 
+      <button
+        type="button"
+        className="inline-flex items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-50"
+        disabled={busy !== null}
+        onClick={() => run('Draft download', () => downloadCatdraft(assessment))}
+        title="Download .catdraft backup"
+      >
+        <Save size={14} />
+        <span className="hidden md:inline">Download catdraft</span>
+      </button>
+      <label
+        className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50"
+        title="Import .catdraft backup"
+      >
+        <Upload size={14} />
+        <span className="hidden md:inline">Import catdraft</span>
+        <input
+          type="file"
+          accept=".catdraft,text/plain"
+          className="hidden"
+          disabled={busy !== null}
+          onChange={handleImport}
+        />
+      </label>
       <button
         type="button"
         className="text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded p-1.5 transition"

@@ -1,4 +1,4 @@
-// RFC 9285 Base45 — efficient with QR alphanumeric mode.
+// RFC 9285 Base45 — compact alphanumeric encoding for .catdraft files.
 
 const ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:';
 const INDEX: Record<string, number> = {};

@@ -14,8 +14,10 @@ import {
   StorageRequirements,
   EmergencyRequirements,
   ProcessStep,
+  emptyStepControls,
 } from '@/types/assessment';
 import { migrateAssessment } from '@/services/migrate';
+import { normalizeChemicalName } from '@/services/chemicalNames';
 
 const STORAGE_KEY = 'cat.activeAssessment';
 const PRIVACY_ACK_KEY = 'cat.privacyAck';
@@ -29,6 +31,7 @@ export type SectionId =
   | 'additional'
   | 'emergency'
   | 'briefing'
+  | 'completeExport'
   | 'settings'
   | 'help';
 
@@ -78,6 +81,26 @@ const touch = (a: Assessment): Assessment => ({
   meta: { ...a.meta, updatedAt: new Date().toISOString() },
 });
 
+const normalizeSubstance = (c: Substance): Substance => ({
+  ...c,
+  name: normalizeChemicalName(c.name),
+});
+
+const normalizeStep = (step: ProcessStep): ProcessStep => ({
+  ...step,
+  description: step.description ?? '',
+  controls: {
+    ...emptyStepControls(),
+    ...(step.controls ?? {}),
+  },
+  chemicals: step.chemicals.map(normalizeSubstance),
+});
+
+const normalizeAssessment = (a: Assessment): Assessment => ({
+  ...a,
+  processSteps: a.processSteps.map(normalizeStep),
+});
+
 const loadFromStorage = (): {
   assessment: Assessment;
   privacy: boolean;
@@ -90,7 +113,7 @@ const loadFromStorage = (): {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       try {
-        assessment = migrateAssessment(JSON.parse(raw));
+        assessment = normalizeAssessment(migrateAssessment(JSON.parse(raw)));
       } catch {
         // corrupt or incompatible — fall back to a fresh assessment
       }
@@ -212,7 +235,7 @@ export const useAssessment = create<AssessmentState>((set, get) => {
     addProcessStep: () =>
       apply((a) => ({ ...a, processSteps: [...a.processSteps, emptyProcessStep()] })),
     updateProcessStep: (id, patch) =>
-      mutStep(id, (s) => ({ ...s, ...patch })),
+      mutStep(id, (s) => normalizeStep({ ...s, ...patch })),
     removeProcessStep: (id) =>
       apply((a) => ({ ...a, processSteps: a.processSteps.filter((s) => s.id !== id) })),
 
@@ -227,12 +250,12 @@ export const useAssessment = create<AssessmentState>((set, get) => {
     addChemical: (stepId, seed) =>
       mutStep(stepId, (s) => ({
         ...s,
-        chemicals: [...s.chemicals, { ...emptySubstance(), ...seed }],
+        chemicals: [...s.chemicals, normalizeSubstance({ ...emptySubstance(), ...seed })],
       })),
     updateChemical: (stepId, chemId, patch) =>
       mutStep(stepId, (s) => ({
         ...s,
-        chemicals: s.chemicals.map((c) => (c.id === chemId ? { ...c, ...patch } : c)),
+        chemicals: s.chemicals.map((c) => (c.id === chemId ? normalizeSubstance({ ...c, ...patch }) : c)),
       })),
     removeChemical: (stepId, chemId) =>
       mutStep(stepId, (s) => ({
@@ -251,7 +274,7 @@ export const useAssessment = create<AssessmentState>((set, get) => {
       apply((a) => ({ ...a, briefing: a.briefing.filter((b) => b.id !== id) })),
 
     replaceAssessment: (a) => {
-      const next = touch(migrateAssessment(a));
+      const next = touch(normalizeAssessment(migrateAssessment(a)));
       set({ assessment: next });
       scheduleSave(next);
     },

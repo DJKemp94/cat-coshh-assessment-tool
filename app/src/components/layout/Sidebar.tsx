@@ -7,6 +7,7 @@ import {
   PackageOpen,
   Siren,
   Users,
+  Download,
   Check,
   Lock,
 } from 'lucide-react';
@@ -15,7 +16,7 @@ import { CatLogo, CatSitting, PawMark } from '@/components/common/CatLogo';
 import { CoreSectionId, isSectionComplete } from '@/services/completion';
 
 interface NavItem {
-  id: Extract<SectionId, CoreSectionId>;
+  id: Exclude<SectionId, 'settings' | 'help'>;
   label: string;
   Icon: typeof ClipboardList;
 }
@@ -30,7 +31,10 @@ const NAV: NavItem[] = [
   { id: 'additional', label: 'Storage', Icon: PackageOpen },
   { id: 'emergency', label: 'Emergency Response', Icon: Siren },
   { id: 'briefing', label: 'Briefing & Sign-off', Icon: Users },
+  { id: 'completeExport', label: 'Complete & Export', Icon: Download },
 ];
+
+const CORE_NAV = NAV.filter((n): n is NavItem & { id: CoreSectionId } => n.id !== 'completeExport');
 
 export function Sidebar() {
   const active = useAssessment((s) => s.activeSection);
@@ -41,10 +45,16 @@ export function Sidebar() {
   // A section is "unlocked" if every prior section is complete. The first
   // section is always unlocked. This enforces an ordered fill flow without
   // hiding what's coming next. Testing mode disables the gate entirely.
-  const completion = NAV.map((n) => isSectionComplete(assessment, n.id));
-  const completedCount = completion.filter(Boolean).length;
+  const coreCompletion = CORE_NAV.map((n) => isSectionComplete(assessment, n.id));
+  const allCoreComplete = coreCompletion.every(Boolean);
+  const completedCount = coreCompletion.filter(Boolean).length;
   const unlocked = NAV.map(
-    (_, i) => testingMode || i === 0 || completion.slice(0, i).every(Boolean),
+    (item, i) =>
+      testingMode ||
+      i === 0 ||
+      (item.id === 'completeExport'
+        ? allCoreComplete
+        : coreCompletion.slice(0, i).every(Boolean)),
   );
 
   return (
@@ -62,14 +72,16 @@ export function Sidebar() {
       <div className="px-4 pt-3 pb-1 text-[10px] uppercase tracking-wider text-zinc-500 font-medium flex items-center justify-between">
         <span>Assessment</span>
         <span className="text-zinc-400 normal-case tracking-normal">
-          {completedCount} of {NAV.length}
+          {completedCount} of {CORE_NAV.length}
         </span>
       </div>
 
       <nav className="flex-1 px-2 py-1 space-y-0.5 overflow-y-auto">
         {NAV.map(({ id, label, Icon }, i) => {
           const isActive = id === active;
-          const done = completion[i];
+          const done = id === 'completeExport'
+            ? allCoreComplete
+            : isSectionComplete(assessment, id as CoreSectionId);
           const isUnlocked = unlocked[i];
           return (
             <button

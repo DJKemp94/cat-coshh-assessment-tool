@@ -1,0 +1,86 @@
+- generic [ref=e4]:
+  - complementary [ref=e5]:
+    - generic [ref=e6]:
+      - img "CAT logo" [ref=e7]
+      - generic [ref=e8]:
+        - generic [ref=e9]: CAT
+        - generic [ref=e10]: COSHH Assessment Tool
+    - generic [ref=e11]:
+      - generic [ref=e12]: Assessment
+      - generic [ref=e13]: 2 of 7
+    - navigation [ref=e14]:
+      - button "Overview" [ref=e15] [cursor=pointer]:
+        - img [ref=e16]
+        - generic [ref=e19]: Overview
+        - generic "Section complete" [ref=e20]:
+          - img [ref=e21]
+      - button "Process Steps Section pending" [ref=e23] [cursor=pointer]:
+        - img [ref=e24]
+        - generic [ref=e26]: Process Steps
+        - generic "Section pending" [ref=e27]
+      - button "Non-Chemical Hazards" [active] [ref=e28] [cursor=pointer]:
+        - img [ref=e29]
+        - generic [ref=e31]: Non-Chemical Hazards
+        - generic "Section complete" [ref=e32]:
+          - img [ref=e33]
+      - button "Controls Section pending" [ref=e35] [cursor=pointer]:
+        - img [ref=e36]
+        - generic [ref=e39]: Controls
+        - generic "Section pending" [ref=e40]
+      - button "Storage Section pending" [ref=e41] [cursor=pointer]:
+        - img [ref=e42]
+        - generic [ref=e46]: Storage
+        - generic "Section pending" [ref=e47]
+      - button "Emergency Response Section pending" [ref=e48] [cursor=pointer]:
+        - img [ref=e49]
+        - generic [ref=e54]: Emergency Response
+        - generic "Section pending" [ref=e55]
+      - button "Briefing & Sign-off Section pending" [ref=e56] [cursor=pointer]:
+        - img [ref=e57]
+        - generic [ref=e62]: Briefing & Sign-off
+        - generic "Section pending" [ref=e63]
+    - generic [ref=e64]:
+      - img [ref=e65]
+      - generic [ref=e66]:
+        - text: Please do not
+        - text: the cat...
+      - img [ref=e67]
+  - generic [ref=e68]:
+    - banner [ref=e69]:
+      - generic [ref=e70]:
+        - generic [ref=e71]: Storage grouping check
+        - generic [ref=e72]: Ref CAT-STOR
+      - button "Open settings" [ref=e73] [cursor=pointer]:
+        - img [ref=e74]
+      - button "Open help" [ref=e77] [cursor=pointer]:
+        - img [ref=e78]
+    - main [ref=e81]:
+      - generic [ref=e217]:
+        - generic [ref=e218]:
+          - generic [ref=e219]:
+            - heading "Non-Chemical Hazards" [level=1] [ref=e220]
+            - paragraph [ref=e221]: Add and assess non-chemical hazards present in the workplace.
+          - generic [ref=e222]:
+            - button "Add hazard" [disabled]:
+              - img
+              - text: Add hazard
+        - generic [ref=e223] [cursor=pointer]:
+          - checkbox "No non-chemical hazards apply to this task Tick to confirm you have considered slips, manual handling, electrical, sharps, etc. and none are relevant. Marks this section complete." [checked] [ref=e224]
+          - generic [ref=e225]:
+            - generic [ref=e226]: No non-chemical hazards apply to this task
+            - generic [ref=e227]: Tick to confirm you have considered slips, manual handling, electrical, sharps, etc. and none are relevant. Marks this section complete.
+  - complementary [ref=e196]:
+    - generic [ref=e197]:
+      - generic [ref=e198]: Export
+      - paragraph [ref=e199]: Files download to your device — nothing is uploaded.
+    - generic [ref=e200]:
+      - button "Export PDF" [ref=e201] [cursor=pointer]:
+        - img [ref=e202]
+        - text: Export PDF
+      - button "Export DOCX" [ref=e205] [cursor=pointer]:
+        - img [ref=e206]
+        - text: Export DOCX
+    - button "+ More backup options" [ref=e210] [cursor=pointer]
+    - generic [ref=e211]:
+      - img [ref=e212]
+      - generic [ref=e216]: You are the only copy. Clearing browser data will erase any unsaved draft — export regularly.

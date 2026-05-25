@@ -86,11 +86,19 @@ async function nameToCid(name: string): Promise<number | null> {
 
 async function casToCid(cas: string): Promise<number | null> {
   const trimmed = cas.trim();
+  const byName = await nameToCid(trimmed);
+  if (byName) return byName;
+
   const url = `${REST}/compound/xref/RN/${encodeURIComponent(trimmed)}/cids/JSON`;
   const r = await rateLimitedFetch(url);
   if (!r.ok) return null;
   const j = (await r.json()) as { IdentifierList?: { CID?: number[] } };
-  return j.IdentifierList?.CID?.[0] ?? null;
+  const candidates = j.IdentifierList?.CID ?? [];
+  for (const cid of candidates) {
+    const synonyms = await fetchSynonyms(cid);
+    if (synonyms.some((s) => s.trim() === trimmed)) return cid;
+  }
+  return candidates[0] ?? null;
 }
 
 async function resolveCid(query: string): Promise<number | null> {
@@ -338,12 +346,7 @@ async function fetchPugView(cid: number): Promise<ViewNode | null> {
 
 async function fetchCas(cid: number): Promise<string | undefined> {
   try {
-    const r = await rateLimitedFetch(`${REST}/compound/cid/${cid}/synonyms/JSON`);
-    if (!r.ok) return undefined;
-    const j = (await r.json()) as {
-      InformationList?: { Information?: { Synonym?: string[] }[] };
-    };
-    const synonyms = j.InformationList?.Information?.[0]?.Synonym ?? [];
+    const synonyms = await fetchSynonyms(cid);
     const cas = synonyms.find((s) => /^\d{2,7}-\d{2}-\d$/.test(s));
     return cas;
   } catch {
@@ -353,28 +356,19 @@ async function fetchCas(cid: number): Promise<string | undefined> {
 
 async function fetchPreferredName(cid: number): Promise<string | undefined> {
   try {
-    const r = await rateLimitedFetch(`${REST}/compound/cid/${cid}/synonyms/JSON`);
-    if (!r.ok) return undefined;
-    const j = (await r.json()) as {
-      InformationList?: { Information?: { Synonym?: string[] }[] };
-    };
-    return j.InformationList?.Information?.[0]?.Synonym?.[0];
+    return (await fetchSynonyms(cid))[0];
   } catch {
     return undefined;
   }
 }
 
-async function fetchMolecularFormula(cid: number): Promise<string | undefined> {
-  try {
-    const r = await rateLimitedFetch(`${REST}/compound/cid/${cid}/property/MolecularFormula/JSON`);
-    if (!r.ok) return undefined;
-    const j = (await r.json()) as {
-      PropertyTable?: { Properties?: { MolecularFormula?: string }[] };
-    };
-    return j.PropertyTable?.Properties?.[0]?.MolecularFormula ?? undefined;
-  } catch {
-    return undefined;
-  }
+async function fetchSynonyms(cid: number): Promise<string[]> {
+  const r = await rateLimitedFetch(`${REST}/compound/cid/${cid}/synonyms/JSON`);
+  if (!r.ok) return [];
+  const j = (await r.json()) as {
+    InformationList?: { Information?: { Synonym?: string[] }[] };
+  };
+  return j.InformationList?.Information?.[0]?.Synonym ?? [];
 }
 
 // ---------- public API ----------

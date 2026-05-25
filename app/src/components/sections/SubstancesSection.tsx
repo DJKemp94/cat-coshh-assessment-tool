@@ -1,9 +1,11 @@
 import {
   Plus, Trash2, RefreshCw, ChevronDown, ChevronRight, ChevronUp, ExternalLink,
   AlertCircle, FlaskConical, Wand2, Loader2, CheckCircle2, Copy, MoreVertical,
-  GripVertical, Save,
+  GripVertical, Save, Wind, Package, MoreHorizontal, Hand, Glasses, Shirt,
+  Shield, Footprints, Info, CircleCheck,
 } from 'lucide-react';
 import { useMemo, useState, useRef, useEffect } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import clsx from 'clsx';
 import { useAssessment } from '@/store/assessment';
 import { SectionHeader } from '@/components/common/SectionHeader';
@@ -15,7 +17,7 @@ import { volatilityFromBP } from '@/services/coshhEssentials';
 import { extractChemicals, ExtractMatch } from '@/services/extractChemicals';
 import {
   Substance, SubstanceForm, ExposureRoutes, ProcessStep,
-  isChemicalIncomplete,
+  StepControls, isChemicalIncomplete,
 } from '@/types/assessment';
 
 const FORMS: SubstanceForm[] = [
@@ -27,6 +29,22 @@ const ROUTES: { key: keyof ExposureRoutes; label: string }[] = [
   { key: 'skin', label: 'Skin' },
   { key: 'ingestion', label: 'Ingestion' },
   { key: 'eye', label: 'Eye' },
+];
+
+const ENGINEERING_CONTROLS = [
+  { id: 'Fume hood', label: 'Fume hood', Icon: Wind },
+  { id: 'Glove box', label: 'Glove box', Icon: Package },
+  { id: 'Inert atmosphere', label: 'Inert atmosphere', Icon: FlaskConical },
+  { id: 'Other', label: 'Other', Icon: MoreHorizontal },
+];
+
+const PPE_CONTROLS = [
+  { id: 'Gloves', label: 'Gloves', Icon: Hand },
+  { id: 'Goggles', label: 'Goggles', Icon: Glasses },
+  { id: 'Lab coat', label: 'Lab coat', Icon: Shirt },
+  { id: 'Face shield', label: 'Face shield', Icon: Shield },
+  { id: 'Respirator', label: 'Respirator', Icon: Shield },
+  { id: 'Safety footwear', label: 'Safety footwear', Icon: Footprints },
 ];
 
 const Req = () => <span className="text-red-600 ml-0.5" aria-label="required">*</span>;
@@ -241,14 +259,32 @@ function ProcessStepCard({
   }, [step.chemicals]);
 
   const suggestions = useMemo<ExtractMatch[]>(() => {
-    if (!step.step.trim()) return [];
+    const searchableText = [step.step, step.description].filter(Boolean).join(' ');
+    if (!searchableText.trim()) return [];
     const existing = new Set(
       step.chemicals.map((c) => (c.cas ?? c.name).toLowerCase()).filter(Boolean),
     );
-    return extractChemicals(step.step).filter(
+    return extractChemicals(searchableText).filter(
       (m) => !existing.has((m.cas ?? m.name).toLowerCase()),
     );
-  }, [step.step, step.chemicals]);
+  }, [step.step, step.description, step.chemicals]);
+
+  const controls: StepControls = {
+    ...step.controls,
+    engineering: step.controls?.engineering ?? [],
+    ppe: step.controls?.ppe ?? [],
+    other: step.controls?.other ?? '',
+  };
+  const updateControls = (patch: Partial<StepControls>) =>
+    updateStep(step.id, { controls: { ...controls, ...patch } });
+  const toggleControl = (group: 'engineering' | 'ppe', id: string) => {
+    const current = controls[group];
+    updateControls({
+      [group]: current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id],
+    });
+  };
 
   const addSuggested = async (m: ExtractMatch) => {
     const key = (m.cas ?? m.name).toLowerCase();
@@ -370,9 +406,20 @@ function ProcessStepCard({
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3">
-            <span className="text-sm font-semibold text-accent-700 truncate">
-              {step.step.trim() || 'New process step'}
-            </span>
+            <input
+              className={clsx(
+                'min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-1 py-1 text-sm font-semibold text-accent-700 outline-none transition',
+                'placeholder:text-zinc-400 hover:border-zinc-200 hover:bg-white focus:border-accent-400 focus:bg-white focus:ring-2 focus:ring-accent-100',
+                !step.step.trim() && 'field-missing',
+              )}
+              value={step.step}
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+              onChange={(e) => updateStep(step.id, { step: e.target.value })}
+              placeholder="New process step"
+              autoFocus={!step.step}
+              aria-label={`Step ${index + 1} name`}
+            />
             <span className="text-sm text-zinc-500">
               {step.chemicals.length} chemical{step.chemicals.length === 1 ? '' : 's'}
             </span>
@@ -407,25 +454,26 @@ function ProcessStepCard({
         </div>
       </div>
 
-      <div className="px-4 pb-4">
-        <div className="border-t border-zinc-100 pt-4">
-          <div className="text-sm font-semibold text-zinc-900 mb-3">Step details</div>
-          <label className="block mb-3">
+      <div className="border-t border-zinc-100 bg-white px-4 py-4">
+        <div className="mb-3 text-sm font-semibold text-zinc-900">Step details</div>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(14rem,0.7fr)_1fr]">
+          <label className="block">
             <span className="field-label">Step name<Req /></span>
             <input
               className={clsx('field-input', !step.step.trim() && 'field-missing')}
               value={step.step}
               onChange={(e) => updateStep(step.id, { step: e.target.value })}
               placeholder="e.g. Reaction"
-              autoFocus={!step.step}
             />
           </label>
           <label className="block">
             <span className="field-label">Description (optional)</span>
-          <textarea
+            <textarea
               className="field-textarea !min-h-[78px] bg-white text-sm"
+              value={step.description ?? ''}
+              onChange={(e) => updateStep(step.id, { description: e.target.value })}
               placeholder="e.g. Add slowly with stirring"
-          />
+            />
           </label>
         </div>
       </div>
@@ -546,7 +594,108 @@ function ProcessStepCard({
           </div>
         )}
       </div>
+
+      <div className="border-t border-zinc-200 bg-white px-4 py-4">
+        <div className="mb-2 flex items-center gap-2">
+          <span className="text-sm font-semibold text-zinc-900">
+            Controls required for this step
+          </span>
+          <Info size={14} className="text-zinc-500" aria-hidden="true" />
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <div className="mb-2 text-xs font-semibold text-zinc-600">Engineering controls</div>
+            <div className="flex flex-wrap gap-2">
+              {ENGINEERING_CONTROLS.map(({ id, label, Icon }) => (
+                <StepControlToggle
+                  key={id}
+                  active={controls.engineering.includes(id)}
+                  label={label}
+                  Icon={Icon}
+                  onClick={() => toggleControl('engineering', id)}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-2 text-xs font-semibold text-zinc-600">PPE</div>
+            <div className="flex flex-wrap gap-2">
+              {PPE_CONTROLS.map(({ id, label, Icon }) => (
+                <StepControlToggle
+                  key={id}
+                  active={controls.ppe.includes(id)}
+                  label={label}
+                  Icon={Icon}
+                  onClick={() => toggleControl('ppe', id)}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 items-end gap-2 md:grid-cols-[12rem_1fr_auto]">
+            <div className="flex items-center gap-2 text-xs font-semibold text-zinc-600">
+              Other control
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 text-accent-700 hover:text-accent-800"
+                onClick={() => updateControls({ other: controls.other || 'Use peroxide-tested solvents only' })}
+              >
+                <Plus size={13} /> Add other control
+              </button>
+            </div>
+            <input
+              className="field-input !py-2 text-sm"
+              value={controls.other}
+              onChange={(e) => updateControls({ other: e.target.value })}
+              placeholder="e.g. Use peroxide-tested solvents only"
+              aria-label={`Other control for step ${index + 1}`}
+            />
+            <button
+              type="button"
+              className="btn-secondary h-[42px] text-xs text-accent-700"
+              onClick={() => updateControls({ other: controls.other.trim() })}
+            >
+              Add
+            </button>
+          </div>
+        </div>
+      </div>
+
     </div>
+  );
+}
+
+function StepControlToggle({
+  active,
+  label,
+  Icon,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  Icon: LucideIcon;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={clsx(
+        'inline-flex h-10 min-w-[9rem] items-center justify-between gap-3 rounded-md border px-3 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2',
+        active
+          ? 'border-accent-700 bg-accent-600 text-white shadow-soft'
+          : 'border-zinc-200 bg-white text-zinc-600 hover:border-accent-200 hover:bg-accent-50 hover:text-accent-800',
+      )}
+      aria-pressed={active}
+    >
+      <span className="inline-flex min-w-0 items-center gap-2">
+        <Icon size={18} className={active ? 'text-white' : 'text-zinc-500'} />
+        <span className="truncate">{label}</span>
+      </span>
+      {active && <CircleCheck size={16} className="shrink-0 text-white" />}
+    </button>
   );
 }
 

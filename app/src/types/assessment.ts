@@ -1,4 +1,4 @@
-export const APP_VERSION = '0.2.0';
+const APP_VERSION = '0.2.0';
 export const SCHEMA_VERSION = 3 as const;
 
 export type UUID = string;
@@ -117,6 +117,12 @@ export interface Substance {
   boilingPointC?: number;
 }
 
+export interface StepControls {
+  engineering: string[];
+  ppe: string[];
+  other: string;
+}
+
 export interface ControlMeasures {
   elimination: string;
   substitution: string;
@@ -151,7 +157,7 @@ export interface BriefingEntry {
   date: string;
 }
 
-export interface AssessmentMeta {
+interface AssessmentMeta {
   createdAt: string;
   updatedAt: string;
   appVersion: string;
@@ -160,7 +166,9 @@ export interface AssessmentMeta {
 export interface ProcessStep {
   id: UUID;
   step: string;
+  description: string;
   chemicals: Substance[];
+  controls: StepControls;
 }
 
 export interface Assessment {
@@ -185,7 +193,15 @@ export interface Assessment {
 export const emptyProcessStep = (): ProcessStep => ({
   id: uuid(),
   step: '',
+  description: '',
   chemicals: [],
+  controls: emptyStepControls(),
+});
+
+export const emptyStepControls = (): StepControls => ({
+  engineering: [],
+  ppe: [],
+  other: '',
 });
 
 export const isChemicalIncomplete = (c: Substance): boolean => {
@@ -208,7 +224,7 @@ const isoDate = (d: Date): string => d.toISOString().slice(0, 10);
 
 export const todayISO = (): string => isoDate(new Date());
 
-export const plusYearsISO = (years: number): string => {
+const plusYearsISO = (years: number): string => {
   const d = new Date();
   d.setFullYear(d.getFullYear() + years);
   return isoDate(d);

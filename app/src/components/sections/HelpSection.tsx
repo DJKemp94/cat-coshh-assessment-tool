@@ -43,7 +43,7 @@ export function HelpSection() {
         <ul className="text-sm text-zinc-700 list-disc pl-5 space-y-1">
           <li><strong>Save Draft</strong> downloads a <code>.catdraft</code> file.</li>
           <li><strong>Import .catdraft</strong> restores a saved draft.</li>
-          <li><strong>Recovery Code</strong> generates printable QR backup.</li>
+          <li><strong>.catdraft</strong> files are plain text — safe for version control and sharing.</li>
           <li>Export PDF or DOCX once the assessment is complete.</li>
         </ul>
       </div>

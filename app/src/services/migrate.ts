@@ -1,5 +1,5 @@
 import {
-  Assessment, ProcessStep, SCHEMA_VERSION, uuid, emptyStorage, emptyEmergency,
+  Assessment, ProcessStep, SCHEMA_VERSION, uuid, emptyStorage, emptyEmergency, emptyStepControls,
 } from '@/types/assessment';
 
 /**
@@ -19,6 +19,18 @@ export function migrateAssessment(raw: unknown): Assessment {
       rawAssessment.additional = rawAssessment.storage;
       delete rawAssessment.storage;
     }
+    if (Array.isArray(rawAssessment.processSteps)) {
+      rawAssessment.processSteps = rawAssessment.processSteps.map((step) => ({
+        ...(step as Record<string, unknown>),
+        description: typeof (step as Record<string, unknown>).description === 'string'
+          ? (step as Record<string, unknown>).description
+          : '',
+        controls: {
+          ...emptyStepControls(),
+          ...((step as Record<string, unknown>).controls as Record<string, unknown> | undefined),
+        },
+      }));
+    }
     return rawAssessment as unknown as Assessment;
   }
 
@@ -33,7 +45,7 @@ export function migrateAssessment(raw: unknown): Assessment {
     for (const s of oldSubs) {
       const step = typeof s.processStep === 'string' ? s.processStep.trim() : '';
       const key = step || `__solo_${uuid()}`;
-      if (!grouped.has(key)) grouped.set(key, { id: uuid(), step, chemicals: [] });
+      if (!grouped.has(key)) grouped.set(key, { id: uuid(), step, description: '', chemicals: [], controls: emptyStepControls() });
       const { processStep: _drop, ...chem } = s;
       void _drop;
       grouped.get(key)!.chemicals.push(chem as unknown as Assessment['processSteps'][number]['chemicals'][number]);

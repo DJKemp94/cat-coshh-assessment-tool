@@ -13,6 +13,7 @@ const ORDERED_SECTIONS: CoreSectionId[] = [
   'taskHazards',
   'controls',
   'additional',
+  'emergency',
   'briefing',
 ];
 const FINAL_SECTION: CoreSectionId = 'briefing';

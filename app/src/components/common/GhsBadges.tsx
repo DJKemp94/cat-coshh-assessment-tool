@@ -1,16 +1,5 @@
 import { GhsPictogram, HCode } from '@/types/assessment';
-
-const LABELS: Record<GhsPictogram, string> = {
-  explosive: 'Explosive',
-  flammable: 'Flammable',
-  oxidising: 'Oxidising',
-  'compressed-gas': 'Gas under pressure',
-  corrosive: 'Corrosive',
-  toxic: 'Acute toxicity',
-  harmful: 'Harmful / irritant',
-  'health-hazard': 'Health hazard',
-  environmental: 'Environmental',
-};
+import { GHS_LABELS } from '@/components/common/GhsPictograms';
 
 const SYMBOLS: Record<GhsPictogram, string> = {
   explosive: '💥',
@@ -33,11 +22,11 @@ export function GhsBadges({ pictograms }: { pictograms: GhsPictogram[] }) {
       {pictograms.map((p) => (
         <span
           key={p}
-          title={LABELS[p]}
+          title={GHS_LABELS[p]}
           className="inline-flex items-center gap-1 rounded border border-red-200 bg-red-50 text-red-700 px-2 py-0.5 text-[11px] font-medium"
         >
           <span className="text-sm leading-none">{SYMBOLS[p]}</span>
-          {LABELS[p]}
+          {GHS_LABELS[p]}
         </span>
       ))}
     </div>
