@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
   Sparkles, AlertTriangle, ExternalLink, ChevronDown, ChevronRight, Info,
-  Ban, BarChart3, FileText, Wind, Stethoscope,
+  Ban, BarChart3, FileText, Wind, Stethoscope, CheckCircle2,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAssessment } from '@/store/assessment';
@@ -92,16 +92,14 @@ const APPROACH_HELP = [
 ] as const;
 
 interface ProcessStepReviewItem {
+  id: string;
   message: string;
-  details?: string[];
 }
 
 function CoshhEssentialsPanel({
   s,
-  reviewItems,
 }: {
   s: OverallSuggestion;
-  reviewItems: ProcessStepReviewItem[];
 }) {
   const [open, setOpen] = useState(false);
   const [showGlossary, setShowGlossary] = useState(false);
@@ -159,26 +157,6 @@ function CoshhEssentialsPanel({
               <Info size={12} />
             </button>
           </div>
-
-          {reviewItems.length > 0 && (
-            <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-900">
-              <div className="flex items-center gap-1 font-medium">
-                <AlertTriangle size={12} /> Process-step controls to review
-              </div>
-              <ul className="ml-4 mt-1 list-disc space-y-1">
-                {reviewItems.map((item) => (
-                  <li key={item.message}>
-                    {item.message}
-                    {item.details && item.details.length > 0 && (
-                      <ul className="ml-4 mt-0.5 list-[circle] space-y-0.5">
-                        {item.details.map((detail) => <li key={detail}>{detail}</li>)}
-                      </ul>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
 
           {showGlossary && (
             <div className="mt-3 rounded-md border border-accent-200 bg-accent-50/60 p-3 text-xs text-zinc-800">
@@ -321,11 +299,11 @@ function substanceAnalysisKey(substance: ProcessStep['chemicals'][number]) {
   return String(substance.pubchemCid ?? substance.cas ?? substance.name).trim().toLowerCase();
 }
 
-function processStepControlReviewItems(
+function processStepControlReviewItemsByStep(
   steps: ProcessStep[],
   suggestion: OverallSuggestion | null,
-): ProcessStepReviewItem[] {
-  if (!suggestion) return [];
+): Record<string, ProcessStepReviewItem[]> {
+  if (!suggestion) return {};
   const analysisBySubstance = new Map(suggestion.analyses.map((a) => [a.substanceId, a]));
   const analysisByChemicalKey = new Map<string, SubstanceAnalysis>();
   for (const step of steps) {
@@ -337,10 +315,8 @@ function processStepControlReviewItems(
       }
     }
   }
-  const approach4Chemicals = new Set<string>();
-  const missingEngineeringSteps: string[] = [];
-  const missingPpeSteps: string[] = [];
-  for (const [index, step] of steps.entries()) {
+  const out: Record<string, ProcessStepReviewItem[]> = {};
+  for (const step of steps) {
     const analyses = step.chemicals
       .map((chemical) =>
         analysisBySubstance.get(chemical.id) ??
@@ -349,53 +325,76 @@ function processStepControlReviewItems(
       .filter((a): a is SubstanceAnalysis => Boolean(a));
     if (analyses.length === 0) continue;
 
+    const items: ProcessStepReviewItem[] = [];
     const maxApproach = Math.max(...analyses.map((a) => a.approach)) as Approach;
     const controls = controlsForStep(step);
-    const stepName = step.step.trim() || `Step ${index + 1}`;
     if (maxApproach >= 2 && !hasLevOrEnclosureControl(controls)) {
-      missingEngineeringSteps.push(stepName);
+      items.push({
+        id: `${step.id}:engineering`,
+        message: 'Check engineering controls: no LEV/enclosure-style control is recorded.',
+      });
     }
     if (controls.ppe.length === 0) {
-      missingPpeSteps.push(stepName);
+      items.push({
+        id: `${step.id}:ppe`,
+        message: 'Check PPE: no PPE is recorded for this step.',
+      });
     }
     analyses
       .filter((analysis) => analysis.approach === 4)
-      .forEach((analysis) => approach4Chemicals.add(analysis.name));
-  }
-
-  const out: ProcessStepReviewItem[] = [];
-  if (approach4Chemicals.size > 0) {
-    out.push({
-      message: 'Approach 4: specialist controls may be needed. Check the SDS and competent H&S advice.',
-      details: [...approach4Chemicals].map((name) => `Chemical: ${name}`),
-    });
-  }
-  if (missingEngineeringSteps.length > 0) {
-    out.push({
-      message: 'No LEV/enclosure-style engineering control is recorded. Confirm whether the selected step controls are sufficient.',
-      details: [...new Set(missingEngineeringSteps)].map((stepName) => `Step: ${stepName}`),
-    });
-  }
-  if (missingPpeSteps.length > 0) {
-    out.push({
-      message: 'No PPE is recorded. Confirm whether PPE is genuinely not required.',
-      details: [...new Set(missingPpeSteps)].map((stepName) => `Step: ${stepName}`),
-    });
+      .forEach((analysis) => {
+        items.push({
+          id: `${step.id}:approach4:${analysis.substanceId}`,
+          message: `Check specialist controls for ${analysis.name}: Approach 4 may need SDS review and competent H&S advice.`,
+        });
+      });
+    if (items.length > 0) {
+      out[step.id] = items;
+    }
   }
   return out;
 }
 
 function StepControlsSummary({
   steps,
+  reviewItemsByStep,
+  checkedReviews,
+  onToggleReview,
   onOpenStep,
 }: {
   steps: ProcessStep[];
+  reviewItemsByStep: Record<string, ProcessStepReviewItem[]>;
+  checkedReviews: Set<string>;
+  onToggleReview: (id: string) => void;
   onOpenStep: (stepId: string) => void;
 }) {
+  const allReviewItems = steps.flatMap((step) => reviewItemsByStep[step.id] ?? []);
+  const checkedCount = allReviewItems.filter((item) => checkedReviews.has(item.id)).length;
+  const allChecked = allReviewItems.length > 0 && checkedCount === allReviewItems.length;
+
   return (
-    <div className="card mb-5 overflow-hidden">
+    <div
+      className={clsx(
+        'card mb-5 overflow-hidden',
+        allChecked && 'border-emerald-200',
+      )}
+    >
       <div className="border-b border-zinc-100 px-4 py-3">
-        <div className="text-sm font-semibold text-zinc-950">Engineering and PPE by process step</div>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="text-sm font-semibold text-zinc-950">Engineering and PPE by process step</div>
+          {allReviewItems.length > 0 && (
+            <span
+              className={clsx(
+                'rounded-full border px-2 py-0.5 text-[11px] font-medium',
+                allChecked
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                  : 'border-amber-200 bg-amber-50 text-amber-800',
+              )}
+            >
+              {checkedCount} of {allReviewItems.length} checks complete
+            </span>
+          )}
+        </div>
         <div className="mt-1 text-xs text-zinc-500">
           Engineering controls and PPE are recorded against each process step. Update them in Process Steps if the task controls change.
         </div>
@@ -407,24 +406,60 @@ function StepControlsSummary({
           {steps.map((step, index) => {
             const controls = controlsForStep(step);
             const stepName = step.step.trim() || `Step ${index + 1}`;
+            const reviewItems = reviewItemsByStep[step.id] ?? [];
+            const stepAllChecked = reviewItems.length > 0 && reviewItems.every((item) => checkedReviews.has(item.id));
             return (
-              <button
+              <div
                 key={step.id}
-                type="button"
-                onClick={() => onOpenStep(step.id)}
-                className="grid w-full grid-cols-1 gap-3 px-4 py-3 text-left transition hover:bg-accent-50/50 focus:bg-accent-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-accent-300 lg:grid-cols-[minmax(12rem,0.7fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]"
+                className={clsx(stepAllChecked && 'bg-emerald-50/40')}
               >
-                <div>
-                  <div className="text-sm font-semibold text-accent-800">{index + 1}. {stepName}</div>
-                  <div className="mt-0.5 text-xs text-zinc-500">{step.chemicals.length} chemical{step.chemicals.length === 1 ? '' : 's'}</div>
-                </div>
-                <SummaryChipGroup title="Engineering" values={controls.engineering} />
-                <SummaryChipGroup title="PPE" values={controls.ppe} />
-                <div>
-                  <div className="text-[11px] font-semibold text-zinc-500">Other</div>
-                  <div className="mt-1 text-sm text-zinc-700">{controls.other || <span className="text-zinc-400">None recorded</span>}</div>
-                </div>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => onOpenStep(step.id)}
+                  className="grid w-full grid-cols-1 gap-3 px-4 py-3 text-left transition hover:bg-accent-50/50 focus:bg-accent-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-accent-300 lg:grid-cols-[minmax(12rem,0.7fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]"
+                >
+                  <div>
+                    <div className="text-sm font-semibold text-accent-800">{index + 1}. {stepName}</div>
+                    <div className="mt-0.5 text-xs text-zinc-500">{step.chemicals.length} chemical{step.chemicals.length === 1 ? '' : 's'}</div>
+                  </div>
+                  <SummaryChipGroup title="Engineering" values={controls.engineering} />
+                  <SummaryChipGroup title="PPE" values={controls.ppe} />
+                  <div>
+                    <div className="text-[11px] font-semibold text-zinc-500">Other</div>
+                    <div className="mt-1 text-sm text-zinc-700">{controls.other || <span className="text-zinc-400">None recorded</span>}</div>
+                  </div>
+                </button>
+                {reviewItems.length > 0 && (
+                  <div
+                    className={clsx(
+                      'mx-4 mb-3 rounded-md border p-2',
+                      stepAllChecked
+                        ? 'border-emerald-200 bg-emerald-50'
+                        : 'border-amber-200 bg-amber-50/70',
+                    )}
+                  >
+                    <div
+                      className={clsx(
+                        'mb-1.5 flex items-center gap-1.5 text-xs font-semibold',
+                        stepAllChecked ? 'text-emerald-800' : 'text-amber-900',
+                      )}
+                    >
+                      {stepAllChecked ? <CheckCircle2 size={13} /> : <AlertTriangle size={13} />}
+                      Checks for this step
+                    </div>
+                    <div className="space-y-1.5">
+                      {reviewItems.map((item) => (
+                        <StepReviewCheck
+                          key={item.id}
+                          item={item}
+                          checked={checkedReviews.has(item.id)}
+                          onToggle={() => onToggleReview(item.id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
@@ -443,6 +478,49 @@ function SummaryChipGroup({ title, values }: { title: string; values: string[] }
           : <span className="text-sm text-zinc-400">None selected</span>}
       </div>
     </div>
+  );
+}
+
+function StepReviewCheck({
+  item,
+  checked,
+  onToggle,
+}: {
+  item: ProcessStepReviewItem;
+  checked: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className={clsx(
+        'flex w-full items-start gap-2 rounded-md border px-2.5 py-1.5 text-left transition focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-1',
+        checked
+          ? 'border-emerald-200 bg-white text-emerald-900'
+          : 'border-amber-200 bg-white text-amber-950 hover:border-amber-300',
+      )}
+      aria-pressed={checked}
+    >
+      <span
+        className={clsx(
+          'mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded border transition',
+          checked
+            ? 'border-emerald-500 bg-emerald-500 text-white'
+            : 'border-amber-300 bg-white text-transparent',
+        )}
+      >
+        <CheckCircle2 size={12} strokeWidth={3} />
+      </span>
+      <span
+        className={clsx(
+          'min-w-0 text-xs leading-relaxed',
+          checked && 'line-through decoration-emerald-700/50',
+        )}
+      >
+        {item.message}
+      </span>
+    </button>
   );
 }
 
@@ -484,6 +562,7 @@ export function ControlsSection() {
   const update = useAssessment((s) => s.updateControls);
   const processSteps = useAssessment((s) => s.assessment.processSteps);
   const setSection = useAssessment((s) => s.setSection);
+  const [checkedStepReviews, setCheckedStepReviews] = useState<Set<string>>(() => new Set());
 
   const allSubstances = useMemo(
     () => processSteps.flatMap((s) => s.chemicals),
@@ -494,10 +573,18 @@ export function ControlsSection() {
     () => suggestControls(allSubstances),
     [allSubstances],
   );
-  const reviewItems = useMemo(
-    () => processStepControlReviewItems(processSteps, suggestion),
+  const reviewItemsByStep = useMemo(
+    () => processStepControlReviewItemsByStep(processSteps, suggestion),
     [processSteps, suggestion],
   );
+  const toggleStepReview = (id: string) => {
+    setCheckedStepReviews((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
   const openProcessStep = (stepId: string) => {
     try {
       sessionStorage.setItem('cat.focusProcessStep', stepId);
@@ -515,21 +602,27 @@ export function ControlsSection() {
       />
 
       {suggestion ? (
-        <CoshhEssentialsPanel s={suggestion} reviewItems={reviewItems} />
+        <CoshhEssentialsPanel s={suggestion} />
       ) : (
         <div className="card p-3 mb-4 text-xs text-zinc-500">
           Add chemicals in <strong>Process Steps</strong> to see the COSHH Essentials screening here.
         </div>
       )}
 
-      <StepControlsSummary steps={processSteps} onOpenStep={openProcessStep} />
+      <StepControlsSummary
+        steps={processSteps}
+        reviewItemsByStep={reviewItemsByStep}
+        checkedReviews={checkedStepReviews}
+        onToggleReview={toggleStepReview}
+        onOpenStep={openProcessStep}
+      />
 
       <div className="mb-4 text-sm font-medium text-zinc-800">Hierarchy of control</div>
       <div className="card overflow-hidden">
         <ControlRow
           number={1}
           icon={<Ban size={25} />}
-          iconClass="bg-emerald-500 text-white"
+          iconClass="bg-accent-600 text-white"
           label="Elimination / Substitution"
           hint="Remove or replace with a less hazardous option."
           suggestions={ELIM_SUB_SUGGESTIONS}
@@ -549,7 +642,7 @@ export function ControlsSection() {
         <ControlRow
           number={2}
           icon={<BarChart3 size={25} />}
-          iconClass="bg-teal-500 text-white"
+          iconClass="bg-accent-600 text-white"
           label="Reduction"
           hint="Reduce quantity, concentration or duration."
           suggestions={REDUCTION_SUGGESTIONS}
@@ -561,7 +654,7 @@ export function ControlsSection() {
         <ControlRow
           number={3}
           icon={<FileText size={25} />}
-          iconClass="bg-violet-500 text-white"
+          iconClass="bg-accent-600 text-white"
           label="Administrative controls"
           hint="Change the way people work."
           required
@@ -574,7 +667,7 @@ export function ControlsSection() {
         <ControlRow
           number={4}
           icon={<Wind size={25} />}
-          iconClass="bg-cyan-500 text-white"
+          iconClass="bg-accent-600 text-white"
           label="Air monitoring"
           hint="Confirm exposure stays controlled."
           required
@@ -587,7 +680,7 @@ export function ControlsSection() {
         <ControlRow
           number={5}
           icon={<Stethoscope size={25} />}
-          iconClass="bg-rose-500 text-white"
+          iconClass="bg-accent-600 text-white"
           label="Health surveillance"
           hint="Record any OH decision or trigger."
           required
@@ -633,7 +726,7 @@ function ControlRow({
         {icon}
       </div>
       <div>
-        <div className="text-sm font-semibold text-zinc-950">
+        <div className="text-sm font-semibold text-zinc-900">
           {number}. {label}
           {required && <span className="text-red-600 ml-0.5">*</span>}
         </div>

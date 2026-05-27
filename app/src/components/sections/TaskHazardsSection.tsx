@@ -1,5 +1,9 @@
+import { useState } from 'react';
 import clsx from 'clsx';
-import { Flag, Plus, ShieldCheck, Trash2 } from 'lucide-react';
+import {
+  AlertCircle, CheckCircle2, ChevronDown, ChevronUp,
+  Plus, ShieldCheck, Trash2,
+} from 'lucide-react';
 import { useAssessment } from '@/store/assessment';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { RiskMatrix } from '@/components/common/RiskMatrix';
@@ -92,7 +96,10 @@ function HazardCard({
   const hasRisk = riskRating(h.riskEvaluation) > 0;
   const hasFurtherAction = h.furtherAction.trim().length > 0;
   const missingHazard = h.hazard.trim().length === 0;
-  const tone = index % 2 === 0 ? 'indigo' : 'emerald';
+  const [collapsed, setCollapsed] = useState(false);
+  const isComplete = h.hazard.trim().length > 0 && hasRisk;
+  const headerTitle = h.hazard.trim();
+  const initialRisk = riskRating(h.riskEvaluation);
 
   // When the assessor scores the initial risk, mirror it into residualRisk
   // (which they will lower once controls are recorded). Only do this when
@@ -107,27 +114,59 @@ function HazardCard({
   };
 
   return (
-    <div className={clsx('hazard-card', `hazard-card-${tone}`)}>
-      <div className="hazard-card-header">
-        <div className="flex items-center gap-4">
-          <span className={clsx('hazard-badge', `hazard-badge-${tone}`)}>
-            <ShieldCheck size={22} strokeWidth={2.8} />
-          </span>
-          <div className="text-sm uppercase tracking-wide font-extrabold text-slate-800">
-            Hazard
-          </div>
-          <span className={clsx('hazard-index', `hazard-index-${tone}`)}>{index + 1}</span>
+    <div className="hazard-card">
+      <div
+        className="flex items-center gap-4 border-l-4 border-l-accent-600 border-b border-zinc-200 bg-white px-4 py-3 hover:bg-zinc-50"
+        role="button"
+        tabIndex={0}
+        onClick={() => setCollapsed((v) => !v)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setCollapsed((v) => !v);
+          }
+        }}
+        aria-expanded={!collapsed}
+      >
+        <div
+          className="shrink-0 w-8 h-8 rounded-full text-sm font-semibold flex items-center justify-center shadow-soft bg-accent-600 text-white"
+        >
+          {index + 1}
         </div>
+        <span className="min-w-0 truncate text-sm font-semibold text-accent-700">
+          {headerTitle || <span className="italic text-zinc-400">No description</span>}
+        </span>
+        <span className="hidden sm:inline text-sm text-zinc-500">
+          {initialRisk > 0 ? `${initialRisk} initial risk` : 'Risk not scored'}
+        </span>
+        <div className="flex-1" />
+        {isComplete ? (
+          <span className="hidden sm:inline-flex items-center gap-1 text-emerald-700 text-[11px] font-medium shrink-0">
+            <CheckCircle2 size={14} /> Complete
+          </span>
+        ) : (
+          <span className="hidden sm:inline-flex items-center gap-1 text-amber-700 text-[11px] font-medium shrink-0">
+            <AlertCircle size={14} /> Incomplete
+          </span>
+        )}
+        {collapsed ? (
+          <ChevronDown size={16} className="text-zinc-600 shrink-0" />
+        ) : (
+          <ChevronUp size={16} className="text-zinc-600 shrink-0" />
+        )}
         <button
           className="hazard-delete"
-          onClick={onRemove}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
           aria-label="Remove hazard"
         >
-          <Trash2 size={16} />
+          <Trash2 size={14} />
         </button>
       </div>
 
-      <div className="hazard-card-body">
+      {!collapsed && <div className="hazard-card-body">
         <label className="block">
           <span className="hazard-field-label">What is the hazard?<Req /></span>
           <textarea
@@ -164,6 +203,7 @@ function HazardCard({
           <RiskMatrix
             value={h.riskEvaluation}
             onChange={setInitialRisk}
+            compact
           />
         </div>
         <div className="hazard-risk-panel hazard-risk-residual">
@@ -174,7 +214,7 @@ function HazardCard({
             <span>
               Residual risk (with controls)
             {hasRisk && riskRating(h.residualRisk) > 0 && (
-              <span className="ml-1 font-medium text-slate-400">
+              <span className="ml-1 font-medium text-zinc-400">
                 · mirrors initial until lowered
               </span>
             )}
@@ -183,38 +223,29 @@ function HazardCard({
           <RiskMatrix
             value={h.residualRisk}
             onChange={(v) => onChange({ residualRisk: v })}
+            compact
           />
         </div>
 
-        <label className="hazard-mini-panel">
-          <span className="hazard-panel-icon hazard-panel-icon-purple">
-            <ShieldCheck size={18} />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="hazard-field-label mb-0">Control measures in place</span>
-            <textarea
-              className="hazard-inline-textarea"
-              rows={1}
-              value={h.controlsInPlace}
-              onChange={(e) => onChange({ controlsInPlace: e.target.value })}
-              placeholder="e.g. What controls are currently in place?"
-            />
-          </span>
+        <label className="block">
+          <span className="hazard-field-label">Control measures in place</span>
+          <textarea
+            className="field-textarea !min-h-[56px]"
+            rows={2}
+            value={h.controlsInPlace}
+            onChange={(e) => onChange({ controlsInPlace: e.target.value })}
+            placeholder="e.g. What controls are currently in place?"
+          />
         </label>
-        <label className="hazard-mini-panel">
-          <span className="hazard-panel-icon hazard-panel-icon-plain">
-            <Flag size={18} />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="hazard-field-label mb-0">Further action required</span>
-            <textarea
-              className="hazard-inline-textarea"
-              rows={1}
-              value={h.furtherAction}
-              onChange={(e) => onChange({ furtherAction: e.target.value })}
-              placeholder="e.g. Leave blank if no further action is needed."
-            />
-          </span>
+        <label className="block">
+          <span className="hazard-field-label">Further action required</span>
+          <textarea
+            className="field-textarea !min-h-[56px]"
+            rows={2}
+            value={h.furtherAction}
+            onChange={(e) => onChange({ furtherAction: e.target.value })}
+            placeholder="e.g. Leave blank if no further action is needed."
+          />
         </label>
 
         {hasFurtherAction && (
@@ -248,7 +279,7 @@ function HazardCard({
             </label>
           </div>
         )}
-      </div>
+      </div>}
     </div>
   );
 }

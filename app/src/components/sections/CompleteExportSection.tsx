@@ -1,6 +1,7 @@
 import { FileText, FileType2, Lock, ShieldOff } from 'lucide-react';
 import { useState } from 'react';
 import { useAssessment } from '@/store/assessment';
+import { SectionHeader } from '@/components/common/SectionHeader';
 import { exportPdf } from '@/services/exporters/pdf';
 import { exportDocx } from '@/services/exporters/docx';
 import { CoreSectionId, isSectionComplete } from '@/services/completion';
@@ -49,12 +50,10 @@ export function CompleteExportSection() {
 
   return (
     <section>
-      <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="section-title">Complete and export assessment</h2>
-          <p className="section-sub">Export the finished COSHH assessment as PDF or DOCX.</p>
-        </div>
-      </div>
+      <SectionHeader
+        title="Complete & Export"
+        subtitle="Export the finished COSHH assessment as PDF or DOCX."
+      />
 
       <div className="card p-5">
         {!canExport && (

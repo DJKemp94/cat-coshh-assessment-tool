@@ -23,7 +23,7 @@ body {
     @apply block text-xs font-medium text-zinc-600 mb-1;
   }
   .overview-label {
-    @apply mb-2 flex items-center gap-2 text-sm font-semibold text-zinc-700;
+    @apply mb-1 flex items-center gap-2 text-xs font-medium text-zinc-600;
   }
   .field-input {
     @apply w-full rounded-md border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900
@@ -64,101 +64,89 @@ body {
     @apply text-xs text-zinc-500 mt-0.5;
   }
   .hazard-card {
-    @apply overflow-hidden rounded-lg border bg-white shadow-soft;
+    @apply overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-soft;
   }
   .hazard-card-indigo {
-    @apply border-indigo-200;
+    @apply border-zinc-200;
   }
   .hazard-card-emerald {
-    @apply border-emerald-200;
+    @apply border-zinc-200;
   }
   .hazard-card-header {
-    @apply flex items-center justify-between gap-4 border-b px-5 py-3;
-    background:
-      radial-gradient(circle at 45% 0%, rgba(255,255,255,0.78), transparent 24rem),
-      linear-gradient(135deg, rgba(238,242,255,0.96), rgba(248,250,252,0.96) 60%, rgba(238,242,255,0.92));
+    @apply flex items-center justify-between gap-4 border-b border-zinc-200 bg-white px-4 py-3;
+    border-left: 4px solid theme('colors.accent.600');
   }
   .hazard-card-emerald .hazard-card-header {
-    background:
-      radial-gradient(circle at 45% 0%, rgba(255,255,255,0.8), transparent 24rem),
-      linear-gradient(135deg, rgba(209,250,229,0.82), rgba(248,250,252,0.96) 62%, rgba(204,251,241,0.76));
+    @apply bg-white;
   }
   .hazard-card-indigo .hazard-card-header {
-    @apply border-indigo-200;
+    @apply border-zinc-200;
   }
   .hazard-card-emerald .hazard-card-header {
-    @apply border-emerald-200;
+    @apply border-zinc-200;
   }
   .hazard-card-body {
-    @apply grid grid-cols-1 gap-4 p-5 md:grid-cols-2;
+    @apply grid grid-cols-1 gap-3 p-4 md:grid-cols-2;
   }
   .hazard-badge {
-    @apply inline-flex h-10 w-10 items-center justify-center rounded-xl border;
+    @apply inline-flex h-8 w-8 items-center justify-center rounded-full border;
   }
   .hazard-badge-indigo {
-    background: #eef2ff;
-    border-color: #c7d2fe;
-    color: #4f46e5;
-    box-shadow: 0 10px 20px rgba(79,70,229,0.16);
+    @apply border-accent-600 bg-accent-600 text-white shadow-soft;
   }
   .hazard-badge-emerald {
-    background: #d1fae5;
-    border-color: #a7f3d0;
-    color: #059669;
-    box-shadow: 0 10px 20px rgba(5,150,105,0.16);
+    @apply border-accent-600 bg-accent-600 text-white shadow-soft;
   }
   .hazard-index {
-    @apply inline-flex h-7 min-w-7 items-center justify-center rounded-full border bg-white px-2 text-sm font-bold;
+    @apply inline-flex h-7 min-w-7 items-center justify-center rounded-full border bg-white px-2 text-sm font-semibold shadow-soft;
   }
   .hazard-index-indigo {
-    @apply border-indigo-100 text-indigo-600;
+    @apply border-zinc-200 text-accent-700;
   }
   .hazard-index-emerald {
-    @apply border-emerald-100 text-emerald-600;
+    @apply border-zinc-200 text-accent-700;
   }
   .hazard-delete {
-    @apply inline-flex h-9 w-9 items-center justify-center rounded-md border border-red-100 bg-white text-red-600 transition hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-200;
+    @apply inline-flex h-8 w-8 items-center justify-center rounded-md border border-transparent bg-white text-red-500 transition hover:border-red-100 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-200;
   }
   .hazard-field-label {
-    @apply mb-2 block text-xs font-extrabold text-slate-700;
+    @apply mb-1 block text-xs font-medium text-zinc-600;
   }
   .hazard-textarea {
-    @apply w-full min-h-[76px] resize-y rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-soft placeholder:text-slate-400 focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-500;
+    @apply field-input min-h-[76px] resize-y;
   }
   .hazard-risk-panel {
-    @apply rounded-lg border p-4;
+    @apply rounded-md border px-3 py-3;
   }
   .hazard-risk-initial {
-    background: linear-gradient(135deg, rgba(255,251,235,0.86), rgba(255,255,255,0.94));
-    @apply border-amber-200;
+    @apply border-amber-200 bg-amber-50/45;
   }
   .hazard-risk-residual {
-    background: linear-gradient(135deg, rgba(238,242,255,0.84), rgba(255,255,255,0.94));
-    @apply border-indigo-100;
+    @apply border-accent-100 bg-accent-50/35;
   }
   .hazard-panel-heading {
-    @apply mb-3 flex items-center gap-3 text-xs font-extrabold text-slate-700;
+    @apply mb-2 flex items-center gap-2 text-xs font-semibold text-zinc-700;
   }
   .hazard-panel-icon {
-    @apply inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl;
+    @apply inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md;
   }
   .hazard-panel-icon-amber {
-    @apply bg-amber-100 text-amber-500;
+    @apply bg-amber-100 text-amber-600;
   }
   .hazard-panel-icon-indigo {
-    @apply bg-indigo-100 text-indigo-500;
+    @apply bg-accent-100 text-accent-700;
   }
   .hazard-panel-icon-purple {
-    @apply bg-violet-100 text-violet-500;
+    @apply bg-accent-50 text-accent-700;
   }
   .hazard-panel-icon-plain {
-    @apply bg-white text-violet-500;
+    @apply bg-white text-zinc-500;
   }
   .hazard-mini-panel {
-    @apply flex min-h-[68px] items-start gap-3 rounded-lg border border-slate-200 bg-white px-3 py-3 shadow-soft focus-within:border-accent-500 focus-within:ring-2 focus-within:ring-accent-500;
+    @apply block w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 shadow-soft placeholder:text-zinc-400 focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-500;
   }
   .hazard-inline-textarea {
-    @apply block w-full min-h-[24px] resize-y border-0 bg-transparent p-0 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-0;
+    @apply block w-full min-h-[44px] resize-y border-0 bg-transparent p-0 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-0;
   }
 }
 

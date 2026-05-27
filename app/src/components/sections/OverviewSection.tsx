@@ -1,10 +1,11 @@
 import clsx from 'clsx';
 import {
-  Building2, CalendarDays, Check, ClipboardList, FileText, GraduationCap,
+  Building2, CalendarDays, Check, FileText, GraduationCap,
   HardHat, Hash, IdCard, List, MapPin, Save, ShieldCheck, User, UserRound,
   Users, UsersRound, Globe2,
 } from 'lucide-react';
 import { useAssessment } from '@/store/assessment';
+import { SectionHeader } from '@/components/common/SectionHeader';
 import { PersonsAtRisk } from '@/types/assessment';
 
 const PERSONS: { key: keyof PersonsAtRisk; label: string; Icon: typeof User }[] = [
@@ -76,118 +77,113 @@ export function OverviewSection() {
   };
 
   return (
-    <section className="card overflow-hidden">
-      <div className="p-5 sm:p-6">
-        <div className="mb-7 flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-accent-50 text-accent-700 ring-1 ring-accent-100">
-            <ClipboardList size={26} />
-          </div>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-normal text-zinc-950">Overview</h1>
-            <p className="mt-1 text-sm text-zinc-500">
-              Identify the activity, who is doing it, and when it will be reviewed.
-            </p>
-          </div>
-        </div>
+    <section>
+      <SectionHeader
+        title="Overview"
+        subtitle="Identify the activity, who is doing it, and when it will be reviewed."
+      />
 
-        <div className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2">
-          {text('businessUnit', 'Business Unit', {
-            placeholder: 'e.g. School of Chemistry',
-            Icon: Building2,
-          })}
-          {text('riskAssessmentRef', 'Risk Assessment Ref No.', {
-            placeholder: 'RA-2026-001',
-            Icon: Hash,
-          })}
-          {text('sopRef', 'Safe Operating Procedure Ref No.', {
-            placeholder: 'SOP-...',
-            Icon: ShieldCheck,
-          })}
-          {text('assessor', 'Risk Assessor', {
-            required: true,
-            placeholder: 'Full name',
-            Icon: User,
-          })}
-          {date('dateOfAssessment', 'Date of Assessment', {
-            required: true,
-            Icon: CalendarDays,
-          })}
-          {date('dateOfNextReview', 'Date of Next Review', {
-            Icon: CalendarDays,
-          })}
-          {text('locations', 'Location(s) of Activity', {
-            placeholder: 'Building, room',
-            Icon: MapPin,
-          })}
-          {text('activityTitle', 'Activity Title', {
-            required: true,
-            placeholder: 'e.g. Solvent extraction',
-            Icon: FileText,
-          })}
-        </div>
-
-        <label className="mt-5 block">
-          <span className="overview-label">
-            <List size={16} />
-            Activity Outline
-          </span>
-          <textarea
-            className="field-textarea !min-h-[94px]"
-            value={overview.activityOutline}
-            onChange={(e) => update({ activityOutline: e.target.value })}
-            placeholder="Brief description of the activity, equipment, and any notable conditions."
-          />
-        </label>
-
-        <div className="mt-5">
-          <span className="overview-label">
-            <Users size={16} />
-            Persons at Risk<Req />
-          </span>
-          <div
-            className={clsx(
-              'flex flex-wrap gap-2 rounded-md border border-zinc-200 bg-zinc-50/70 p-3',
-              !anyPersonSelected && 'field-missing p-2',
-            )}
-          >
-            {PERSONS.map(({ key, label, Icon }) => {
-              const on = overview.personsAtRisk[key];
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() =>
-                    update({
-                      personsAtRisk: { ...overview.personsAtRisk, [key]: !on },
-                    })
-                  }
-                  className={
-                    'inline-flex min-h-9 items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-medium transition ' +
-                    (on
-                      ? 'bg-accent-50 text-accent-800 border-accent-300 ring-1 ring-accent-200'
-                      : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50')
-                  }
-                >
-                  <Icon size={16} />
-                  {label}
-                  {on && <Check size={15} className="text-accent-700" />}
-                </button>
-              );
+      <div className="card overflow-hidden">
+        <div className="p-5 sm:p-6">
+          <div className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2">
+            {text('businessUnit', 'Business Unit', {
+              placeholder: 'e.g. School of Chemistry',
+              Icon: Building2,
+            })}
+            {text('riskAssessmentRef', 'Risk Assessment Ref No.', {
+              placeholder: 'RA-2026-001',
+              Icon: Hash,
+            })}
+            {text('sopRef', 'Safe Operating Procedure Ref No.', {
+              placeholder: 'SOP-...',
+              Icon: ShieldCheck,
+            })}
+            {text('assessor', 'Risk Assessor', {
+              required: true,
+              placeholder: 'Full name',
+              Icon: User,
+            })}
+            {date('dateOfAssessment', 'Date of Assessment', {
+              required: true,
+              Icon: CalendarDays,
+            })}
+            {date('dateOfNextReview', 'Date of Next Review', {
+              Icon: CalendarDays,
+            })}
+            {text('locations', 'Location(s) of Activity', {
+              placeholder: 'Building, room',
+              Icon: MapPin,
+            })}
+            {text('activityTitle', 'Activity Title', {
+              required: true,
+              placeholder: 'e.g. Solvent extraction',
+              Icon: FileText,
             })}
           </div>
-          {!anyPersonSelected && (
-            <div className="text-[11px] text-amber-800 mt-1">
-              Select at least one group.
-            </div>
-          )}
-        </div>
-      </div>
 
-      <div className="flex items-center justify-end gap-3 border-t border-zinc-200 bg-white px-5 py-4 sm:px-6">
-        <button type="button" className="btn-secondary">Cancel</button>
-        <button type="button" className="btn-primary">
-          <Save size={15} /> Save Overview
-        </button>
+          <label className="mt-5 block">
+            <span className="overview-label">
+              <List size={16} />
+              Activity Outline
+            </span>
+            <textarea
+              className="field-textarea !min-h-[94px]"
+              value={overview.activityOutline}
+              onChange={(e) => update({ activityOutline: e.target.value })}
+              placeholder="Brief description of the activity, equipment, and any notable conditions."
+            />
+          </label>
+
+          <div className="mt-5">
+            <span className="overview-label">
+              <Users size={16} />
+              Persons at Risk<Req />
+            </span>
+            <div
+              className={clsx(
+                'flex flex-wrap gap-2 rounded-md border border-zinc-200 bg-zinc-50/70 p-3',
+                !anyPersonSelected && 'field-missing p-2',
+              )}
+            >
+              {PERSONS.map(({ key, label, Icon }) => {
+                const on = overview.personsAtRisk[key];
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() =>
+                      update({
+                        personsAtRisk: { ...overview.personsAtRisk, [key]: !on },
+                      })
+                    }
+                    className={
+                      'inline-flex min-h-9 items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-medium transition ' +
+                      (on
+                        ? 'bg-accent-50 text-accent-800 border-accent-300 ring-1 ring-accent-200'
+                        : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50')
+                    }
+                  >
+                    <Icon size={16} />
+                    {label}
+                    {on && <Check size={15} className="text-accent-700" />}
+                  </button>
+                );
+              })}
+            </div>
+            {!anyPersonSelected && (
+              <div className="text-[11px] text-amber-800 mt-1">
+                Select at least one group.
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-3 border-t border-zinc-200 bg-white px-5 py-4 sm:px-6">
+          <button type="button" className="btn-secondary">Cancel</button>
+          <button type="button" className="btn-primary">
+            <Save size={15} /> Save Overview
+          </button>
+        </div>
       </div>
     </section>
   );

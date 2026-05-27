@@ -82,7 +82,7 @@ export function EmergencySection() {
               title="First aid"
               subtitle="For exposure to the substance"
               icon={<Cross size={18} />}
-              iconClass="bg-sky-500 text-white"
+              iconClass="bg-accent-50 text-accent-700 ring-1 ring-accent-100"
               field={ta(
                 'emergencyFirstAid',
                 'emergencyFirstAid',
@@ -97,7 +97,7 @@ export function EmergencySection() {
               title="Spills"
               subtitle="Spill control and clean up"
               icon={<Droplets size={18} />}
-              iconClass="bg-amber-500 text-white"
+              iconClass="bg-accent-50 text-accent-700 ring-1 ring-accent-100"
               field={ta(
                 'emergencySpills',
                 'emergencySpills',
@@ -112,7 +112,7 @@ export function EmergencySection() {
               title="Fire response"
               subtitle="In case of fire"
               icon={<Flame size={18} />}
-              iconClass="bg-red-500 text-white"
+              iconClass="bg-accent-50 text-accent-700 ring-1 ring-accent-100"
               field={ta(
                 'emergencyFire',
                 'emergencyFire',
@@ -127,7 +127,7 @@ export function EmergencySection() {
               title="Disposal"
               subtitle="Waste and disposal"
               icon={<Trash2 size={18} />}
-              iconClass="bg-violet-500 text-white"
+              iconClass="bg-accent-50 text-accent-700 ring-1 ring-accent-100"
               field={ta(
                 'wasteHandling',
                 'wasteHandling',
@@ -143,7 +143,7 @@ export function EmergencySection() {
           <div className="rounded-md border border-zinc-200 p-3">
             <div className="mb-2 flex items-center justify-between gap-2">
               <div className="inline-flex items-center gap-2 text-sm font-medium text-zinc-900">
-                <Sparkles size={16} className="text-sky-500" />
+                <Sparkles size={16} className="text-accent-700" />
                 Generated summary <span className="text-xs font-normal text-zinc-500">(editable)</span>
               </div>
               <span className="pill">{Math.max(1, suggestions.emergencyFire.length)} suggestion</span>
@@ -224,7 +224,7 @@ function EmergencyRow({
         onClick={() => setOpen((v) => !v)}
         className="grid w-full grid-cols-[2.5rem_8rem_1fr_auto_1.5rem] items-center gap-3 px-3 py-3 text-left hover:bg-zinc-50"
       >
-        <span className={clsx('flex h-8 w-8 items-center justify-center rounded-full', iconClass)}>{icon}</span>
+        <span className={clsx('flex h-8 w-8 items-center justify-center rounded-md', iconClass)}>{icon}</span>
         <span className="font-semibold text-zinc-900">{title}</span>
         <span className="hidden text-xs text-zinc-500 sm:block">{preview || subtitle}</span>
         <span className="pill">{suggestions || 1} suggestion{suggestions === 1 ? '' : 's'}</span>

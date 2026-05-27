@@ -25,9 +25,9 @@ export function RiskMatrix({ value, onChange, compact }: Props) {
     label: string,
     key: 'likelihood' | 'severity',
   ) => (
-    <div className="flex items-center gap-3">
-      <span className="text-xs text-slate-600 w-20">{label}</span>
-      <div className="flex gap-2">
+    <div className={clsx('flex items-center', compact ? 'gap-2' : 'gap-3')}>
+      <span className={clsx('text-xs text-zinc-600', compact ? 'w-16' : 'w-20')}>{label}</span>
+      <div className={clsx('flex', compact ? 'gap-1.5' : 'gap-2')}>
         {LEVELS.map((n) => {
           const on = value[key] === n;
           return (
@@ -36,10 +36,11 @@ export function RiskMatrix({ value, onChange, compact }: Props) {
               type="button"
               onClick={() => onChange({ ...value, [key]: n })}
               className={clsx(
-                'h-7 w-10 rounded-md text-sm font-semibold border transition shadow-soft',
+                'rounded-md font-semibold border transition shadow-soft',
+                compact ? 'h-7 w-9 text-xs' : 'h-7 w-10 text-sm',
                 on
                   ? 'bg-accent-600 text-white border-accent-600'
-                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50',
+                  : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50',
               )}
             >
               {n}
@@ -51,12 +52,12 @@ export function RiskMatrix({ value, onChange, compact }: Props) {
   );
 
   return (
-    <div className={clsx('flex flex-col gap-2', compact && 'text-xs')}>
+    <div className={clsx('flex flex-col', compact ? 'gap-1.5' : 'gap-2')}>
       {select('Likelihood', 'likelihood')}
       {select('Severity', 'severity')}
-      <div className="flex items-center gap-3">
-        <span className="text-xs text-slate-600 w-20">Rating</span>
-        <span className={clsx('px-3 py-1 rounded-md text-sm font-bold', band.cls)}>
+      <div className={clsx('flex items-center', compact ? 'gap-2' : 'gap-3')}>
+        <span className={clsx('text-xs text-zinc-600', compact ? 'w-16' : 'w-20')}>Rating</span>
+        <span className={clsx('rounded-md font-bold', compact ? 'px-2.5 py-0.5 text-xs' : 'px-3 py-1 text-sm', band.cls)}>
           {rating || '—'} · {band.label}
         </span>
       </div>
