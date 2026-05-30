@@ -14,6 +14,7 @@ import { SettingsSection } from '@/components/sections/SettingsSection';
 import { HelpSection } from '@/components/sections/HelpSection';
 import { PrivacyModal } from '@/components/common/PrivacyModal';
 import { Modal } from '@/components/common/Modal';
+import { SectionPager } from '@/components/common/SectionPager';
 
 export function AppShell() {
   const section = useAssessment((s) => s.activeSection);
@@ -56,7 +57,10 @@ export function AppShell() {
             onOpenHelp={() => setHelpOpen(true)}
           />
           <main className="flex-1 overflow-y-auto bg-zinc-50">
-            <div className={`${section === 'additional' || section === 'emergency' ? 'max-w-7xl' : 'max-w-5xl'} mx-auto p-6`}>{content}</div>
+            <div className={`${section === 'additional' || section === 'emergency' ? 'max-w-7xl' : 'max-w-5xl'} mx-auto p-6`}>
+              {content}
+              <SectionPager current={section} />
+            </div>
           </main>
         </div>
       </div>

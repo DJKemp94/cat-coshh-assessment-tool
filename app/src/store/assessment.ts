@@ -194,7 +194,7 @@ export const useAssessment = create<AssessmentState>((set, get) => {
           const expectedPriorReview = prior
             ? (() => {
                 const d = new Date(prior + 'T00:00:00');
-                d.setFullYear(d.getFullYear() + 1);
+                d.setFullYear(d.getFullYear() + 2);
                 return d.toISOString().slice(0, 10);
               })()
             : '';
@@ -203,7 +203,7 @@ export const useAssessment = create<AssessmentState>((set, get) => {
             a.overview.dateOfNextReview === expectedPriorReview;
           if (reviewIsDefault && patch.dateOfAssessment) {
             const d = new Date(patch.dateOfAssessment + 'T00:00:00');
-            d.setFullYear(d.getFullYear() + 1);
+            d.setFullYear(d.getFullYear() + 2);
             next = { ...next, dateOfNextReview: d.toISOString().slice(0, 10) };
           }
         }

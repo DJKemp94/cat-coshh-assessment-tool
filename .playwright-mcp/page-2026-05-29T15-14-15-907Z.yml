@@ -1,0 +1,152 @@
+- generic [ref=e4]:
+  - complementary [ref=e5]:
+    - generic [ref=e6]:
+      - img "CAT logo" [ref=e7]
+      - generic [ref=e8]:
+        - generic [ref=e9]: CAT
+        - generic [ref=e10]: COSHH Assessment Tool
+    - generic [ref=e11]:
+      - generic [ref=e12]: Assessment
+      - generic [ref=e13]: 1 of 7
+    - navigation [ref=e14]:
+      - button "Overview" [ref=e15] [cursor=pointer]:
+        - img [ref=e16]
+        - generic [ref=e19]: Overview
+        - generic "Section complete" [ref=e20]:
+          - img [ref=e21]
+      - button "Process Steps Section pending" [ref=e23] [cursor=pointer]:
+        - img [ref=e24]
+        - generic [ref=e26]: Process Steps
+        - generic "Section pending" [ref=e27]
+      - button "Non-Chemical Hazards" [disabled] [ref=e28]:
+        - img [ref=e29]
+        - generic [ref=e31]: Non-Chemical Hazards
+        - generic "Locked until previous sections are complete" [ref=e32]:
+          - img [ref=e33]
+      - button "Controls" [disabled] [ref=e36]:
+        - img [ref=e37]
+        - generic [ref=e40]: Controls
+        - generic "Locked until previous sections are complete" [ref=e41]:
+          - img [ref=e42]
+      - button "Storage" [disabled] [ref=e45]:
+        - img [ref=e46]
+        - generic [ref=e50]: Storage
+        - generic "Locked until previous sections are complete" [ref=e51]:
+          - img [ref=e52]
+      - button "Emergency Response" [disabled] [ref=e55]:
+        - img [ref=e56]
+        - generic [ref=e61]: Emergency Response
+        - generic "Locked until previous sections are complete" [ref=e62]:
+          - img [ref=e63]
+      - button "Briefing & Sign-off" [disabled] [ref=e66]:
+        - img [ref=e67]
+        - generic [ref=e72]: Briefing & Sign-off
+        - generic "Locked until previous sections are complete" [ref=e73]:
+          - img [ref=e74]
+      - button "Complete & Export" [disabled] [ref=e77]:
+        - img [ref=e78]
+        - generic [ref=e81]: Complete & Export
+        - generic "Locked until previous sections are complete" [ref=e82]:
+          - img [ref=e83]
+    - generic [ref=e86]:
+      - img [ref=e87]
+      - generic [ref=e88]:
+        - text: Please do not
+        - text: the cat...
+      - img [ref=e89]
+  - generic [ref=e90]:
+    - banner [ref=e91]:
+      - generic [ref=e92]:
+        - generic [ref=e93]: New COSHH Assessment
+        - generic [ref=e94]: Draft auto-saves in this browser
+      - button "Download catdraft" [ref=e95] [cursor=pointer]:
+        - img [ref=e96]
+        - generic [ref=e100]: Download catdraft
+      - generic "Import .catdraft backup" [ref=e101] [cursor=pointer]:
+        - img [ref=e102]
+        - generic [ref=e105]: Import catdraft
+      - button "Open settings" [ref=e106] [cursor=pointer]:
+        - img [ref=e107]
+      - button "Open help" [ref=e110] [cursor=pointer]:
+        - img [ref=e111]
+    - main [ref=e114]:
+      - generic [ref=e116]:
+        - generic [ref=e118]:
+          - heading "Overview" [level=1] [ref=e119]
+          - paragraph [ref=e120]: Identify the activity, who is doing it, and when it will be reviewed.
+        - generic [ref=e121]:
+          - generic [ref=e122]:
+            - generic [ref=e123]:
+              - generic [ref=e124]:
+                - generic [ref=e125]:
+                  - img [ref=e126]
+                  - text: Business Unit
+                - textbox "Business Unit" [ref=e130]:
+                  - /placeholder: e.g. School of Chemistry
+              - generic [ref=e131]:
+                - generic [ref=e132]:
+                  - img [ref=e133]
+                  - text: Location
+                - textbox "Location" [ref=e136]:
+                  - /placeholder: Building, room
+              - generic [ref=e137]:
+                - generic [ref=e138]:
+                  - img [ref=e139]
+                  - text: Risk Assessor
+                  - generic "required" [ref=e142]: "*"
+                - textbox "Risk Assessor required" [ref=e143]:
+                  - /placeholder: Full name
+                  - text: QA Tester
+              - generic [ref=e144]:
+                - generic [ref=e145]:
+                  - img [ref=e146]
+                  - text: SOP Ref number(s)
+                - textbox "SOP Ref number(s)" [ref=e149]:
+                  - /placeholder: SOP-...
+              - generic [ref=e150]:
+                - generic [ref=e151]:
+                  - img [ref=e152]
+                  - text: Date of Assessment
+                  - generic "required" [ref=e154]: "*"
+                - textbox "Date of Assessment required" [ref=e155]: 2026-05-29
+              - generic [ref=e156]:
+                - generic [ref=e157]:
+                  - img [ref=e158]
+                  - text: Date of Review
+                - textbox "Date of Review" [ref=e160]: 2028-05-29
+            - generic [ref=e161]:
+              - generic [ref=e162]:
+                - img [ref=e163]
+                - text: Activity Outline
+              - textbox "Activity Outline" [ref=e164]:
+                - /placeholder: Brief description of the activity, equipment, and any notable conditions.
+            - generic [ref=e165]:
+              - generic [ref=e166]:
+                - img [ref=e167]
+                - text: Persons at Risk
+                - generic "required" [ref=e172]: "*"
+              - generic [ref=e173]:
+                - button "Staff" [ref=e174] [cursor=pointer]:
+                  - img [ref=e175]
+                  - text: Staff
+                  - img [ref=e178]
+                - button "Students" [ref=e180] [cursor=pointer]:
+                  - img [ref=e181]
+                  - text: Students
+                - button "Third Party" [ref=e184] [cursor=pointer]:
+                  - img [ref=e185]
+                  - text: Third Party
+                - button "Contractors" [ref=e189] [cursor=pointer]:
+                  - img [ref=e190]
+                  - text: Contractors
+                - button "Visitors" [ref=e195] [cursor=pointer]:
+                  - img [ref=e196]
+                  - text: Visitors
+                - button "Public" [ref=e200] [cursor=pointer]:
+                  - img [ref=e201]
+                  - text: Public
+          - generic [ref=e206]:
+            - button "Cancel" [ref=e207] [cursor=pointer]
+            - button "Save Overview" [ref=e208] [cursor=pointer]:
+              - img [ref=e209]
+              - text: Save Overview

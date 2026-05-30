@@ -485,13 +485,11 @@ export async function exportPdf(a: Assessment): Promise<void> {
   sectionBanner(ctx, 1, 'Overview');
   kvBlock(ctx, [
     ['Business Unit', a.overview.businessUnit],
-    ['Risk Assessment Ref', a.overview.riskAssessmentRef],
-    ['SOP Ref', a.overview.sopRef],
+    ['Location', a.overview.locations],
     ['Risk Assessor', a.overview.assessor],
+    ['SOP Ref number(s)', a.overview.sopRef],
     ['Date of Assessment', a.overview.dateOfAssessment],
-    ['Date of Next Review', a.overview.dateOfNextReview],
-    ['Location(s)', a.overview.locations],
-    ['Activity Title', a.overview.activityTitle],
+    ['Date of Review', a.overview.dateOfNextReview],
     ['Persons at Risk', personsLine(a.overview.personsAtRisk)],
   ]);
   drawText(ctx, 'Activity Outline', { size: 9, bold: true, color: MUTED });

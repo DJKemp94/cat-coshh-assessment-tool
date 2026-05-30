@@ -94,10 +94,22 @@ function HazardCard({
   onRemove: () => void;
 }) {
   const hasRisk = riskRating(h.riskEvaluation) > 0;
+  const hasResidualRisk = riskRating(h.residualRisk) > 0;
   const hasFurtherAction = h.furtherAction.trim().length > 0;
   const missingHazard = h.hazard.trim().length === 0;
+  const missingHarmMechanism = h.harmMechanism.trim().length === 0;
+  const missingControls = h.controlsInPlace.trim().length === 0;
+  const missingOwner = hasFurtherAction && h.owner.trim().length === 0;
+  const missingDueDate = hasFurtherAction && h.dueDate.trim().length === 0;
+  const missingCompletionDate = hasFurtherAction && h.completionDate.trim().length === 0;
   const [collapsed, setCollapsed] = useState(false);
-  const isComplete = h.hazard.trim().length > 0 && hasRisk;
+  const isComplete =
+    h.hazard.trim().length > 0 &&
+    h.harmMechanism.trim().length > 0 &&
+    hasRisk &&
+    hasResidualRisk &&
+    h.controlsInPlace.trim().length > 0 &&
+    (!hasFurtherAction || (!missingOwner && !missingDueDate && !missingCompletionDate));
   const headerTitle = h.hazard.trim();
   const initialRisk = riskRating(h.riskEvaluation);
 
@@ -178,9 +190,9 @@ function HazardCard({
           />
         </label>
         <label className="block">
-          <span className="hazard-field-label">How might harm occur?</span>
+          <span className="hazard-field-label">How might harm occur?<Req /></span>
           <textarea
-            className="hazard-textarea"
+            className={clsx('hazard-textarea', missingHarmMechanism && 'field-missing')}
             rows={2}
             value={h.harmMechanism}
             onChange={(e) => onChange({ harmMechanism: e.target.value })}
@@ -206,13 +218,18 @@ function HazardCard({
             compact
           />
         </div>
-        <div className="hazard-risk-panel hazard-risk-residual">
+        <div
+          className={clsx(
+            'hazard-risk-panel hazard-risk-residual',
+            !hasResidualRisk && 'field-missing',
+          )}
+        >
           <div className="hazard-panel-heading">
             <span className="hazard-panel-icon hazard-panel-icon-indigo">
               <ShieldCheck size={18} />
             </span>
             <span>
-              Residual risk (with controls)
+              Residual risk (with controls)<Req />
             {hasRisk && riskRating(h.residualRisk) > 0 && (
               <span className="ml-1 font-medium text-zinc-400">
                 · mirrors initial until lowered
@@ -228,9 +245,9 @@ function HazardCard({
         </div>
 
         <label className="block">
-          <span className="hazard-field-label">Control measures in place</span>
+          <span className="hazard-field-label">Control measures in place<Req /></span>
           <textarea
-            className="field-textarea !min-h-[56px]"
+            className={clsx('field-textarea !min-h-[56px]', missingControls && 'field-missing')}
             rows={2}
             value={h.controlsInPlace}
             onChange={(e) => onChange({ controlsInPlace: e.target.value })}
@@ -251,28 +268,28 @@ function HazardCard({
         {hasFurtherAction && (
           <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
             <label className="block">
-              <span className="hazard-field-label">Action owner</span>
+              <span className="hazard-field-label">Action owner<Req /></span>
               <input
-                className="field-input"
+                className={clsx('field-input', missingOwner && 'field-missing')}
                 value={h.owner}
                 onChange={(e) => onChange({ owner: e.target.value })}
                 placeholder="Who will close this out?"
               />
             </label>
             <label className="block">
-              <span className="hazard-field-label">Due date</span>
+              <span className="hazard-field-label">Due date<Req /></span>
               <input
                 type="date"
-                className="field-input"
+                className={clsx('field-input', missingDueDate && 'field-missing')}
                 value={h.dueDate}
                 onChange={(e) => onChange({ dueDate: e.target.value })}
               />
             </label>
             <label className="block">
-              <span className="hazard-field-label">Completion date</span>
+              <span className="hazard-field-label">Completion date<Req /></span>
               <input
                 type="date"
-                className="field-input"
+                className={clsx('field-input', missingCompletionDate && 'field-missing')}
                 value={h.completionDate}
                 onChange={(e) => onChange({ completionDate: e.target.value })}
               />

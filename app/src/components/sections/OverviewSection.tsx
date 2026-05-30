@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 import {
-  Building2, CalendarDays, Check, FileText, GraduationCap,
-  HardHat, Hash, IdCard, List, MapPin, Save, ShieldCheck, User, UserRound,
+  Building2, CalendarDays, Check, GraduationCap,
+  HardHat, IdCard, List, MapPin, ShieldCheck, User, UserRound,
   Users, UsersRound, Globe2,
 } from 'lucide-react';
 import { useAssessment } from '@/store/assessment';
@@ -90,34 +90,25 @@ export function OverviewSection() {
               placeholder: 'e.g. School of Chemistry',
               Icon: Building2,
             })}
-            {text('riskAssessmentRef', 'Risk Assessment Ref No.', {
-              placeholder: 'RA-2026-001',
-              Icon: Hash,
-            })}
-            {text('sopRef', 'Safe Operating Procedure Ref No.', {
-              placeholder: 'SOP-...',
-              Icon: ShieldCheck,
+            {text('locations', 'Location', {
+              placeholder: 'Building, room',
+              Icon: MapPin,
             })}
             {text('assessor', 'Risk Assessor', {
               required: true,
               placeholder: 'Full name',
               Icon: User,
             })}
+            {text('sopRef', 'SOP Ref number(s)', {
+              placeholder: 'SOP-...',
+              Icon: ShieldCheck,
+            })}
             {date('dateOfAssessment', 'Date of Assessment', {
               required: true,
               Icon: CalendarDays,
             })}
-            {date('dateOfNextReview', 'Date of Next Review', {
+            {date('dateOfNextReview', 'Date of Review', {
               Icon: CalendarDays,
-            })}
-            {text('locations', 'Location(s) of Activity', {
-              placeholder: 'Building, room',
-              Icon: MapPin,
-            })}
-            {text('activityTitle', 'Activity Title', {
-              required: true,
-              placeholder: 'e.g. Solvent extraction',
-              Icon: FileText,
             })}
           </div>
 
@@ -176,13 +167,6 @@ export function OverviewSection() {
               </div>
             )}
           </div>
-        </div>
-
-        <div className="flex items-center justify-end gap-3 border-t border-zinc-200 bg-white px-5 py-4 sm:px-6">
-          <button type="button" className="btn-secondary">Cancel</button>
-          <button type="button" className="btn-primary">
-            <Save size={15} /> Save Overview
-          </button>
         </div>
       </div>
     </section>

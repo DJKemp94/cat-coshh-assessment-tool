@@ -1,4 +1,4 @@
-import { Settings as SettingsIcon, HelpCircle, Save, Upload } from 'lucide-react';
+import { FilePlus2, Settings as SettingsIcon, HelpCircle, Save, Upload } from 'lucide-react';
 import { useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { useAssessment } from '@/store/assessment';
@@ -12,6 +12,7 @@ interface Props {
 export function TopBar({ onOpenSettings, onOpenHelp }: Props) {
   const assessment = useAssessment((s) => s.assessment);
   const replace = useAssessment((s) => s.replaceAssessment);
+  const reset = useAssessment((s) => s.resetAssessment);
   const [busy, setBusy] = useState<string | null>(null);
 
   const title = assessment.overview.activityTitle || 'New COSHH Assessment';
@@ -39,6 +40,17 @@ export function TopBar({ onOpenSettings, onOpenHelp }: Props) {
     });
   };
 
+  const handleNewAssessment = () => {
+    const confirmed = window.confirm(
+      'Starting a new assessment will clear the current assessment from this browser. A .catdraft backup will download first so you can restore it later. Continue?',
+    );
+    if (!confirmed) return;
+    run('New assessment', async () => {
+      await downloadCatdraft(assessment);
+      reset();
+    });
+  };
+
   return (
     <header className="h-14 shrink-0 border-b border-zinc-200 bg-white flex items-center px-5 gap-3">
       <div className="flex-1 min-w-0">
@@ -48,6 +60,16 @@ export function TopBar({ onOpenSettings, onOpenHelp }: Props) {
         </div>
       </div>
 
+      <button
+        type="button"
+        className="inline-flex items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-50"
+        disabled={busy !== null}
+        onClick={handleNewAssessment}
+        title="Download a catdraft backup and start a new assessment"
+      >
+        <FilePlus2 size={14} />
+        <span className="hidden md:inline">New assessment</span>
+      </button>
       <button
         type="button"
         className="inline-flex items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-50"

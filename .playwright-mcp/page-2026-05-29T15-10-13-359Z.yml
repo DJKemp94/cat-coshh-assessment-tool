@@ -1,0 +1,170 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - complementary [ref=e5]:
+      - generic [ref=e6]:
+        - img "CAT logo" [ref=e7]
+        - generic [ref=e8]:
+          - generic [ref=e9]: CAT
+          - generic [ref=e10]: COSHH Assessment Tool
+      - generic [ref=e11]:
+        - generic [ref=e12]: Assessment
+        - generic [ref=e13]: 0 of 7
+      - navigation [ref=e14]:
+        - button "Overview Section pending" [ref=e15] [cursor=pointer]:
+          - img [ref=e16]
+          - generic [ref=e19]: Overview
+          - generic "Section pending" [ref=e20]
+        - button "Process Steps" [disabled] [ref=e21]:
+          - img [ref=e22]
+          - generic [ref=e24]: Process Steps
+          - generic "Locked until previous sections are complete" [ref=e25]:
+            - img [ref=e26]
+        - button "Non-Chemical Hazards" [disabled] [ref=e29]:
+          - img [ref=e30]
+          - generic [ref=e32]: Non-Chemical Hazards
+          - generic "Locked until previous sections are complete" [ref=e33]:
+            - img [ref=e34]
+        - button "Controls" [disabled] [ref=e37]:
+          - img [ref=e38]
+          - generic [ref=e41]: Controls
+          - generic "Locked until previous sections are complete" [ref=e42]:
+            - img [ref=e43]
+        - button "Storage" [disabled] [ref=e46]:
+          - img [ref=e47]
+          - generic [ref=e51]: Storage
+          - generic "Locked until previous sections are complete" [ref=e52]:
+            - img [ref=e53]
+        - button "Emergency Response" [disabled] [ref=e56]:
+          - img [ref=e57]
+          - generic [ref=e62]: Emergency Response
+          - generic "Locked until previous sections are complete" [ref=e63]:
+            - img [ref=e64]
+        - button "Briefing & Sign-off" [disabled] [ref=e67]:
+          - img [ref=e68]
+          - generic [ref=e73]: Briefing & Sign-off
+          - generic "Locked until previous sections are complete" [ref=e74]:
+            - img [ref=e75]
+        - button "Complete & Export" [disabled] [ref=e78]:
+          - img [ref=e79]
+          - generic [ref=e82]: Complete & Export
+          - generic "Locked until previous sections are complete" [ref=e83]:
+            - img [ref=e84]
+      - generic [ref=e87]:
+        - img [ref=e88]
+        - generic [ref=e89]:
+          - text: Please do not
+          - text: the cat...
+        - img [ref=e90]
+    - generic [ref=e91]:
+      - banner [ref=e92]:
+        - generic [ref=e93]:
+          - generic [ref=e94]: New COSHH Assessment
+          - generic [ref=e95]: Draft auto-saves in this browser
+        - button "Download catdraft" [ref=e96] [cursor=pointer]:
+          - img [ref=e97]
+          - generic [ref=e101]: Download catdraft
+        - generic "Import .catdraft backup" [ref=e102] [cursor=pointer]:
+          - img [ref=e103]
+          - generic [ref=e106]: Import catdraft
+        - button "Open settings" [ref=e107] [cursor=pointer]:
+          - img [ref=e108]
+        - button "Open help" [ref=e111] [cursor=pointer]:
+          - img [ref=e112]
+      - main [ref=e115]:
+        - generic [ref=e117]:
+          - generic [ref=e119]:
+            - heading "Overview" [level=1] [ref=e120]
+            - paragraph [ref=e121]: Identify the activity, who is doing it, and when it will be reviewed.
+          - generic [ref=e122]:
+            - generic [ref=e123]:
+              - generic [ref=e124]:
+                - generic [ref=e125]:
+                  - generic [ref=e126]:
+                    - img [ref=e127]
+                    - text: Business Unit
+                  - textbox "Business Unit" [ref=e131]:
+                    - /placeholder: e.g. School of Chemistry
+                - generic [ref=e132]:
+                  - generic [ref=e133]:
+                    - img [ref=e134]
+                    - text: Location
+                  - textbox "Location" [ref=e137]:
+                    - /placeholder: Building, room
+                - generic [ref=e138]:
+                  - generic [ref=e139]:
+                    - img [ref=e140]
+                    - text: Risk Assessor
+                    - generic "required" [ref=e143]: "*"
+                  - textbox "Risk Assessor required" [ref=e144]:
+                    - /placeholder: Full name
+                - generic [ref=e145]:
+                  - generic [ref=e146]:
+                    - img [ref=e147]
+                    - text: SOP Ref number(s)
+                  - textbox "SOP Ref number(s)" [ref=e150]:
+                    - /placeholder: SOP-...
+                - generic [ref=e151]:
+                  - generic [ref=e152]:
+                    - img [ref=e153]
+                    - text: Date of Assessment
+                    - generic "required" [ref=e155]: "*"
+                  - textbox "Date of Assessment required" [ref=e156]: 2026-05-29
+                - generic [ref=e157]:
+                  - generic [ref=e158]:
+                    - img [ref=e159]
+                    - text: Date of Review
+                  - textbox "Date of Review" [ref=e161]: 2028-05-29
+              - generic [ref=e162]:
+                - generic [ref=e163]:
+                  - img [ref=e164]
+                  - text: Activity Outline
+                - textbox "Activity Outline" [ref=e165]:
+                  - /placeholder: Brief description of the activity, equipment, and any notable conditions.
+              - generic [ref=e166]:
+                - generic [ref=e167]:
+                  - img [ref=e168]
+                  - text: Persons at Risk
+                  - generic "required" [ref=e173]: "*"
+                - generic [ref=e174]:
+                  - button "Staff" [ref=e175] [cursor=pointer]:
+                    - img [ref=e176]
+                    - text: Staff
+                  - button "Students" [ref=e179] [cursor=pointer]:
+                    - img [ref=e180]
+                    - text: Students
+                  - button "Third Party" [ref=e183] [cursor=pointer]:
+                    - img [ref=e184]
+                    - text: Third Party
+                  - button "Contractors" [ref=e188] [cursor=pointer]:
+                    - img [ref=e189]
+                    - text: Contractors
+                  - button "Visitors" [ref=e194] [cursor=pointer]:
+                    - img [ref=e195]
+                    - text: Visitors
+                  - button "Public" [ref=e199] [cursor=pointer]:
+                    - img [ref=e200]
+                    - text: Public
+                - generic [ref=e205]: Select at least one group.
+            - generic [ref=e206]:
+              - button "Cancel" [ref=e207] [cursor=pointer]
+              - button "Save Overview" [ref=e208] [cursor=pointer]:
+                - img [ref=e209]
+                - text: Save Overview
+  - generic [ref=e214]:
+    - generic [ref=e215]:
+      - img [ref=e217]
+      - heading "Before you start — privacy first" [level=2] [ref=e220]
+    - generic [ref=e221]:
+      - paragraph [ref=e222]:
+        - text: CAT is a
+        - strong [ref=e223]: browser-only
+        - text: tool. It does not host accounts and is not an online repository of assessments.
+      - list [ref=e224]:
+        - listitem [ref=e225]: Your assessment lives in this browser only.
+        - listitem [ref=e226]:
+          - text: Export PDF, DOCX or
+          - code [ref=e227]: .catdraft
+          - text: regularly — clearing site data will erase any unsaved work.
+        - listitem [ref=e228]: Only chemical names you choose to look up are sent to PubChem. No assessment content ever leaves your device.
+        - listitem [ref=e229]: You are responsible for storing exported files securely.
+    - button "I understand — start assessment" [ref=e231] [cursor=pointer]

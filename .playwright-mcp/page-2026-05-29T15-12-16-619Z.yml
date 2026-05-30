@@ -1,0 +1,103 @@
+- generic [ref=e4]:
+  - complementary [ref=e5]:
+    - generic [ref=e6]:
+      - img "CAT logo" [ref=e7]
+      - generic [ref=e8]:
+        - generic [ref=e9]: CAT
+        - generic [ref=e10]: COSHH Assessment Tool
+    - generic [ref=e11]:
+      - generic [ref=e12]: Assessment
+      - generic [ref=e13]: 1 of 7
+    - navigation [ref=e14]:
+      - button "Overview" [ref=e238] [cursor=pointer]:
+        - img [ref=e16]
+        - generic [ref=e19]: Overview
+        - generic "Section complete" [ref=e239]:
+          - img [ref=e240]
+      - button "Process Steps Section pending" [ref=e242] [cursor=pointer]:
+        - img [ref=e22]
+        - generic [ref=e24]: Process Steps
+        - generic "Section pending" [ref=e243]
+      - button "Non-Chemical Hazards" [disabled] [ref=e29]:
+        - img [ref=e30]
+        - generic [ref=e32]: Non-Chemical Hazards
+        - generic "Locked until previous sections are complete" [ref=e33]:
+          - img [ref=e34]
+      - button "Controls" [disabled] [ref=e37]:
+        - img [ref=e38]
+        - generic [ref=e41]: Controls
+        - generic "Locked until previous sections are complete" [ref=e42]:
+          - img [ref=e43]
+      - button "Storage" [disabled] [ref=e46]:
+        - img [ref=e47]
+        - generic [ref=e51]: Storage
+        - generic "Locked until previous sections are complete" [ref=e52]:
+          - img [ref=e53]
+      - button "Emergency Response" [disabled] [ref=e56]:
+        - img [ref=e57]
+        - generic [ref=e62]: Emergency Response
+        - generic "Locked until previous sections are complete" [ref=e63]:
+          - img [ref=e64]
+      - button "Briefing & Sign-off" [disabled] [ref=e67]:
+        - img [ref=e68]
+        - generic [ref=e73]: Briefing & Sign-off
+        - generic "Locked until previous sections are complete" [ref=e74]:
+          - img [ref=e75]
+      - button "Complete & Export" [disabled] [ref=e78]:
+        - img [ref=e79]
+        - generic [ref=e82]: Complete & Export
+        - generic "Locked until previous sections are complete" [ref=e83]:
+          - img [ref=e84]
+    - generic [ref=e87]:
+      - img [ref=e88]
+      - generic [ref=e89]:
+        - text: Please do not
+        - text: the cat...
+      - img [ref=e90]
+  - generic [ref=e91]:
+    - banner [ref=e92]:
+      - generic [ref=e93]:
+        - generic [ref=e94]: New COSHH Assessment
+        - generic [ref=e95]: Draft auto-saves in this browser
+      - button "Download catdraft" [ref=e96] [cursor=pointer]:
+        - img [ref=e97]
+        - generic [ref=e101]: Download catdraft
+      - generic "Import .catdraft backup" [ref=e102] [cursor=pointer]:
+        - img [ref=e103]
+        - generic [ref=e106]: Import catdraft
+      - button "Open settings" [ref=e107] [cursor=pointer]:
+        - img [ref=e108]
+      - button "Open help" [ref=e111] [cursor=pointer]:
+        - img [ref=e112]
+    - main [ref=e115]:
+      - generic [ref=e246]:
+        - generic [ref=e247]:
+          - generic [ref=e248]:
+            - heading "Process steps" [level=1] [ref=e249]
+            - paragraph [ref=e250]: Break the activity into repeatable steps, then add the chemicals used in each one. Chemical names in step text can be recognised automatically, and chemicals already added in earlier steps can be reused without re-entering their safety data.
+          - generic [ref=e252]:
+            - button "Add step" [disabled]:
+              - img
+              - text: Add step
+            - generic [ref=e258]: "Complete step 1 first: step name, description, at least one chemical, engineering controls, PPE."
+        - generic [ref=e255]:
+          - button "1 No description 0 chemicals Incomplete" [ref=e260] [cursor=pointer]:
+            - generic [ref=e261]: "1"
+            - generic [ref=e262]: No description
+            - generic [ref=e263]: 0 chemicals
+            - generic [ref=e264]:
+              - img [ref=e265]
+              - text: Incomplete
+            - img [ref=e267]
+            - img [ref=e269]
+          - generic [ref=e273]:
+            - generic [ref=e274]:
+              - img [ref=e275]
+              - text: Drag steps to reorder
+            - generic [ref=e282]:
+              - button "Save" [ref=e283] [cursor=pointer]:
+                - img [ref=e284]
+                - text: Save
+              - button "Save all steps" [ref=e288] [cursor=pointer]:
+                - img [ref=e289]
+                - text: Save all steps

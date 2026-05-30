@@ -1,0 +1,199 @@
+- generic [ref=e4]:
+  - complementary [ref=e5]:
+    - generic [ref=e6]:
+      - img "CAT logo" [ref=e7]
+      - generic [ref=e8]:
+        - generic [ref=e9]: CAT
+        - generic [ref=e10]: COSHH Assessment Tool
+    - generic [ref=e11]:
+      - generic [ref=e12]: Assessment
+      - generic [ref=e13]: 1 of 7
+    - navigation [ref=e14]:
+      - button "Overview" [ref=e15] [cursor=pointer]:
+        - img [ref=e16]
+        - generic [ref=e19]: Overview
+        - generic "Section complete" [ref=e20]:
+          - img [ref=e21]
+      - button "Process Steps Section pending" [ref=e23] [cursor=pointer]:
+        - img [ref=e24]
+        - generic [ref=e26]: Process Steps
+        - generic "Section pending" [ref=e27]
+      - button "Non-Chemical Hazards Section pending" [ref=e28] [cursor=pointer]:
+        - img [ref=e29]
+        - generic [ref=e31]: Non-Chemical Hazards
+        - generic "Section pending" [ref=e32]
+      - button "Controls Section pending" [ref=e33] [cursor=pointer]:
+        - img [ref=e34]
+        - generic [ref=e37]: Controls
+        - generic "Section pending" [ref=e38]
+      - button "Storage Section pending" [ref=e39] [cursor=pointer]:
+        - img [ref=e40]
+        - generic [ref=e44]: Storage
+        - generic "Section pending" [ref=e45]
+      - button "Emergency Response Section pending" [ref=e46] [cursor=pointer]:
+        - img [ref=e47]
+        - generic [ref=e52]: Emergency Response
+        - generic "Section pending" [ref=e53]
+      - button "Briefing & Sign-off Section pending" [ref=e54] [cursor=pointer]:
+        - img [ref=e55]
+        - generic [ref=e60]: Briefing & Sign-off
+        - generic "Section pending" [ref=e61]
+      - button "Complete & Export Section pending" [ref=e62] [cursor=pointer]:
+        - img [ref=e63]
+        - generic [ref=e66]: Complete & Export
+        - generic "Section pending" [ref=e67]
+    - generic [ref=e68]:
+      - img [ref=e69]
+      - generic [ref=e70]:
+        - text: Please do not
+        - text: the cat...
+      - img [ref=e71]
+  - generic [ref=e72]:
+    - banner [ref=e73]:
+      - generic [ref=e74]:
+        - generic [ref=e75]: New COSHH Assessment
+        - generic [ref=e76]: Draft auto-saves in this browser
+      - button "Download catdraft" [ref=e77] [cursor=pointer]:
+        - img [ref=e78]
+        - generic [ref=e82]: Download catdraft
+      - generic "Import .catdraft backup" [ref=e83] [cursor=pointer]:
+        - img [ref=e84]
+        - generic [ref=e87]: Import catdraft
+      - button "Open settings" [ref=e88] [cursor=pointer]:
+        - img [ref=e89]
+      - button "Open help" [ref=e92] [cursor=pointer]:
+        - img [ref=e93]
+    - main [ref=e96]:
+      - generic [ref=e98]:
+        - generic [ref=e99]:
+          - generic [ref=e100]:
+            - heading "Process steps" [level=1] [ref=e101]
+            - paragraph [ref=e102]: Break the activity into repeatable steps, then add the chemicals used in each one. Chemical names in step text can be recognised automatically, and chemicals already added in earlier steps can be reused without re-entering their safety data.
+          - generic [ref=e104]:
+            - button "Add step" [disabled]:
+              - img
+              - text: Add step
+            - generic [ref=e105]: "Complete step 1 first: description, at least one chemical, engineering controls, PPE."
+        - generic [ref=e106]:
+          - generic [ref=e107]:
+            - button "1 Mix reagents 0 chemicals Remove step" [ref=e141] [cursor=pointer]:
+              - generic [ref=e142]: "1"
+              - generic [ref=e144]:
+                - generic [ref=e145]: Mix reagents
+                - generic [ref=e146]: 0 chemicals
+                - generic [ref=e147]:
+                  - button "Collapse step" [ref=e148]:
+                    - img [ref=e149]
+                  - button "Remove step" [ref=e151]:
+                    - img [ref=e152]
+            - generic [ref=e155]:
+              - generic [ref=e156]: Step details
+              - generic [ref=e157]:
+                - generic [ref=e158]:
+                  - generic [ref=e159]: Step name*
+                  - textbox "Step namerequired" [ref=e160]:
+                    - /placeholder: e.g. Reaction
+                    - text: Mix reagents
+                - generic [ref=e161]:
+                  - generic [ref=e162]: Description*
+                  - textbox "Descriptionrequired" [ref=e163]:
+                    - /placeholder: e.g. Add slowly with stirring
+            - generic [ref=e164]:
+              - generic [ref=e165]:
+                - generic [ref=e166]: Chemicals in this step
+                - button "Add chemical" [ref=e168] [cursor=pointer]:
+                  - img [ref=e169]
+                  - text: Add chemical
+              - generic [ref=e170]: No chemicals added yet. Use "Add chemical" or, if you've described the step above, try "Suggest".
+            - generic [ref=e171]:
+              - generic [ref=e172]:
+                - generic [ref=e173]: Controls required for this step
+                - button "Controls guidance" [ref=e174] [cursor=pointer]:
+                  - img [ref=e175]
+              - generic [ref=e177]:
+                - generic [ref=e178]:
+                  - generic [ref=e179]: Engineering controls*
+                  - generic [ref=e180]:
+                    - button "Fume hood" [ref=e181] [cursor=pointer]:
+                      - generic [ref=e182]:
+                        - img [ref=e183]
+                        - generic [ref=e187]: Fume hood
+                    - button "Glove box" [ref=e189] [cursor=pointer]:
+                      - generic [ref=e190]:
+                        - img [ref=e191]
+                        - generic [ref=e195]: Glove box
+                    - button "Inert atmosphere" [ref=e197] [cursor=pointer]:
+                      - generic [ref=e198]:
+                        - img [ref=e199]
+                        - generic [ref=e201]: Inert atmosphere
+                    - button "Other" [ref=e203] [cursor=pointer]:
+                      - generic [ref=e204]:
+                        - img [ref=e205]
+                        - generic [ref=e209]: Other
+                    - button "None" [ref=e211] [cursor=pointer]:
+                      - generic [ref=e212]:
+                        - img [ref=e213]
+                        - generic [ref=e216]: None
+                - generic [ref=e218]:
+                  - generic [ref=e219]: PPE*
+                  - generic [ref=e220]:
+                    - button "Gloves" [ref=e221] [cursor=pointer]:
+                      - generic [ref=e222]:
+                        - img [ref=e223]
+                        - generic [ref=e228]: Gloves
+                    - button "Goggles" [ref=e230] [cursor=pointer]:
+                      - generic [ref=e231]:
+                        - img [ref=e232]
+                        - generic [ref=e238]: Goggles
+                    - button "Lab coat" [ref=e240] [cursor=pointer]:
+                      - generic [ref=e241]:
+                        - img [ref=e242]
+                        - generic [ref=e244]: Lab coat
+                    - button "Face shield" [ref=e246] [cursor=pointer]:
+                      - generic [ref=e247]:
+                        - img [ref=e248]
+                        - generic [ref=e250]: Face shield
+                    - button "Respirator" [ref=e252] [cursor=pointer]:
+                      - generic [ref=e253]:
+                        - img [ref=e254]
+                        - generic [ref=e256]: Respirator
+                    - button "Safety footwear" [ref=e258] [cursor=pointer]:
+                      - generic [ref=e259]:
+                        - img [ref=e260]
+                        - generic [ref=e263]: Safety footwear
+                    - button "None" [ref=e265] [cursor=pointer]:
+                      - generic [ref=e266]:
+                        - img [ref=e267]
+                        - generic [ref=e270]: None
+                - generic [ref=e272]:
+                  - generic [ref=e273]: Other controls
+                  - generic [ref=e274]:
+                    - generic [ref=e275]:
+                      - textbox "Other control 1 for step 1" [ref=e276]:
+                        - /placeholder: e.g. Use peroxide-tested solvents only
+                      - button "Remove other control 1" [ref=e277] [cursor=pointer]:
+                        - img [ref=e278]
+                    - generic [ref=e285]:
+                      - textbox "Other control 2 for step 1" [ref=e286]:
+                        - /placeholder: e.g. Use peroxide-tested solvents only
+                      - button "Remove other control 2" [ref=e287] [cursor=pointer]:
+                        - img [ref=e288]
+                    - button "Add another control" [active] [ref=e281] [cursor=pointer]:
+                      - img [ref=e282]
+                      - text: Add another control
+            - generic [ref=e283]:
+              - generic [ref=e284]: "Complete step 1 first: description, at least one chemical, engineering controls, PPE."
+              - button "Add step" [disabled]:
+                - img
+                - text: Add step
+          - generic [ref=e121]:
+            - generic [ref=e122]:
+              - img [ref=e123]
+              - text: Drag steps to reorder
+            - generic [ref=e130]:
+              - button "Save" [ref=e131] [cursor=pointer]:
+                - img [ref=e132]
+                - text: Save
+              - button "Save all steps" [ref=e136] [cursor=pointer]:
+                - img [ref=e137]
+                - text: Save all steps

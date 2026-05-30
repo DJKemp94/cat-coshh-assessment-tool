@@ -245,7 +245,7 @@ export const emptyOverview = (): Overview => ({
   sopRef: '',
   assessor: '',
   dateOfAssessment: todayISO(),
-  dateOfNextReview: plusYearsISO(1),
+  dateOfNextReview: plusYearsISO(2),
   locations: '',
   activityTitle: '',
   activityOutline: '',

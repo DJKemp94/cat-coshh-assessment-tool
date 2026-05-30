@@ -1,8 +1,8 @@
 import {
   Plus, Trash2, RefreshCw, ChevronDown, ChevronRight, ChevronUp, ExternalLink,
   AlertCircle, FlaskConical, Wand2, Loader2, CheckCircle2, Copy, MoreVertical,
-  GripVertical, Save, Wind, Package, MoreHorizontal, Hand, Glasses, Shirt,
-  Shield, Footprints, Info, CircleCheck,
+  GripVertical, Wind, Package, MoreHorizontal, Hand, Glasses, Shirt,
+  Shield, Footprints, Info, CircleCheck, X,
 } from 'lucide-react';
 import { useMemo, useState, useRef, useEffect } from 'react';
 import type { LucideIcon } from 'lucide-react';
@@ -36,6 +36,7 @@ const ENGINEERING_CONTROLS = [
   { id: 'Glove box', label: 'Glove box', Icon: Package },
   { id: 'Inert atmosphere', label: 'Inert atmosphere', Icon: FlaskConical },
   { id: 'Other', label: 'Other', Icon: MoreHorizontal },
+  { id: 'None', label: 'None', Icon: X },
 ];
 
 const PPE_CONTROLS = [
@@ -45,6 +46,7 @@ const PPE_CONTROLS = [
   { id: 'Face shield', label: 'Face shield', Icon: Shield },
   { id: 'Respirator', label: 'Respirator', Icon: Shield },
   { id: 'Safety footwear', label: 'Safety footwear', Icon: Footprints },
+  { id: 'None', label: 'None', Icon: X },
 ];
 
 const Req = () => <span className="text-red-600 ml-0.5" aria-label="required">*</span>;
@@ -81,15 +83,113 @@ function joinQuantity(value: string, unit: string): string {
   return unit ? `${v} ${unit}` : v;
 }
 
+const CONNECTOR_WORDS = new Set([
+  'and', 'or', 'with', 'in', 'into', 'to', 'from', 'for', 'of', 'the', 'a', 'an',
+  'then', 'after', 'before', 'followed', 'using', 'use', 'add', 'adding',
+]);
+
+function looksLikePartOfLongerChemicalPhrase(text: string, matchedTerm: string): boolean {
+  if (matchedTerm.trim().split(/\s+/).length > 1) return false;
+  const re = new RegExp(`\\b${matchedTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[ \\t]+([a-z][a-z0-9-]*)`, 'i');
+  const next = text.match(re)?.[1]?.toLowerCase();
+  return Boolean(next && !CONNECTOR_WORDS.has(next));
+}
+
+function expandedChemicalPhrases(text: string, matches: ExtractMatch[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  const tokens = text
+    .toLowerCase()
+    .replace(/[\n;,]+/g, ' ; ')
+    .replace(/[.]+/g, ' . ')
+    .split(/\s+/)
+    .filter(Boolean);
+
+  for (const match of matches) {
+    const term = match.matchedTerm.trim();
+    if (term.split(/\s+/).length > 1) continue;
+    const termKey = term.toLowerCase();
+
+    tokens.forEach((token, index) => {
+      if (token !== termKey) return;
+      const words: string[] = [];
+      for (const word of tokens.slice(index + 1, index + 4)) {
+        if (word === ';' || word === '.' || CONNECTOR_WORDS.has(word)) break;
+        words.push(word);
+      }
+      if (words.length === 0) return;
+
+      for (let len = Math.min(words.length, 3); len >= 1; len--) {
+        const phrase = [term, ...words.slice(0, len)].join(' ').replace(/\s+/g, ' ');
+        const key = phrase.toLowerCase();
+        if (phrase.length < 3 || phrase.length > 80 || seen.has(key)) continue;
+        seen.add(key);
+        out.push(phrase);
+      }
+    });
+  }
+
+  return out;
+}
+
+function displayChemicalPhrase(phrase: string): string {
+  const trimmed = phrase.trim().replace(/\s+/g, ' ');
+  return trimmed ? trimmed[0].toUpperCase() + trimmed.slice(1) : trimmed;
+}
+
+function splitOtherControls(value: string): string[] {
+  const lines = value.split('\n');
+  return lines.length > 0 ? lines : [''];
+}
+
+function isProcessStepReady(step: ProcessStep): boolean {
+  return Boolean(
+    step.step.trim() &&
+      step.description.trim() &&
+      step.controls?.engineering?.length > 0 &&
+      step.controls?.ppe?.length > 0,
+  );
+}
+
+function processStepMissingItems(step: ProcessStep): string[] {
+  const missing: string[] = [];
+  if (!step.step.trim()) missing.push('step name');
+  if (!step.description.trim()) missing.push('description');
+  if (step.chemicals.length === 0) missing.push('at least one chemical');
+  else if (step.chemicals.some(isChemicalIncomplete)) missing.push('chemical details');
+  if ((step.controls?.engineering?.length ?? 0) === 0) missing.push('engineering controls');
+  if ((step.controls?.ppe?.length ?? 0) === 0) missing.push('PPE');
+  return missing;
+}
+
+function addStepBlockerMessage(step: ProcessStep | undefined, index: number | undefined): string {
+  if (!step || index === undefined) return '';
+  const missing = processStepMissingItems(step);
+  if (missing.length === 0) return '';
+  return `Complete step ${index + 1} first: ${missing.join(', ')}.`;
+}
+
 export function SubstancesSection() {
   const steps = useAssessment((s) => s.assessment.processSteps);
   const addStep = useAssessment((s) => s.addProcessStep);
   const reorder = useAssessment((s) => s.reorderProcessSteps);
-  const lastStepEmpty =
-    steps.length > 0 && steps[steps.length - 1].step.trim().length === 0;
+  const canAddStep =
+    steps.length === 0 ||
+    steps.every(
+      (step) =>
+        isProcessStepReady(step) &&
+        step.chemicals.length > 0 &&
+        step.chemicals.every((chemical) => !isChemicalIncomplete(chemical)),
+    );
+  const blockedStepIndex = steps.findIndex((step) => processStepMissingItems(step).length > 0);
+  const addStepBlocker = addStepBlockerMessage(
+    blockedStepIndex >= 0 ? steps[blockedStepIndex] : undefined,
+    blockedStepIndex >= 0 ? blockedStepIndex : undefined,
+  );
 
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [openStepId, setOpenStepId] = useState<string | null>(null);
 
   const handleDragStart = (_e: React.DragEvent, index: number) => {
     setDragIndex(index);
@@ -119,16 +219,23 @@ export function SubstancesSection() {
     <section>
       <SectionHeader
         title="Process steps"
-        subtitle="Add each step of the activity, then attach the chemicals used in that step."
+        subtitle="Break the activity into repeatable steps, then add the chemicals used in each one. Chemical names in step text can be recognised automatically, and chemicals already added in earlier steps can be reused without re-entering their safety data."
         right={
-          <button
-            className="btn-primary"
-            onClick={addStep}
-            disabled={lastStepEmpty}
-            title={lastStepEmpty ? 'Name the last step before adding another' : undefined}
-          >
-            <Plus size={14} /> Add step
-          </button>
+          <div className="flex flex-col items-end gap-1">
+            <button
+              className="btn-primary"
+              onClick={addStep}
+              disabled={!canAddStep}
+              title={!canAddStep ? addStepBlocker : undefined}
+            >
+              <Plus size={14} /> Add step
+            </button>
+            {!canAddStep && addStepBlocker && (
+              <div className="max-w-xs text-right text-[11px] leading-4 text-amber-800">
+                {addStepBlocker}
+              </div>
+            )}
+          </div>
         }
       />
 
@@ -150,20 +257,19 @@ export function SubstancesSection() {
               onDragEnd={handleDragEnd}
               isDragging={dragIndex === idx}
               isDragOver={dragOverIndex === idx}
+              isOpen={openStepId === step.id}
+              onToggleOpen={() => setOpenStepId(openStepId === step.id ? null : step.id)}
+              onOpen={() => setOpenStepId(step.id)}
+              onClose={() => setOpenStepId(null)}
+              onAddStep={addStep}
+              canAddStep={canAddStep}
+              addStepBlocker={addStepBlocker}
             />
           ))}
           <div className="flex items-center justify-between gap-3 border-t border-zinc-200 bg-white px-4 py-3">
             <div className="inline-flex items-center gap-2 text-xs text-zinc-500">
               <GripVertical size={15} className="text-zinc-400" />
               Drag steps to reorder
-            </div>
-            <div className="flex items-center gap-2">
-              <button type="button" className="btn-secondary text-xs">
-                <Save size={13} /> Save
-              </button>
-              <button type="button" className="btn-primary text-xs">
-                <Save size={13} /> Save all steps
-              </button>
             </div>
           </div>
         </div>
@@ -181,6 +287,13 @@ function ProcessStepCard({
   onDragEnd,
   isDragging,
   isDragOver,
+  isOpen,
+  onToggleOpen,
+  onOpen,
+  onClose,
+  onAddStep,
+  canAddStep,
+  addStepBlocker,
 }: {
   step: ProcessStep;
   index: number;
@@ -190,6 +303,13 @@ function ProcessStepCard({
   onDragEnd: () => void;
   isDragging: boolean;
   isDragOver: boolean;
+  isOpen: boolean;
+  onToggleOpen: () => void;
+  onOpen: () => void;
+  onClose: () => void;
+  onAddStep: () => void;
+  canAddStep: boolean;
+  addStepBlocker: string;
 }) {
   const updateStep = useAssessment((s) => s.updateProcessStep);
   const removeStep = useAssessment((s) => s.removeProcessStep);
@@ -197,7 +317,6 @@ function ProcessStepCard({
   const allSteps = useAssessment((s) => s.assessment.processSteps);
   const [showSuggest, setShowSuggest] = useState(false);
   const [adding, setAdding] = useState<string | null>(null);
-  const [collapsed, setCollapsed] = useState(true);
   const [focusHighlight, setFocusHighlight] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const prevTotalSteps = useRef(allSteps.length);
@@ -205,10 +324,10 @@ function ProcessStepCard({
   // Auto-expand when this step is newly created (added to the end).
   useEffect(() => {
     if (allSteps.length > prevTotalSteps.current && index === allSteps.length - 1) {
-      setCollapsed(false);
+      onOpen();
     }
     prevTotalSteps.current = allSteps.length;
-  }, [allSteps.length, index]);
+  }, [allSteps.length, index, onOpen]);
 
   useEffect(() => {
     let targetStepId: string | null = null;
@@ -225,15 +344,16 @@ function ProcessStepCard({
       // Non-critical: the navigation still works without clearing storage.
     }
 
-    setCollapsed(false);
+    onOpen();
     setFocusHighlight(true);
     window.setTimeout(() => setFocusHighlight(false), 1600);
     window.requestAnimationFrame(() => {
       rootRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
-  }, [step.id]);
+  }, [onOpen, step.id]);
 
   const [showReuse, setShowReuse] = useState(false);
+  const [showControlsInfo, setShowControlsInfo] = useState(false);
   const [openChemIndex, setOpenChemIndex] = useState<number | null>(null);
   const prevChemCount = useRef(step.chemicals.length);
 
@@ -269,10 +389,11 @@ function ProcessStepCard({
   }, [allSteps, index, step.chemicals]);
 
   const incompleteCount = step.chemicals.filter(isChemicalIncomplete).length;
+  const missingItemCount = processStepMissingItems(step).length;
   const lastChemicalIncomplete =
     step.chemicals.length > 0 && isChemicalIncomplete(step.chemicals[step.chemicals.length - 1]);
   const isStepComplete =
-    step.step.trim().length > 0 && step.chemicals.length > 0 && incompleteCount === 0;
+    isProcessStepReady(step) && step.chemicals.length > 0 && incompleteCount === 0;
   const aggregatedPictograms = useMemo(() => {
     const seen = new Set<string>();
     const out: typeof step.chemicals[number]['ghsPictograms'] = [];
@@ -290,10 +411,31 @@ function ProcessStepCard({
     const existing = new Set(
       step.chemicals.map((c) => (c.cas ?? c.name).toLowerCase()).filter(Boolean),
     );
-    return extractChemicals(searchableText).filter(
+    const localMatches = extractChemicals(searchableText);
+    const phraseMatches = expandedChemicalPhrases(searchableText, localMatches).map((phrase) => ({
+      name: displayChemicalPhrase(phrase),
+      cas: undefined,
+      matchedTerm: phrase,
+    }));
+    const phraseNames = new Set(phraseMatches.map((m) => m.name.toLowerCase()));
+    const local = extractChemicals(searchableText).filter(
       (m) => !existing.has((m.cas ?? m.name).toLowerCase()),
     );
-  }, [step.step, step.description, step.chemicals]);
+    return [
+      ...phraseMatches.filter(
+        (m) => !existing.has((m.cas ?? m.name).toLowerCase()),
+      ),
+      ...local.filter((m) => {
+        if (phraseNames.has(m.name.toLowerCase())) return false;
+        if (looksLikePartOfLongerChemicalPhrase(searchableText, m.matchedTerm)) return false;
+        return !phraseMatches.some(
+          (p) =>
+            p.name.toLowerCase().includes(m.matchedTerm.toLowerCase()) &&
+            p.name.length > m.matchedTerm.length,
+        );
+      }),
+    ];
+  }, [step.description, step.step, step.chemicals]);
 
   const controls: StepControls = {
     ...step.controls,
@@ -305,11 +447,35 @@ function ProcessStepCard({
     updateStep(step.id, { controls: { ...controls, ...patch } });
   const toggleControl = (group: 'engineering' | 'ppe', id: string) => {
     const current = controls[group];
+    if (id === 'None') {
+      updateControls({ [group]: current.includes('None') ? [] : ['None'] });
+      return;
+    }
     updateControls({
       [group]: current.includes(id)
         ? current.filter((item) => item !== id)
-        : [...current, id],
+        : [...current.filter((item) => item !== 'None'), id],
     });
+  };
+  const controlsMissing = {
+    engineering: controls.engineering.length === 0,
+    ppe: controls.ppe.length === 0,
+  };
+  const otherControlLines = splitOtherControls(controls.other);
+  const updateOtherControlLine = (lineIndex: number, value: string) => {
+    const next = [...otherControlLines];
+    next[lineIndex] = value;
+    updateControls({ other: next.join('\n') });
+  };
+  const addOtherControlLine = () => {
+    updateControls({ other: [...otherControlLines, ''].join('\n') });
+  };
+  const removeOtherControlLine = (lineIndex: number) => {
+    if (otherControlLines.length === 1) {
+      updateControls({ other: '' });
+      return;
+    }
+    updateControls({ other: otherControlLines.filter((_, idx) => idx !== lineIndex).join('\n') });
   };
 
   const addSuggested = async (m: ExtractMatch) => {
@@ -351,7 +517,7 @@ function ProcessStepCard({
     }
   };
 
-  if (collapsed) {
+  if (!isOpen) {
     return (
       <div
         ref={rootRef}
@@ -370,7 +536,7 @@ function ProcessStepCard({
       >
         <button
           type="button"
-          onClick={() => setCollapsed(false)}
+          onClick={onOpen}
           className="w-full text-left px-4 py-3 flex items-center gap-4 hover:bg-zinc-50 border-l-4 border-l-accent-600"
         >
           <div
@@ -398,7 +564,7 @@ function ProcessStepCard({
               <AlertCircle size={14} />
               {!step.step.trim() || step.chemicals.length === 0
                 ? 'Incomplete'
-                : `${incompleteCount} to finish`}
+                : `${missingItemCount} to finish`}
             </span>
           )}
           <ChevronDown size={16} className="text-zinc-600 shrink-0" />
@@ -426,13 +592,13 @@ function ProcessStepCard({
     >
       <div
         className="px-4 py-3 flex items-center gap-4 cursor-pointer hover:bg-zinc-50 border-l-4 border-l-accent-600"
-        onClick={() => setCollapsed(true)}
+        onClick={onToggleOpen}
         role="button"
         tabIndex={0}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
-            setCollapsed(true);
+            onToggleOpen();
           }
         }}
       >
@@ -446,20 +612,9 @@ function ProcessStepCard({
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3">
-            <input
-              className={clsx(
-                'min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-1 py-1 text-sm font-semibold text-accent-700 outline-none transition',
-                'placeholder:text-zinc-400 hover:border-zinc-200 hover:bg-white focus:border-accent-400 focus:bg-white focus:ring-2 focus:ring-accent-100',
-                !step.step.trim() && 'field-missing',
-              )}
-              value={step.step}
-              onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => e.stopPropagation()}
-              onChange={(e) => updateStep(step.id, { step: e.target.value })}
-              placeholder="New process step"
-              autoFocus={!step.step}
-              aria-label={`Step ${index + 1} name`}
-            />
+            <span className="min-w-0 flex-1 truncate text-sm font-semibold text-accent-700">
+              {step.step.trim() || <span className="italic text-zinc-400">New process step</span>}
+            </span>
             <span className="text-sm text-zinc-500">
               {step.chemicals.length} chemical{step.chemicals.length === 1 ? '' : 's'}
             </span>
@@ -477,7 +632,7 @@ function ProcessStepCard({
               <button
                 type="button"
                 className="btn-ghost !px-2 !py-1 text-zinc-600 hover:bg-zinc-100"
-                onClick={(e) => { e.stopPropagation(); setCollapsed(true); }}
+                onClick={(e) => { e.stopPropagation(); onClose(); }}
                 title="Collapse step"
               >
                 <ChevronUp size={16} />
@@ -507,9 +662,12 @@ function ProcessStepCard({
             />
           </label>
           <label className="block">
-            <span className="field-label">Description (optional)</span>
+            <span className="field-label">Description<Req /></span>
             <textarea
-              className="field-textarea !min-h-[78px] bg-white text-sm"
+              className={clsx(
+                'field-textarea !min-h-[78px] bg-white text-sm',
+                !step.description.trim() && 'field-missing',
+              )}
               value={step.description ?? ''}
               onChange={(e) => updateStep(step.id, { description: e.target.value })}
               placeholder="e.g. Add slowly with stirring"
@@ -521,7 +679,7 @@ function ProcessStepCard({
       {showSuggest && suggestions.length > 0 && (
         <div className="border-t border-zinc-100 bg-accent-50/40 px-4 py-3">
           <div className="text-[11px] text-zinc-600 mb-2">
-            Found these in your step text. Click to add as chemicals (you can still edit afterwards).
+            These chemicals best match the description of your task. Select any matches, or manually enter details for chemicals not found below.
           </div>
           <div className="flex flex-wrap gap-1.5">
             {suggestions.map((m) => {
@@ -636,17 +794,43 @@ function ProcessStepCard({
       </div>
 
       <div className="border-t border-zinc-200 bg-white px-4 py-4">
-        <div className="mb-2 flex items-center gap-2">
+        <div className="relative mb-2 flex items-center gap-2">
           <span className="text-sm font-semibold text-zinc-900">
             Controls required for this step
           </span>
-          <Info size={14} className="text-zinc-500" aria-hidden="true" />
+          <button
+            type="button"
+            className="inline-flex h-6 w-6 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
+            onClick={() => setShowControlsInfo((v) => !v)}
+            aria-label="Controls guidance"
+            aria-expanded={showControlsInfo}
+          >
+            <Info size={14} />
+          </button>
+          {showControlsInfo && (
+            <div className="absolute left-0 top-7 z-20 w-full max-w-md rounded-md border border-zinc-200 bg-white p-3 text-xs leading-5 text-zinc-600 shadow-lg">
+              <button
+                type="button"
+                className="absolute right-2 top-2 rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+                onClick={() => setShowControlsInfo(false)}
+                aria-label="Close controls guidance"
+              >
+                <X size={13} />
+              </button>
+              Select the engineering controls and PPE that are required for this specific step.
+              Use Other control for instructions that are not covered by the buttons, such as
+              supervision, restricted access, monitoring, disposal limits or step-specific safe
+              working rules.
+            </div>
+          )}
         </div>
 
         <div className="space-y-3">
           <div>
-            <div className="mb-2 text-xs font-semibold text-zinc-600">Engineering controls</div>
-            <div className="flex flex-wrap gap-2">
+            <div className="mb-2 text-xs font-semibold text-zinc-600">
+              Engineering controls<Req />
+            </div>
+            <div className={clsx('flex flex-wrap gap-2 rounded-md', controlsMissing.engineering && 'field-missing p-2')}>
               {ENGINEERING_CONTROLS.map(({ id, label, Icon }) => (
                 <StepControlToggle
                   key={id}
@@ -660,8 +844,10 @@ function ProcessStepCard({
           </div>
 
           <div>
-            <div className="mb-2 text-xs font-semibold text-zinc-600">PPE</div>
-            <div className="flex flex-wrap gap-2">
+            <div className="mb-2 text-xs font-semibold text-zinc-600">
+              PPE<Req />
+            </div>
+            <div className={clsx('flex flex-wrap gap-2 rounded-md', controlsMissing.ppe && 'field-missing p-2')}>
               {PPE_CONTROLS.map(({ id, label, Icon }) => (
                 <StepControlToggle
                   key={id}
@@ -674,33 +860,59 @@ function ProcessStepCard({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 items-end gap-2 md:grid-cols-[12rem_1fr_auto]">
-            <div className="flex items-center gap-2 text-xs font-semibold text-zinc-600">
-              Other control
+          <div className="grid grid-cols-1 items-start gap-2 md:grid-cols-[12rem_1fr]">
+            <div className="pt-2 text-xs font-semibold text-zinc-600">Other controls</div>
+            <div className="space-y-2">
+              {otherControlLines.map((line, lineIndex) => (
+                <div
+                  key={lineIndex}
+                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2"
+                >
+                  <input
+                    className="field-input !py-2 text-sm"
+                    value={line}
+                    onChange={(e) => updateOtherControlLine(lineIndex, e.target.value)}
+                    placeholder="e.g. Use peroxide-tested solvents only"
+                    aria-label={`Other control ${lineIndex + 1} for step ${index + 1}`}
+                  />
+                  <button
+                    type="button"
+                    className="btn-ghost !px-2 !py-2 text-red-600 hover:bg-red-50"
+                    onClick={() => removeOtherControlLine(lineIndex)}
+                    aria-label={`Remove other control ${lineIndex + 1}`}
+                    title="Remove other control"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
               <button
                 type="button"
-                className="inline-flex items-center gap-1 text-accent-700 hover:text-accent-800"
-                onClick={() => updateControls({ other: controls.other || 'Use peroxide-tested solvents only' })}
+                className="btn-ghost text-xs px-2 py-1 text-accent-700 hover:bg-accent-50"
+                onClick={addOtherControlLine}
               >
-                <Plus size={13} /> Add other control
+                <Plus size={12} /> Add another control
               </button>
             </div>
-            <input
-              className="field-input !py-2 text-sm"
-              value={controls.other}
-              onChange={(e) => updateControls({ other: e.target.value })}
-              placeholder="e.g. Use peroxide-tested solvents only"
-              aria-label={`Other control for step ${index + 1}`}
-            />
-            <button
-              type="button"
-              className="btn-secondary h-[42px] text-xs text-accent-700"
-              onClick={() => updateControls({ other: controls.other.trim() })}
-            >
-              Add
-            </button>
           </div>
         </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 border-t border-zinc-100 bg-zinc-50/60 px-4 py-3">
+        <div className={clsx('text-xs', canAddStep ? 'text-zinc-500' : 'text-amber-800')}>
+          {canAddStep
+            ? 'This step is complete enough to add the next one.'
+            : addStepBlocker || 'Complete this step before adding the next one.'}
+        </div>
+        <button
+          type="button"
+          className="btn-primary text-xs"
+          onClick={onAddStep}
+          disabled={!canAddStep}
+          title={!canAddStep ? addStepBlocker : undefined}
+        >
+          <Plus size={13} /> Add step
+        </button>
       </div>
 
     </div>
@@ -723,7 +935,7 @@ function StepControlToggle({
       type="button"
       onClick={onClick}
       className={clsx(
-        'inline-flex h-10 min-w-[9rem] items-center justify-between gap-3 rounded-md border px-3 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2',
+        'inline-flex h-9 min-w-[8.25rem] items-center justify-between gap-2.5 rounded-md border px-2.5 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2',
         active
           ? 'border-accent-700 bg-accent-600 text-white shadow-soft'
           : 'border-zinc-200 bg-white text-zinc-600 hover:border-accent-200 hover:bg-accent-50 hover:text-accent-800',
@@ -731,10 +943,12 @@ function StepControlToggle({
       aria-pressed={active}
     >
       <span className="inline-flex min-w-0 items-center gap-2">
-        <Icon size={18} className={active ? 'text-white' : 'text-zinc-500'} />
+        <Icon size={16} className={active ? 'text-white' : 'text-zinc-500'} />
         <span className="truncate">{label}</span>
       </span>
-      {active && <CircleCheck size={16} className="shrink-0 text-white" />}
+      <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+        {active && <CircleCheck size={15} className="text-white" />}
+      </span>
     </button>
   );
 }
@@ -761,8 +975,8 @@ function ChemicalRow({
   const onChange = (patch: Partial<Substance>) => update(stepId, c.id, patch);
 
   const lookup = async (force = false, override?: string | number) => {
-    const query = typeof override === 'number' ? override : (override ?? c.name).trim();
-    if (!query) { setError('Enter a chemical name first.'); return; }
+    const query = typeof override === 'number' ? override : (override ?? (c.name || (c.cas ?? ''))).trim();
+    if (!query) { setError('Enter a chemical name or CAS number first.'); return; }
     setBusy(true); setError(null);
     try {
       const r = await lookupChemical(query, { force });
@@ -822,7 +1036,7 @@ function ChemicalRow({
       )}
     >
       <div
-        className="grid grid-cols-[1fr_auto] items-start gap-2 px-3 py-2 hover:bg-zinc-50 cursor-pointer"
+        className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-2 hover:bg-zinc-50 cursor-pointer xl:grid-cols-[minmax(16rem,1.4fr)_8rem_minmax(8.5rem,0.8fr)_4rem_minmax(10rem,1fr)_3rem_auto]"
         onClick={onToggle}
         role="button"
         tabIndex={0}
@@ -833,26 +1047,26 @@ function ChemicalRow({
           }
         }}
       >
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={(e) => e.stopPropagation()}
-            className="flex min-w-0 items-center gap-2 text-left pointer-events-none"
+        <button
+          type="button"
+          onClick={(e) => e.stopPropagation()}
+          className="flex min-w-0 items-center gap-2 text-left pointer-events-none"
+        >
+          <span className="text-zinc-400">
+            {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </span>
+          <span
+            className={clsx(
+              'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold',
+              incomplete ? 'bg-red-500 text-white' : 'bg-accent-600 text-white',
+            )}
           >
-            <span className="text-zinc-400">
-              {isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-            </span>
-            <span
-              className={clsx(
-                'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold',
-                incomplete ? 'bg-red-500 text-white' : 'bg-accent-600 text-white',
-              )}
-            >
-              {index + 1}
-            </span>
+            {index + 1}
+          </span>
+          <span className="min-w-0 truncate">
             {incomplete ? (
               <span
-                className="text-red-600 inline-flex items-center gap-1 font-medium text-sm"
+                className="text-red-600 font-medium text-sm"
                 title="Click to add details"
               >
                 {c.name.trim() ? c.name : 'New chemical'}
@@ -860,15 +1074,58 @@ function ChemicalRow({
             ) : (
               <span className="text-sm text-accent-700 font-semibold">{c.name}</span>
             )}
+          </span>
+        </button>
 
-            {c.cas && (
-              <span className="text-[11px] text-zinc-500 font-mono">· {c.cas}</span>
-            )}
-            {c.pubchemCid && (
-              <span className="pill !text-[10px] !py-0">CID {c.pubchemCid}</span>
-            )}
-          </button>
+        <span className="hidden text-[11px] text-zinc-500 font-mono xl:block">
+          {c.cas || '—'}
+        </span>
+        <div className="hidden min-h-[22px] min-w-0 items-center overflow-hidden xl:flex">
+          {c.ghsPictograms.length > 0 ? (
+            <GhsRow ids={c.ghsPictograms} size={22} />
+          ) : (
+            <span className="text-xs text-zinc-300">—</span>
+          )}
+        </div>
+        <div className="hidden xl:block">
+          {c.hazardStatements.length > 0 ? (
+            <span className="pill">{c.hazardStatements.length} H</span>
+          ) : (
+            <span className="text-xs text-zinc-300">—</span>
+          )}
+        </div>
+        <div className="hidden min-w-0 xl:block">
+          {c.wel.twa ? (
+            <span
+              className="pill max-w-full truncate"
+              title={c.wel.source ? `Source: ${c.wel.source}` : undefined}
+            >
+              WEL {c.wel.twa}
+            </span>
+          ) : (
+            <span className="text-xs text-zinc-300">—</span>
+          )}
+        </div>
+        <div className="hidden xl:block">
+          {c.sdsUrl ? (
+            <a
+              href={c.sdsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-0.5 text-[11px] text-accent-700 hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              SDS <ExternalLink size={10} />
+            </a>
+          ) : (
+            <span className="text-xs text-zinc-300">—</span>
+          )}
+        </div>
 
+        <div className="flex min-w-0 flex-wrap items-center gap-2 xl:hidden">
+          {c.cas && (
+            <span className="text-[11px] text-zinc-500 font-mono">· {c.cas}</span>
+          )}
           {c.ghsPictograms.length > 0 && (
             <GhsRow ids={c.ghsPictograms} size={22} />
           )}
@@ -893,16 +1150,7 @@ function ChemicalRow({
           )}
         </div>
 
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            className="text-zinc-500 hover:bg-zinc-100 p-1 rounded shrink-0"
-            title="More options"
-            aria-label="More chemical options"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <MoreVertical size={15} />
-          </button>
+        <div className="flex items-center gap-1 justify-self-end">
           <button
             type="button"
             className="text-red-500 hover:bg-red-50 p-1 rounded shrink-0"
@@ -915,6 +1163,10 @@ function ChemicalRow({
       </div>
 
       {isOpen && (() => {
+        const needsIdentityLookup =
+          !c.name.trim() ||
+          !c.cas?.trim() ||
+          (!c.pubchemFetchedAt && c.hazardStatements.length === 0 && c.ghsPictograms.length === 0);
         const miss = {
           name: !c.name.trim(),
           cas: !c.cas?.trim(),
@@ -928,7 +1180,7 @@ function ChemicalRow({
         <div className="border-t border-zinc-100 px-4 py-3 bg-white">
           {error && <div className="text-xs text-red-600 mb-2">{error}</div>}
 
-          {(!c.name.trim() || !c.cas?.trim()) && (
+          {needsIdentityLookup && (
             <div className="mb-3 rounded-md border border-amber-200 bg-amber-50/60 p-3">
               <div className="grid grid-cols-1 md:grid-cols-[1fr_11rem_auto] gap-2.5 items-end">
                 <div>
@@ -951,13 +1203,14 @@ function ChemicalRow({
                     className={clsx('field-input !py-1.5 text-xs font-mono', miss.cas && 'field-missing')}
                     value={c.cas ?? ''}
                     onChange={(e) => onChange({ cas: e.target.value })}
+                    onKeyDown={(e) => e.stopPropagation()}
                     placeholder="67-64-1"
                   />
                 </label>
                 <button
                   type="button"
                   className="btn-secondary text-xs"
-                  disabled={busy || !c.name.trim()}
+                  disabled={busy || (!c.name.trim() && !c.cas?.trim())}
                   onClick={() => lookup(true)}
                 >
                   <RefreshCw size={12} className={busy ? 'animate-spin' : ''} />

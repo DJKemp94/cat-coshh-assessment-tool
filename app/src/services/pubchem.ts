@@ -554,6 +554,15 @@ async function cidForAutocompleteName(name: string, signal?: AbortSignal): Promi
   return j.IdentifierList?.CID?.[0];
 }
 
+export async function resolvePubChemName(
+  query: string,
+  signal?: AbortSignal,
+): Promise<PubChemAutocompleteSuggestion | null> {
+  const cid = await cidForAutocompleteName(query, signal);
+  if (!cid) return null;
+  return { name: normalizeChemicalName(query), cid };
+}
+
 export async function autocompleteChemicals(
   prefix: string,
   limit = 10,

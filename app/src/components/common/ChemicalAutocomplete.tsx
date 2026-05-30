@@ -46,7 +46,11 @@ export function ChemicalAutocomplete({
       setLoading(true);
       try {
         const r = await autocompleteChemicals(value, 10, ac.signal);
-        setItems(r);
+        const exactLookup = { name: trimmed };
+        setItems([
+          exactLookup,
+          ...r.filter((item) => item.name.toLowerCase() !== trimmed.toLowerCase()),
+        ]);
         setActive(0);
       } catch {
         // aborted or network error — silent
@@ -108,7 +112,10 @@ export function ChemicalAutocomplete({
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
-          onKeyDown={onKey}
+          onKeyDown={(e) => {
+            e.stopPropagation();
+            onKey(e);
+          }}
           autoComplete="off"
         />
         {loading && (
@@ -135,6 +142,8 @@ export function ChemicalAutocomplete({
             >
               {isCasOnly ? (
                 <span>Look up CAS <span className="font-mono">{item.name}</span></span>
+              ) : item.name.toLowerCase() === value.trim().toLowerCase() ? (
+                <span>Look up <span className="font-medium">"{item.name}"</span> exactly</span>
               ) : (
                 <span>{item.name}</span>
               )}

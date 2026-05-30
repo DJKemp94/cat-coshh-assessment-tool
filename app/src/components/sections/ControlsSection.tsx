@@ -345,7 +345,7 @@ function processStepControlReviewItemsByStep(
       .forEach((analysis) => {
         items.push({
           id: `${step.id}:approach4:${analysis.substanceId}`,
-          message: `Check specialist controls for ${analysis.name}: Approach 4 may need SDS review and competent H&S advice.`,
+          message: `Check controls for ${analysis.name} - Review SDS and ensure any specialist controls listed are documented in assessment. Add additional controls where required.`,
         });
       });
     if (items.length > 0) {
@@ -426,7 +426,7 @@ function StepControlsSummary({
                   <SummaryChipGroup title="PPE" values={controls.ppe} />
                   <div>
                     <div className="text-[11px] font-semibold text-zinc-500">Other</div>
-                    <div className="mt-1 text-sm text-zinc-700">{controls.other || <span className="text-zinc-400">None recorded</span>}</div>
+                    <div className="mt-1 whitespace-pre-line text-sm text-zinc-700">{controls.other || <span className="text-zinc-400">None recorded</span>}</div>
                   </div>
                 </button>
                 {reviewItems.length > 0 && (
