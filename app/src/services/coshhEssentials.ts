@@ -386,7 +386,7 @@ export function suggestControls(allSubstances: Substance[]): OverallSuggestion |
   const warnings: string[] = [];
   for (const a of analyses) warnings.push(...a.warnings);
   warnings.push(
-    'COSHH Essentials is a screening tool. A competent assessor must verify the recommendation, and may impose stricter controls. Not valid for asbestos, lead, pesticides, radioactive materials, or biological agents.',
+    'COSHH Essentials is a screening tool. A competent risk assessor must verify the recommendation, check the SDS, and may impose stricter controls. Not valid for asbestos, lead, pesticides, radioactive materials, or biological agents.',
   );
 
   return {

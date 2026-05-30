@@ -1,0 +1,164 @@
+- generic [ref=e4]:
+  - complementary [ref=e5]:
+    - generic [ref=e6]:
+      - img "CAT logo" [ref=e7]
+      - generic [ref=e8]:
+        - generic [ref=e9]: CAT
+        - generic [ref=e10]: COSHH Assessment Tool
+    - generic [ref=e11]:
+      - generic [ref=e12]: Assessment
+      - generic [ref=e13]: 1 of 7
+    - navigation [ref=e14]:
+      - button "Overview" [ref=e15] [cursor=pointer]:
+        - img [ref=e16]
+        - generic [ref=e19]: Overview
+        - generic "Section complete" [ref=e20]:
+          - img [ref=e21]
+      - button "Process Steps Section pending" [ref=e23] [cursor=pointer]:
+        - img [ref=e24]
+        - generic [ref=e26]: Process Steps
+        - generic "Section pending" [ref=e27]
+      - button "Non-Chemical Hazards Section pending" [ref=e28] [cursor=pointer]:
+        - img [ref=e29]
+        - generic [ref=e31]: Non-Chemical Hazards
+        - generic "Section pending" [ref=e32]
+      - button "Controls Section pending" [active] [ref=e33] [cursor=pointer]:
+        - img [ref=e34]
+        - generic [ref=e37]: Controls
+        - generic "Section pending" [ref=e38]
+      - button "Storage Section pending" [ref=e39] [cursor=pointer]:
+        - img [ref=e40]
+        - generic [ref=e44]: Storage
+        - generic "Section pending" [ref=e45]
+      - button "Emergency Response Section pending" [ref=e46] [cursor=pointer]:
+        - img [ref=e47]
+        - generic [ref=e52]: Emergency Response
+        - generic "Section pending" [ref=e53]
+      - button "Briefing & Sign-off Section pending" [ref=e54] [cursor=pointer]:
+        - img [ref=e55]
+        - generic [ref=e60]: Briefing & Sign-off
+        - generic "Section pending" [ref=e61]
+      - button "Complete & Export Section pending" [ref=e62] [cursor=pointer]:
+        - img [ref=e63]
+        - generic [ref=e66]: Complete & Export
+        - generic "Section pending" [ref=e67]
+    - generic [ref=e68]:
+      - img [ref=e69]
+      - generic [ref=e70]:
+        - text: Please do not
+        - text: the cat...
+      - img [ref=e71]
+  - generic [ref=e72]:
+    - banner [ref=e73]:
+      - generic [ref=e74]:
+        - generic [ref=e75]: New COSHH Assessment
+        - generic [ref=e76]: Draft auto-saves in this browser
+      - button "New assessment" [ref=e77] [cursor=pointer]:
+        - img [ref=e78]
+        - generic [ref=e81]: New assessment
+      - button "Download catdraft" [ref=e82] [cursor=pointer]:
+        - img [ref=e83]
+        - generic [ref=e87]: Download catdraft
+      - generic "Import .catdraft backup" [ref=e88] [cursor=pointer]:
+        - img [ref=e89]
+        - generic [ref=e92]: Import catdraft
+      - button "Open settings" [ref=e93] [cursor=pointer]:
+        - img [ref=e94]
+      - button "Open help" [ref=e97] [cursor=pointer]:
+        - img [ref=e98]
+    - main [ref=e101]:
+      - generic [ref=e102]:
+        - generic [ref=e199]:
+          - generic [ref=e201]:
+            - heading "Control measures" [level=1] [ref=e202]
+            - paragraph [ref=e203]: Apply the hierarchy of control. Click a section to add suggestions.
+          - generic [ref=e204]:
+            - text: Add chemicals in
+            - strong [ref=e205]: Process Steps
+            - text: to see the COSHH Essentials screening here.
+          - generic [ref=e206]:
+            - generic [ref=e207]:
+              - generic [ref=e209]: Engineering and PPE by process step
+              - generic [ref=e210]: Engineering controls and PPE are recorded against each process step. Update them in Process Steps if the task controls change.
+            - button "1. Mix reagents 0 chemicals Engineering None selected PPE None selected Other Keep sash below marked height" [ref=e213] [cursor=pointer]:
+              - generic [ref=e214]:
+                - generic [ref=e215]: 1. Mix reagents
+                - generic [ref=e216]: 0 chemicals
+              - generic [ref=e217]:
+                - generic [ref=e218]: Engineering
+                - generic [ref=e220]: None selected
+              - generic [ref=e221]:
+                - generic [ref=e222]: PPE
+                - generic [ref=e224]: None selected
+              - generic [ref=e225]:
+                - generic [ref=e226]: Other
+                - generic [ref=e227]: Keep sash below marked height
+          - generic [ref=e228]: Hierarchy of control
+          - generic [ref=e229]:
+            - generic [ref=e230]:
+              - img [ref=e232]
+              - generic [ref=e235]:
+                - generic [ref=e236]: 1. Elimination / Substitution
+                - generic [ref=e237]: Remove or replace with a less hazardous option.
+              - generic [ref=e238]:
+                - group [ref=e239]:
+                  - generic "Review elimination/substitution prompts" [ref=e240] [cursor=pointer]
+                - generic [ref=e241]:
+                  - button "5 suggestions" [ref=e244] [cursor=pointer]:
+                    - img [ref=e245]
+                    - text: 5 suggestions
+                    - img [ref=e247]
+                  - textbox "Record whether the substance or process can be removed, replaced, pre-diluted, bought ready-to-use, or changed to a lower hazard grade." [ref=e249]
+            - generic [ref=e250]:
+              - img [ref=e252]
+              - generic [ref=e254]:
+                - generic [ref=e255]: 2. Reduction
+                - generic [ref=e256]: Reduce quantity, concentration or duration.
+              - generic [ref=e258]:
+                - button "3 suggestions" [ref=e261] [cursor=pointer]:
+                  - img [ref=e262]
+                  - text: 3 suggestions
+                  - img [ref=e264]
+                - textbox "Record how quantity, concentration, batch size, exposure time, frequency and number of people exposed will be kept as low as practicable." [ref=e266]
+            - generic [ref=e267]:
+              - img [ref=e269]
+              - generic [ref=e272]:
+                - generic [ref=e273]: 3. Administrative controls*
+                - generic [ref=e274]: Change the way people work.
+              - generic [ref=e276]:
+                - button "5 suggestions" [ref=e279] [cursor=pointer]:
+                  - img [ref=e280]
+                  - text: 5 suggestions
+                  - img [ref=e282]
+                - textbox "Record procedural controls such as SOP reference, training, briefing, authorisation, supervision, signage, housekeeping, lone-working limits and review triggers." [ref=e284]
+            - generic [ref=e285]:
+              - img [ref=e287]
+              - generic [ref=e291]:
+                - generic [ref=e292]: 4. Air monitoring*
+                - generic [ref=e293]: Confirm exposure stays controlled.
+              - generic [ref=e295]:
+                - button "3 suggestions" [ref=e298] [cursor=pointer]:
+                  - img [ref=e299]
+                  - text: 3 suggestions
+                  - img [ref=e301]
+                - textbox "Record whether air monitoring is required, why it is or is not needed, relevant WELs, sampling type, review frequency and triggers for reassessment." [ref=e303]
+            - generic [ref=e304]:
+              - img [ref=e306]
+              - generic [ref=e310]:
+                - generic [ref=e311]: 5. Health surveillance*
+                - generic [ref=e312]: Record any OH decision or trigger.
+              - generic [ref=e314]:
+                - button "3 suggestions" [ref=e317] [cursor=pointer]:
+                  - img [ref=e318]
+                  - text: 3 suggestions
+                  - img [ref=e320]
+                - textbox "Record any Occupational Health referral, health-surveillance decision, symptom reporting route, exposure records and review triggers." [ref=e322]
+        - generic [ref=e193]:
+          - button "Go to Non-Chemical Hazards" [ref=e324] [cursor=pointer]:
+            - img [ref=e325]
+            - text: Go to Non-Chemical Hazards
+          - generic [ref=e195]:
+            - button "Go to Storage" [disabled]:
+              - text: Go to Storage
+              - img
+            - generic [ref=e327]: "Complete this page first: administrative controls, air monitoring, health surveillance."

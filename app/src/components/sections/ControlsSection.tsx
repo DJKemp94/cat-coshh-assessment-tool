@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
-  Sparkles, AlertTriangle, ExternalLink, ChevronDown, ChevronRight, Info,
+  Sparkles, AlertTriangle, ChevronDown, ChevronRight, Info,
   Ban, BarChart3, FileText, Wind, Stethoscope, CheckCircle2,
 } from 'lucide-react';
 import clsx from 'clsx';
@@ -11,37 +11,83 @@ import { SuggestionField } from '@/components/common/SuggestionField';
 import { suggestControls, OverallSuggestion, SubstanceAnalysis, Approach, APPROACH_LABEL } from '@/services/coshhEssentials';
 import { ProcessStep } from '@/types/assessment';
 
-const ELIM_SUB_SUGGESTIONS = [
-  'Elimination considered; the substance is required for this activity.',
-  'No suitable lower-hazard substitute has been identified for this task.',
-  'Use the lowest practicable concentration, hazard grade and working quantity.',
-  'Use a pre-diluted or ready-to-use product where this would reduce handling risk.',
+const BASE_ELIM_SUB_CONSIDERATIONS = [
+  'Can any listed chemical be removed from the task without changing the required outcome?',
+  'Can any chemical step be replaced with a non-chemical method?',
+  'Is each chemical required by the SOP, method, specification or experimental design?',
 ];
 
-const REDUCTION_SUGGESTIONS = [
-  'Keep only the minimum effective quantity at the work area.',
-  'Limit the number of people, frequency and duration of exposure.',
-  'Prepare small aliquots instead of handling the parent container where practicable.',
+const BASE_ELIM_SUB_SUGGESTIONS = [
+  '[Chemical] has been removed from the process.',
+  '[Chemical] has been replaced with [substitute].',
+  'The chemical step using [chemical] has been replaced with a non-chemical method.',
+  '[Chemical] is required for this method and no approved lower-hazard substitute is available.',
+  'Substitution was reviewed for [chemical]; no suitable lower-hazard alternative was identified for this task.',
 ];
 
-const ADMIN_SUGGESTIONS = [
-  'Work must follow the approved SOP or safe working procedure.',
-  'Users must be briefed on the COSHH assessment before starting work.',
-  'Restrict the activity to trained and authorised personnel.',
-  'Keep the work area clean; report and clean spills promptly.',
-  'Review the assessment if the substance, quantity, frequency, process or controls change.',
+const BASE_REDUCTION_CONSIDERATIONS = [
+  'Can the working quantity at the bench be reduced?',
+  'Can the duration or frequency of open handling be reduced?',
+  'Can fewer people be present during chemical handling?',
+  'Can stock containers be kept away from the task except during dispensing?',
 ];
 
-const AIR_MONITORING_SUGGESTIONS = [
-  'Routine air monitoring is not required where exposure is demonstrably low and no WEL concern is identified.',
-  'Consider personal exposure monitoring where exposure may approach a WEL or controls are unproven.',
-  'Review monitoring needs if quantity, frequency, duration, temperature or control performance changes.',
+const BASE_REDUCTION_SUGGESTIONS = [
+  'Only the quantity required of each chemical will be kept at the work area.',
+  'Stock containers will be returned to storage immediately after use.',
+  'Containers will be kept closed except during active dispensing/ use.',
+  'Open handling steps will be completed quickly.',
+  'Only one chemical container will be open/used at any one time.',
 ];
 
-const HEALTH_SURVEILLANCE_SUGGESTIONS = [
-  'No routine health surveillance trigger has been identified from the current information.',
-  'Refer to Occupational Health where sensitiser, asthmagen, CMR or significant skin exposure concerns apply.',
-  'Users must report symptoms, suspected exposure or PPE/control failures promptly.',
+const BASE_ADMIN_CONSIDERATIONS = [
+  'Who is authorised to carry out this task?',
+  'Which SOP, method or local procedure must be followed?',
+  'Which SDSs need to be read before work starts?',
+  'What records, labels or reporting routes are required?',
+  'What changes would trigger reassessment before work continues?',
+];
+
+const BASE_ADMIN_SUGGESTIONS = [
+  'Work will be carried out in accordance with the approved SOP or local safe working procedure.',
+  'Only trained and authorised personnel will carry out this task.',
+  'Users will read the current SDS before starting work.',
+  'Users will be briefed on this COSHH assessment before starting work.',
+  'Working containers will be labelled with the chemical name, concentration and hazard information.',
+  'Incompatible chemicals will be kept separated during setup, use and disposal.',
+  'Spills, exposure, failed controls or unexpected reactions will be reported immediately.',
+  'This assessment will be reviewed before any change to the chemicals, quantity, concentration, process or controls.',
+];
+
+const BASE_AIR_MONITORING_CONSIDERATIONS = [
+  'For chemicals with WELs, is the substance contained or controlled during dispensing, transfer, heating, weighing, mixing and cleanup, etc.?',
+  'Is current information good enough to decide whether exposure is controlled below the WEL?',
+  'Could monitoring help confirm that controls are effective?',
+  'Would monitoring be needed after scale-up, process change, control failure or exposure concern?',
+];
+
+const BASE_AIR_MONITORING_SUGGESTIONS = [
+  'Air monitoring is not required because airborne exposure is not expected during this task.',
+  'Air monitoring is not required because existing controls are established and exposure is expected to remain below relevant WELs.',
+  'Air monitoring will be carried out to confirm that exposure controls are effective.',
+  'Air monitoring requirements will be reviewed after scale-up, process change, control failure or exposure concern.',
+];
+
+const BASE_HEALTH_SURVEILLANCE_CONSIDERATIONS = [
+  'Do any chemicals indicate respiratory sensitisation/asthma, skin sensitisation or CMR-type health effects?',
+  'Is there still a realistic chance of exposure after controls are applied?',
+  'Is the task repeated often enough for health surveillance to be useful?',
+  'Do SDSs, Occupational Health or local rules require health surveillance or medical surveillance?',
+  'What symptoms or exposure events must users report?',
+];
+
+const BASE_HEALTH_SURVEILLANCE_SUGGESTIONS = [
+  'Health surveillance is not required because exposure is not expected after controls are applied.',
+  'Health surveillance is not required because no sensitiser, asthmagen, CMR or other health surveillance trigger has been identified.',
+  'Users will be referred to Occupational Health where health surveillance is required and work will not be started before appointment attended.',
+  'Users must report symptoms that may be linked to exposure to their manager.',
+  'Users must report skin contact, inhalation exposure or PPE/control failure.',
+  'Any Occupational Health restrictions or monitoring requirements will be followed.',
 ];
 
 const append = appendUnique;
@@ -91,6 +137,9 @@ const APPROACH_HELP = [
   ['4', 'Specialist advice: the banding screen is not enough to select controls by itself.'],
 ] as const;
 
+const COSHH_SCREENING_NOTE =
+  'COSHH Essentials is a screening tool. A competent risk assessor must verify the recommendation, check the SDS, and may impose stricter controls. Not valid for asbestos, lead, pesticides, radioactive materials, or biological agents.';
+
 interface ProcessStepReviewItem {
   id: string;
   message: string;
@@ -119,7 +168,7 @@ function CoshhEssentialsPanel({
               {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
               <span className="font-medium">COSHH Essentials screening</span>
               <span className="text-xs font-normal text-zinc-500">
-                Click for substance-level bands, assumptions and guidance sheets.
+                Click for substance-level bands and assumptions.
               </span>
               {(() => {
                 const present = [...new Set(s.analyses.map((a) => a.approach))].sort((a, b) => a - b);
@@ -173,6 +222,13 @@ function CoshhEssentialsPanel({
 
           {open && (
             <div className="mt-3 space-y-3 text-sm">
+              <div className="rounded-md border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-900">
+                <div className="mb-1 flex items-center gap-1 font-medium">
+                  <AlertTriangle size={12} /> Assessor review required
+                </div>
+                {COSHH_SCREENING_NOTE}
+              </div>
+
               {(() => {
                 const groups = new Map<Approach, SubstanceAnalysis[]>();
                 for (const a of s.analyses) {
@@ -247,29 +303,6 @@ function CoshhEssentialsPanel({
                   </div>
                 );
               })()}
-
-              {s.warnings.length > 0 && (
-                <div className="rounded-md border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-900 space-y-1">
-                  <div className="flex items-center gap-1 font-medium">
-                    <AlertTriangle size={12} /> Caveats &amp; assumptions
-                  </div>
-                  <ul className="list-disc ml-4 space-y-0.5">
-                    {s.warnings.map((w, i) => <li key={i}>{w}</li>)}
-                  </ul>
-                </div>
-              )}
-
-              <div className="text-xs text-zinc-600">
-                Reference: {s.gSheetRef}.{' '}
-                <a
-                  href="https://www.hse.gov.uk/pubns/books/hsg193.htm"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-0.5 text-accent-700 hover:underline"
-                >
-                  HSG193 <ExternalLink size={11} />
-                </a>
-              </div>
             </div>
           )}
         </div>
@@ -297,6 +330,192 @@ function hasLevOrEnclosureControl(controls: ReturnType<typeof controlsForStep>) 
 
 function substanceAnalysisKey(substance: ProcessStep['chemicals'][number]) {
   return String(substance.pubchemCid ?? substance.cas ?? substance.name).trim().toLowerCase();
+}
+
+function uniqueChemicalNames(steps: ProcessStep[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const step of steps) {
+    for (const chemical of step.chemicals) {
+      const name = chemical.name.trim() || chemical.cas?.trim();
+      if (!name) continue;
+      const key = name.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(name);
+    }
+  }
+  return out;
+}
+
+function hasRealWelValue(value: string | undefined): boolean {
+  if (!value) return false;
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return false;
+  return ![
+    'n/a',
+    'na',
+    'none',
+    'not applicable',
+    'not available',
+    'no wel',
+    '-',
+    '—',
+  ].includes(normalized);
+}
+
+function uniqueWelChemicalNames(steps: ProcessStep[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const step of steps) {
+    for (const chemical of step.chemicals) {
+      if (!hasRealWelValue(chemical.wel.twa) && !hasRealWelValue(chemical.wel.stel)) continue;
+      const name = chemical.name.trim() || chemical.cas?.trim();
+      if (!name) continue;
+      const key = name.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(name);
+    }
+  }
+  return out;
+}
+
+const HEALTH_SURVEILLANCE_HCODES = new Set([
+  'H317',
+  'H334',
+  'H340',
+  'H341',
+  'H350',
+  'H350I',
+  'H351',
+  'H360',
+  'H360F',
+  'H360D',
+  'H360FD',
+  'H361',
+  'H361F',
+  'H361D',
+  'H361FD',
+  'H362',
+]);
+
+function normalizeHCode(code: string): string {
+  return code.trim().toUpperCase().replace(/\s+/g, '');
+}
+
+function uniqueHealthSurveillanceChemicalNames(steps: ProcessStep[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const step of steps) {
+    for (const chemical of step.chemicals) {
+      const hasTrigger = chemical.hazardStatements.some((h) =>
+        HEALTH_SURVEILLANCE_HCODES.has(normalizeHCode(h.code)),
+      );
+      if (!hasTrigger) continue;
+      const name = chemical.name.trim() || chemical.cas?.trim();
+      if (!name) continue;
+      const key = name.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(name);
+    }
+  }
+  return out;
+}
+
+function eliminationSubstitutionPrompts(steps: ProcessStep[]) {
+  const names = uniqueChemicalNames(steps);
+  const displayedNames = names.slice(0, 8);
+  const chemicalList = displayedNames.join(', ');
+  const extraCount = names.length - displayedNames.length;
+  return {
+    considerations: [
+      ...BASE_ELIM_SUB_CONSIDERATIONS,
+      ...(names.length > 0
+        ? [
+            `Chemicals to check for removal or substitution: ${chemicalList}${extraCount > 0 ? `, plus ${extraCount} more` : ''}.`,
+          ]
+        : []),
+    ],
+    suggestions: BASE_ELIM_SUB_SUGGESTIONS,
+  };
+}
+
+function reductionPrompts(steps: ProcessStep[]) {
+  const names = uniqueChemicalNames(steps);
+  const displayedNames = names.slice(0, 8);
+  const chemicalList = displayedNames.join(', ');
+  const extraCount = names.length - displayedNames.length;
+  return {
+    considerations: [
+      ...BASE_REDUCTION_CONSIDERATIONS,
+      ...(names.length > 0
+        ? [
+            `Chemicals to check for quantity, duration or frequency reduction: ${chemicalList}${extraCount > 0 ? `, plus ${extraCount} more` : ''}.`,
+          ]
+        : []),
+    ],
+    suggestions: BASE_REDUCTION_SUGGESTIONS,
+  };
+}
+
+function adminPrompts(steps: ProcessStep[]) {
+  const names = uniqueChemicalNames(steps);
+  const displayedNames = names.slice(0, 8);
+  const chemicalList = displayedNames.join(', ');
+  const extraCount = names.length - displayedNames.length;
+  return {
+    considerations: [
+      ...BASE_ADMIN_CONSIDERATIONS,
+      ...(names.length > 0
+        ? [
+            `SDSs and chemical-specific administrative requirements to check: ${chemicalList}${extraCount > 0 ? `, plus ${extraCount} more` : ''}.`,
+          ]
+        : []),
+    ],
+    suggestions: BASE_ADMIN_SUGGESTIONS,
+  };
+}
+
+function airMonitoringPrompts(steps: ProcessStep[]) {
+  const welNames = uniqueWelChemicalNames(steps);
+  const names = welNames.length > 0 ? welNames : uniqueChemicalNames(steps);
+  const displayedNames = names.slice(0, 8);
+  const chemicalList = displayedNames.join(', ');
+  const extraCount = names.length - displayedNames.length;
+  const chemicalPrompt = welNames.length > 0
+    ? `Chemicals that have WELs: ${chemicalList}${extraCount > 0 ? `, plus ${extraCount} more` : ''}.`
+    : `Chemicals to check for WELs and airborne exposure potential: ${chemicalList}${extraCount > 0 ? `, plus ${extraCount} more` : ''}.`;
+  return {
+    considerations: [
+      ...(names.length > 0
+        ? [chemicalPrompt]
+        : []),
+      ...BASE_AIR_MONITORING_CONSIDERATIONS,
+    ],
+    suggestions: BASE_AIR_MONITORING_SUGGESTIONS,
+  };
+}
+
+function healthSurveillancePrompts(steps: ProcessStep[]) {
+  const triggerNames = uniqueHealthSurveillanceChemicalNames(steps);
+  const names = triggerNames.length > 0 ? triggerNames : uniqueChemicalNames(steps);
+  const displayedNames = names.slice(0, 8);
+  const chemicalList = displayedNames.join(', ');
+  const extraCount = names.length - displayedNames.length;
+  const chemicalPrompt = triggerNames.length > 0
+    ? `Chemicals to check for health surveillance triggers: ${chemicalList}${extraCount > 0 ? `, plus ${extraCount} more` : ''}. These include sensitiser/asthmagen or CMR-type H-code concerns.`
+    : `Chemicals to check against SDS health surveillance requirements: ${chemicalList}${extraCount > 0 ? `, plus ${extraCount} more` : ''}.`;
+  return {
+    considerations: [
+      ...(names.length > 0
+        ? [chemicalPrompt]
+        : []),
+      ...BASE_HEALTH_SURVEILLANCE_CONSIDERATIONS,
+    ],
+    suggestions: BASE_HEALTH_SURVEILLANCE_SUGGESTIONS,
+  };
 }
 
 function processStepControlReviewItemsByStep(
@@ -577,6 +796,26 @@ export function ControlsSection() {
     () => processStepControlReviewItemsByStep(processSteps, suggestion),
     [processSteps, suggestion],
   );
+  const elimSubPrompts = useMemo(
+    () => eliminationSubstitutionPrompts(processSteps),
+    [processSteps],
+  );
+  const reductionControlPrompts = useMemo(
+    () => reductionPrompts(processSteps),
+    [processSteps],
+  );
+  const adminControlPrompts = useMemo(
+    () => adminPrompts(processSteps),
+    [processSteps],
+  );
+  const airMonitoringControlPrompts = useMemo(
+    () => airMonitoringPrompts(processSteps),
+    [processSteps],
+  );
+  const healthSurveillanceControlPrompts = useMemo(
+    () => healthSurveillancePrompts(processSteps),
+    [processSteps],
+  );
   const toggleStepReview = (id: string) => {
     setCheckedStepReviews((current) => {
       const next = new Set(current);
@@ -625,7 +864,9 @@ export function ControlsSection() {
           iconClass="bg-accent-600 text-white"
           label="Elimination / Substitution"
           hint="Remove or replace with a less hazardous option."
-          suggestions={ELIM_SUB_SUGGESTIONS}
+          considerationLabel="Review elimination/substitution prompts"
+          considerations={elimSubPrompts.considerations}
+          suggestions={elimSubPrompts.suggestions}
           value={controls.elimination + (controls.substitution ? '\n' + controls.substitution : '')}
           onChange={(v) => update({ elimination: v, substitution: '' })}
           onAppend={(s) =>
@@ -637,7 +878,7 @@ export function ControlsSection() {
               substitution: '',
             })
           }
-          placeholder="Record whether the substance or process can be removed, replaced, pre-diluted, bought ready-to-use, or changed to a lower hazard grade."
+          placeholder="Record whether any chemical can be removed, replaced with a lower-hazard alternative, or replaced by a non-chemical method."
         />
         <ControlRow
           number={2}
@@ -645,7 +886,9 @@ export function ControlsSection() {
           iconClass="bg-accent-600 text-white"
           label="Reduction"
           hint="Reduce quantity, concentration or duration."
-          suggestions={REDUCTION_SUGGESTIONS}
+          considerationLabel="Review reduction prompts"
+          considerations={reductionControlPrompts.considerations}
+          suggestions={reductionControlPrompts.suggestions}
           value={controls.reduction}
           onChange={(v) => update({ reduction: v })}
           onAppend={(s) => update({ reduction: append(controls.reduction, s) })}
@@ -658,7 +901,9 @@ export function ControlsSection() {
           label="Administrative controls"
           hint="Change the way people work."
           required
-          suggestions={ADMIN_SUGGESTIONS}
+          considerationLabel="Review administrative prompts"
+          considerations={adminControlPrompts.considerations}
+          suggestions={adminControlPrompts.suggestions}
           value={controls.administrative}
           onChange={(v) => update({ administrative: v })}
           onAppend={(s) => update({ administrative: append(controls.administrative, s) })}
@@ -671,7 +916,9 @@ export function ControlsSection() {
           label="Air monitoring"
           hint="Confirm exposure stays controlled."
           required
-          suggestions={AIR_MONITORING_SUGGESTIONS}
+          considerationLabel="Review air monitoring prompts"
+          considerations={airMonitoringControlPrompts.considerations}
+          suggestions={airMonitoringControlPrompts.suggestions}
           value={controls.airMonitoring}
           onChange={(v) => update({ airMonitoring: v })}
           onAppend={(s) => update({ airMonitoring: append(controls.airMonitoring, s) })}
@@ -684,7 +931,9 @@ export function ControlsSection() {
           label="Health surveillance"
           hint="Record any OH decision or trigger."
           required
-          suggestions={HEALTH_SURVEILLANCE_SUGGESTIONS}
+          considerationLabel="Review health surveillance prompts"
+          considerations={healthSurveillanceControlPrompts.considerations}
+          suggestions={healthSurveillanceControlPrompts.suggestions}
           value={controls.healthSurveillance}
           onChange={(v) => update({ healthSurveillance: v })}
           onAppend={(s) => update({ healthSurveillance: append(controls.healthSurveillance, s) })}
@@ -701,6 +950,8 @@ function ControlRow({
   iconClass,
   label,
   hint,
+  considerationLabel,
+  considerations,
   suggestions,
   value,
   onChange,
@@ -713,6 +964,8 @@ function ControlRow({
   iconClass: string;
   label: string;
   hint: string;
+  considerationLabel?: string;
+  considerations?: string[];
   suggestions: string[];
   value: string;
   onChange: (v: string) => void;
@@ -733,6 +986,21 @@ function ControlRow({
         <div className="mt-1 text-xs text-zinc-500">{hint}</div>
       </div>
       <div className="min-w-0">
+        {considerations && considerations.length > 0 && (
+          <details className="group mb-2 rounded-md border border-zinc-200 bg-zinc-50/70 px-2.5 py-1.5">
+            <summary className="cursor-pointer text-xs font-medium text-zinc-600 marker:text-zinc-400">
+              {considerationLabel ?? 'Review prompts'}
+            </summary>
+            <ul className="mt-2 space-y-1 text-xs leading-relaxed text-zinc-600">
+              {considerations.map((item) => (
+                <li key={item} className="grid grid-cols-[0.5rem_1fr] gap-2">
+                  <span className="mt-[0.45rem] h-1.5 w-1.5 rounded-full bg-zinc-300" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
         <SuggestionField
           label=""
           suggestions={suggestions}
