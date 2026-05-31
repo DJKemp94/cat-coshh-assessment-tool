@@ -6,6 +6,7 @@ import {
 import clsx from 'clsx';
 import { useAssessment } from '@/store/assessment';
 import { SectionHeader } from '@/components/common/SectionHeader';
+import { PageIntro } from '@/components/common/PageIntro';
 import { appendUnique } from '@/components/common/SuggestionChips';
 import { SuggestionField } from '@/components/common/SuggestionField';
 import { suggestControls, OverallSuggestion, SubstanceAnalysis, Approach, APPROACH_LABEL } from '@/services/coshhEssentials';
@@ -137,9 +138,6 @@ const APPROACH_HELP = [
   ['4', 'Specialist advice: the banding screen is not enough to select controls by itself.'],
 ] as const;
 
-const COSHH_SCREENING_NOTE =
-  'COSHH Essentials is a screening tool. A competent risk assessor must verify the recommendation, check the SDS, and may impose stricter controls. Not valid for asbestos, lead, pesticides, radioactive materials, or biological agents.';
-
 interface ProcessStepReviewItem {
   id: string;
   message: string;
@@ -163,12 +161,12 @@ function CoshhEssentialsPanel({
           <div className="flex items-start gap-2">
             <button
               onClick={() => setOpen((v) => !v)}
-              className="flex min-w-0 flex-1 items-center gap-1.5 flex-wrap text-left"
+              className="flex min-w-0 flex-1 items-center gap-1.5 flex-wrap rounded-md text-left focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2"
             >
               {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
               <span className="font-medium">COSHH Essentials screening</span>
-              <span className="text-xs font-normal text-zinc-500">
-                Click for substance-level bands and assumptions.
+              <span className="rounded-md border border-accent-200 bg-accent-50 px-2 py-0.5 text-xs font-semibold text-accent-800">
+                Click to review control recommendations
               </span>
               {(() => {
                 const present = [...new Set(s.analyses.map((a) => a.approach))].sort((a, b) => a - b);
@@ -183,9 +181,7 @@ function CoshhEssentialsPanel({
                           APPROACH_COLOR[ap],
                         )}
                       >
-                        {ap === s.approach
-                          ? s.approachLabel + (multiple ? ' · drives' : '')
-                          : `Approach ${ap}`}
+                        {ap === s.approach ? s.approachLabel : `Approach ${ap}`}
                       </span>
                     ))}
                     {multiple && (
@@ -222,11 +218,31 @@ function CoshhEssentialsPanel({
 
           {open && (
             <div className="mt-3 space-y-3 text-sm">
-              <div className="rounded-md border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-900">
-                <div className="mb-1 flex items-center gap-1 font-medium">
-                  <AlertTriangle size={12} /> Assessor review required
+              <div className="rounded-md border border-accent-100 bg-accent-50/60 p-3 text-xs leading-relaxed text-zinc-700">
+                <div className="font-semibold text-zinc-900">What does this mean?</div>
+                <div className="mt-2 space-y-2.5">
+                  <p>
+                    COSHH Essentials is an HSE control-banding tool. CAT uses the chemicals you've entered into the system, extracts the quantities, physical form and hazard information entered in Process Steps to estimate the control approach likely to be needed.
+                  </p>
+                  <p>
+                    In the table below, is a list of all chemicals entered into the system alongside the recommended controls using the COSHH essentials screening process.
+                  </p>
+                  <p>
+                    Where chemicals are identified under Approach 1, these are likely to be acceptable to handle outside of LEV.
+                  </p>
+                  <p>
+                    Approaches 2 and 3 indicate that the chemical should be handled using some form of LEV, with a higher approach requiring greater protection.
+                  </p>
+                  <p>
+                    Where chemicals are identified under Approach 4, there may be some specialist controls required, and you should check the SDS before confirming in your Process step which are the most sensible controls.
+                  </p>
+                  <p>
+                    You should always check the SDS and make sure the engineering controls and PPE recorded for each process step are suitable, then document the final control measures in the both the Process steps as well as the fields below.
+                  </p>
+                  <p className="rounded-md border border-accent-100 bg-white/70 px-2 py-1.5">
+                    <span className="font-semibold text-zinc-900">Note:</span> This screening is not valid for asbestos, lead, pesticides, radioactive materials or biological agents.
+                  </p>
                 </div>
-                {COSHH_SCREENING_NOTE}
               </div>
 
               {(() => {
@@ -241,7 +257,6 @@ function CoshhEssentialsPanel({
                   <div className="space-y-2">
                     {sortedApproaches.map((approach) => {
                       const items = groups.get(approach)!;
-                      const isDriving = approach === s.approach;
                       return (
                         <div
                           key={approach}
@@ -260,11 +275,6 @@ function CoshhEssentialsPanel({
                                 {items.length} substance{items.length === 1 ? '' : 's'}
                               </span>
                             </div>
-                            {isDriving && (
-                              <span className="text-[10px] font-medium uppercase tracking-wider">
-                                Drives controls
-                              </span>
-                            )}
                           </div>
                           <table className="w-full text-xs bg-white/60">
                             <thead className="text-zinc-600">
@@ -838,6 +848,15 @@ export function ControlsSection() {
       <SectionHeader
         title="Control measures"
         subtitle="Apply the hierarchy of control. Click a section to add suggestions."
+      />
+
+      <PageIntro
+        body="Use this page to record the final control measures for the assessment. Start by checking whether the process-step engineering controls and PPE match the COSHH Essentials screening result, then complete the hierarchy of control fields below."
+        steps={[
+          { title: '1. Check the screening', body: 'Use COSHH Essentials section to identify the recommended set of controls for the chemicals used.' },
+          { title: '2. Check step controls', body: 'A series of "Checks" are identified based off of comparison between controls you selected in the Process Steps and the COSHH essentials recommendations. Review each "Check", update any controls, and mark the "Checks" as complete as you go.' },
+          { title: '3. Record other controls', body: 'Review the other steps in the hierarchy of control, and indicate the other controls in place to ensure that work is safely completed. Check the prompts and suggestions for feedback on what to consider, alongside some standardised responses for you to consider.' },
+        ]}
       />
 
       {suggestion ? (

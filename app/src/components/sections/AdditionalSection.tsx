@@ -1,30 +1,30 @@
 import { useMemo, useState } from 'react';
 import {
   ChevronDown, ChevronRight, Plus, Archive,
-  Droplets, Flame, Info,
+  Droplets, Flame,
   CheckCircle2, Package, ShieldAlert, Skull,
-  FlaskConical, ExternalLink, Download, Beaker, Biohazard,
-  Grid3X3,
+  FlaskConical, Beaker, Biohazard,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAssessment } from '@/store/assessment';
 import { SectionHeader } from '@/components/common/SectionHeader';
+import { PageIntro } from '@/components/common/PageIntro';
 import { SuggestionDisclaimer } from '@/components/common/SuggestionDisclaimer';
 import { GhsIcon } from '@/components/common/GhsPictograms';
-import { Substance } from '@/types/assessment';
+import { StorageAssignmentEdit, StorageAssignmentGroup, Substance } from '@/types/assessment';
 import { classifyStorage, StorageConfidence, StorageGroupId } from '@/services/storageClassifier';
 
 export function AdditionalSection() {
-  const a = useAssessment((s) => s.assessment.additional);
+  const storage = useAssessment((s) => s.assessment.additional);
   const assessment = useAssessment((s) => s.assessment);
-  const update = useAssessment((s) => s.updateStorage);
+  const updateStorage = useAssessment((s) => s.updateStorage);
 
   const allChems = useMemo(() => {
     const seen = new Set<string>();
     return assessment.processSteps
       .flatMap((st) => st.chemicals)
       .filter((c) => {
-        const key = (c.cas ?? c.name).toLowerCase().trim();
+        const key = (c.cas?.trim() || c.name).toLowerCase().trim();
         if (!key || seen.has(key)) return false;
         seen.add(key);
         return true;
@@ -44,26 +44,59 @@ export function AdditionalSection() {
       />
       <SuggestionDisclaimer variant="storage" />
 
+      <PageIntro
+        body="Use this page to review the suggested storage group for each chemical, check the SDS, update any asterisked fields, and confirm that the final storage recommendation is suitable."
+        steps={[
+          { title: '1. Check each row', body: 'Compare the suggested group, guidance and segregation alert with SDS sections 7 and 10.' },
+          { title: '2. Update if needed', body: 'Change the storage group or text where the SDS or local rules require something different.' },
+          { title: '3. Confirm storage', body: 'Tick each chemical once you are satisfied the storage recommendation is correct.' },
+        ]}
+        optionalStep={{
+          title: 'Optional: Check Storage Layout',
+          body: 'Review the storage layout against your storage in practice, and ensure that chemicals are correctly segregated as per the recommendations. Use the recommendations as a guide, and always confirm via the SDS.',
+        }}
+      />
+
       <div className="space-y-4">
         <Card
-          title="Storage & SDS"
-          subtitle="Storage requirements and controls generated from GHS symbols and hazard codes."
+          title="Storage classification"
+          subtitle="Review and update chemical storage assignments before checking the supporting cabinet layout."
           icon={<Archive size={18} />}
           iconClass="text-accent-700"
           defaultOpen
-          right={
-            <button type="button" className="btn-primary text-xs">
-              <Download size={14} /> Export storage plan
-            </button>
-          }
         >
           <StorageSdsPanel
             chemicals={allChems}
-            sdsVersion={a.sdsVersion}
-            sdsDate={a.sdsDate}
-            onUpdateSds={(patch) => update(patch)}
-            cheminventoryLogged={a.cheminventoryLogged}
-            onSetCheminventoryLogged={(cheminventoryLogged) => update({ cheminventoryLogged })}
+            assignmentEdits={storage.assignments ?? {}}
+            onUpdateAssignment={(chemicalId, patch) => {
+              const clearsConfirmation = patch.groupOverride !== undefined || patch.guidance !== undefined || patch.alert !== undefined;
+              updateStorage({
+                assignments: {
+                  ...(storage.assignments ?? {}),
+                  [chemicalId]: {
+                    ...(storage.assignments?.[chemicalId] ?? {}),
+                    ...patch,
+                    ...(clearsConfirmation ? { confirmed: false } : {}),
+                    updatedAt: new Date().toISOString(),
+                  },
+                },
+              });
+            }}
+            onResetAssignmentGroup={(chemicalId) => {
+              const current = storage.assignments ?? {};
+              const existing = current[chemicalId] ?? {};
+              const { groupOverride: _drop, updatedAt: _dropUpdatedAt, ...rest } = existing;
+              void _drop;
+              void _dropUpdatedAt;
+              updateStorage({
+                assignments: {
+                  ...current,
+                  [chemicalId]: Object.keys(rest).length > 0
+                    ? { ...rest, confirmed: false, updatedAt: new Date().toISOString() }
+                    : rest,
+                },
+              });
+            }}
           />
         </Card>
       </div>
@@ -124,10 +157,14 @@ type ChemicalStorageAssignment = {
   chemical: Substance;
   group: StorageGroupDef | null;
   suggestedGroup: StorageGroupDef | null;
+  generalShelving: boolean;
   hCodes: string[];
   primaryHazards: string[];
   alert: string;
   alertLevel: 'ok' | 'warn' | 'danger';
+  guidance: string;
+  confirmed: boolean;
+  assessorEdited: boolean;
   reason: string;
   confidence: StorageConfidence;
   overridden: boolean;
@@ -145,6 +182,8 @@ type ManualChemical = {
 type StorageGroupForDisplay = StorageGroup & {
   manualChemicals: ManualChemical[];
 };
+
+type StorageOverride = StorageAssignmentGroup;
 
 const STORAGE_GROUP_DEFS: StorageGroupDef[] = [
   { id: '1', title: 'Flammable Cabinet', subtitle: 'Flammable liquids', icon: <Flame size={26} />, tone: 'text-blue-700 bg-blue-50', border: 'border-t-blue-500', dot: 'bg-blue-500', guidance: 'Keep away from heat, sparks, ignition sources and oxidizers.' },
@@ -198,10 +237,12 @@ function suggestedGroupForChemical(chemical: Substance) {
 
 function classifyChemical(
   chemical: Substance,
-  override?: StorageGroupId | 'review',
+  edit?: StorageAssignmentEdit,
 ): ChemicalStorageAssignment {
   const suggested = suggestedGroupForChemical(chemical);
-  const groupId = override === 'review' ? null : override ?? suggested.groupId;
+  const override = edit?.groupOverride;
+  const generalShelving = override === 'general';
+  const groupId = override === 'review' || generalShelving ? null : override ?? suggested.groupId;
   const overridden = override !== undefined;
 
   const group = groupId ? groupById(groupId) : null;
@@ -211,29 +252,38 @@ function classifyChemical(
       .filter((candidate) => candidate.id !== group.id && !COMPATIBILITY[group.id][candidate.id])
       .map((candidate) => storageGroupLabel(candidate))
     : [];
-  const alert = !group
-    ? 'Check SDS sections 7 and 10'
-    : incompatible.length
-      ? `Do not store with ${incompatible.join(', ')}`
-      : 'None';
+  const generatedAlert = generalShelving
+    ? 'General shelving / non-hazardous item. Confirm SDS and local procedure.'
+    : !group
+      ? 'Check SDS sections 7 and 10'
+      : incompatible.length
+        ? `Do not store with ${incompatible.join(', ')}`
+        : 'None';
+  const generatedGuidance = group?.guidance ?? 'Check sections 7 and 10 before assigning storage.';
+  const guidance = edit?.guidance ?? generatedGuidance;
+  const alert = edit?.alert ?? generatedAlert;
 
   return {
     chemical,
     group,
     suggestedGroup,
+    generalShelving,
     hCodes: suggested.hCodes,
     primaryHazards: suggested.primaryHazards,
     alert,
-    alertLevel: !group ? 'warn' : incompatible.length ? 'danger' : 'ok',
+    guidance,
+    confirmed: edit?.confirmed === true,
+    alertLevel: generalShelving ? 'ok' : !group ? 'warn' : incompatible.length ? 'danger' : 'ok',
+    assessorEdited: Boolean(edit?.groupOverride || edit?.guidance !== undefined || edit?.alert !== undefined),
     reason: overridden ? 'Assessor override. Verify against SDS sections 7 and 10.' : suggested.reason,
     confidence: overridden ? 'review' : suggested.confidence,
     overridden,
   };
 }
 
-function buildStoragePlan(chemicals: Substance[], overrides: Record<string, StorageGroupId | 'review'>) {
+function buildStoragePlan(chemicals: Substance[], edits: Record<string, StorageAssignmentEdit>) {
   const usable = chemicals.filter((c) => c.name.trim() || c.cas?.trim());
-  const assignments = usable.map((chemical) => classifyChemical(chemical, overrides[chemical.id]));
+  const assignments = usable.map((chemical) => classifyChemical(chemical, edits[chemical.id]));
   const groups = STORAGE_GROUP_DEFS.map((group) => ({
     ...group,
     chemicals: assignments.filter((a) => a.group?.id === group.id),
@@ -243,20 +293,15 @@ function buildStoragePlan(chemicals: Substance[], overrides: Record<string, Stor
 
 function StorageSdsPanel({
   chemicals,
-  sdsVersion,
-  sdsDate,
-  onUpdateSds,
-  cheminventoryLogged,
-  onSetCheminventoryLogged,
+  assignmentEdits,
+  onUpdateAssignment,
+  onResetAssignmentGroup,
 }: {
   chemicals: Substance[];
-  sdsVersion: string;
-  sdsDate: string;
-  onUpdateSds: (patch: { sdsVersion?: string; sdsDate?: string }) => void;
-  cheminventoryLogged: boolean;
-  onSetCheminventoryLogged: (value: boolean) => void;
+  assignmentEdits: Record<string, StorageAssignmentEdit>;
+  onUpdateAssignment: (chemicalId: string, patch: StorageAssignmentEdit) => void;
+  onResetAssignmentGroup: (chemicalId: string) => void;
 }) {
-  const [overrides, setOverrides] = useState<Record<string, StorageGroupId | 'review'>>({});
   const [hoveredPair, setHoveredPair] = useState<[StorageGroupId, StorageGroupId] | null>(null);
   const [manualChemicals, setManualChemicals] = useState<Record<StorageGroupId, ManualChemical[]>>({
     '1': [],
@@ -269,19 +314,27 @@ function StorageSdsPanel({
     '5c': [],
     '6': [],
   });
-  const { groups, assignments } = useMemo(() => buildStoragePlan(chemicals, overrides), [chemicals, overrides]);
+  const { groups, assignments } = useMemo(() => buildStoragePlan(chemicals, assignmentEdits), [chemicals, assignmentEdits]);
+  const unconfirmedCount = assignments.filter((assignment) => !assignment.confirmed).length;
+  const sortedAssignments = useMemo(() => {
+    const groupOrder = new Map<StorageGroupId, number>(
+      STORAGE_LAYOUT_ORDER.map((id, index) => [id, index]),
+    );
+    return [...assignments].sort((left, right) => {
+      const leftGroup = left.group ? groupOrder.get(left.group.id) ?? 99 : left.generalShelving ? 100 : 101;
+      const rightGroup = right.group ? groupOrder.get(right.group.id) ?? 99 : right.generalShelving ? 100 : 101;
+      if (leftGroup !== rightGroup) return leftGroup - rightGroup;
+      const leftName = left.chemical.name || left.chemical.cas || '';
+      const rightName = right.chemical.name || right.chemical.cas || '';
+      return leftName.localeCompare(rightName, undefined, { sensitivity: 'base', numeric: true });
+    });
+  }, [assignments]);
   const displayGroups: StorageGroupForDisplay[] = useMemo(() => groups.map((group) => ({
     ...group,
     manualChemicals: manualChemicals[group.id] ?? [],
   })), [groups, manualChemicals]);
   const activeDisplayGroups = displayGroups.filter((group) => group.chemicals.length > 0 || group.manualChemicals.length > 0);
-  const actionCount = assignments.filter((a) => a.alertLevel !== 'ok').length;
   const activeGroupIds = activeDisplayGroups.map((g) => g.id);
-  const matrixAlerts = activeDisplayGroups.flatMap((group, groupIndex) =>
-    activeDisplayGroups
-      .filter((other, otherIndex) => otherIndex > groupIndex && !COMPATIBILITY[group.id][other.id])
-      .map((other) => `${storageGroupLabel(group)} must be stored separately from ${storageGroupLabel(other)}.`),
-  );
   const addManualChemical = (groupId: StorageGroupId, name: string) => {
     const trimmed = name.trim();
     if (!trimmed) return;
@@ -302,27 +355,30 @@ function StorageSdsPanel({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border border-zinc-200 p-4">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2 text-sm font-semibold text-zinc-900">
-            Chemical classification & storage assignment <Info size={14} className="text-zinc-400" />
-          </div>
-          <button type="button" className="btn-secondary text-xs">Edit columns</button>
+      <div id="storage-classification-details" className="rounded-lg border border-zinc-200 bg-white p-4">
+        <div className="mb-3">
+          <h3 className="text-sm font-semibold text-zinc-900">Chemical classification and storage assignment</h3>
+          <p className="mt-1 text-xs text-zinc-500">
+            Review each suggested group, amend it where needed, then tick Confirmed for every chemical before moving on.
+          </p>
         </div>
+        {unconfirmedCount > 0 && (
+          <div className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
+            Confirm storage for {unconfirmedCount} chemical{unconfirmedCount === 1 ? '' : 's'} before continuing. Ensure the SDS has been checked to confirm suitable storage, and any fields marked with an asterisk are updated to match the requirements listed.
+          </div>
+        )}
         <div className="space-y-3 xl:hidden">
-          {assignments.map((assignment) => (
-              <ClassificationCard
-                key={`${assignment.chemical.id}-${assignment.group?.id ?? 'review'}-${assignment.alert}`}
-                assignment={assignment}
-                highlighted={assignment.group ? hoveredPair?.includes(assignment.group.id) ?? false : false}
-                onOverride={(groupId) => {
-                setOverrides((current) => {
-                  const next = { ...current };
-                  if (groupId === 'suggested') delete next[assignment.chemical.id];
-                  else next[assignment.chemical.id] = groupId;
-                  return next;
-                });
+          {sortedAssignments.map((assignment) => (
+            <ClassificationCard
+              key={`${assignment.chemical.id}-${assignment.group?.id ?? 'review'}-${assignment.alert}`}
+              assignment={assignment}
+              highlighted={assignment.group ? hoveredPair?.includes(assignment.group.id) ?? false : false}
+              onOverride={(groupId) => {
+                if (groupId === 'suggested') onResetAssignmentGroup(assignment.chemical.id);
+                else onUpdateAssignment(assignment.chemical.id, { groupOverride: groupId });
               }}
+              onEdit={(patch) => onUpdateAssignment(assignment.chemical.id, patch)}
+              onConfirm={(confirmed) => onUpdateAssignment(assignment.chemical.id, { confirmed })}
             />
           ))}
           {assignments.length === 0 && (
@@ -335,44 +391,44 @@ function StorageSdsPanel({
         <div className="hidden overflow-hidden xl:block">
           <table className="w-full table-fixed border-collapse text-left text-[11px]">
             <colgroup>
-              <col className="w-[11%]" />
+              <col className="w-[9%]" />
+              <col className="w-[12%]" />
+              <col className="w-[8%]" />
               <col className="w-[9%]" />
               <col className="w-[11%]" />
-              <col className="w-[11%]" />
-              <col className="w-[19%]" />
-              <col className="w-[20%]" />
-              <col className="w-[19%]" />
+              <col className="w-[16%]" />
+              <col className="w-[17.5%]" />
+              <col className="w-[17.5%]" />
             </colgroup>
             <thead>
               <tr className="border-y border-zinc-200 bg-zinc-50 text-zinc-600">
+                <th className="px-2 py-2 font-semibold">Confirm <RequiredMark /></th>
                 <th className="px-2 py-2 font-semibold">Chemical</th>
                 <th className="px-2 py-2 font-semibold">GHS pictograms</th>
                 <th className="px-2 py-2 font-semibold">Key H-codes</th>
                 <th className="px-2 py-2 font-semibold">Primary hazard</th>
-                <th className="px-2 py-2 font-semibold">Storage group (auto)</th>
-                <th className="px-2 py-2 font-semibold">Storage guidance</th>
-                <th className="px-2 py-2 font-semibold">Segregation alerts</th>
+                <th className="px-2 py-2 font-semibold">Storage group <RequiredMark /></th>
+                <th className="px-2 py-2 font-semibold">Storage guidance <RequiredMark /></th>
+                <th className="px-2 py-2 font-semibold">Segregation alerts <RequiredMark /></th>
               </tr>
             </thead>
             <tbody>
-              {assignments.map((assignment) => (
+              {sortedAssignments.map((assignment) => (
                 <ClassificationRow
                   key={`${assignment.chemical.id}-${assignment.group?.id ?? 'review'}-${assignment.alert}`}
                   assignment={assignment}
                   highlighted={assignment.group ? hoveredPair?.includes(assignment.group.id) ?? false : false}
                   onOverride={(groupId) => {
-                    setOverrides((current) => {
-                      const next = { ...current };
-                      if (groupId === 'suggested') delete next[assignment.chemical.id];
-                      else next[assignment.chemical.id] = groupId;
-                      return next;
-                    });
+                    if (groupId === 'suggested') onResetAssignmentGroup(assignment.chemical.id);
+                    else onUpdateAssignment(assignment.chemical.id, { groupOverride: groupId });
                   }}
+                  onEdit={(patch) => onUpdateAssignment(assignment.chemical.id, patch)}
+                  onConfirm={(confirmed) => onUpdateAssignment(assignment.chemical.id, { confirmed })}
                 />
               ))}
               {assignments.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-2 py-6 text-center text-sm text-zinc-500">
+                  <td colSpan={8} className="px-2 py-6 text-center text-sm text-zinc-500">
                     Add chemicals in Process Steps to generate storage groups and compatibility checks.
                   </td>
                 </tr>
@@ -382,20 +438,24 @@ function StorageSdsPanel({
         </div>
       </div>
 
-      <StoragePlanDashboard
-        groups={displayGroups}
-        assignments={assignments}
-        highlightedGroupIds={hoveredPair ?? []}
-        matrixAlertCount={matrixAlerts.length}
-        actionCount={actionCount}
-        onAddManualChemical={addManualChemical}
-        onRemoveManualChemical={removeManualChemical}
-      />
+      <DetailDisclosure
+        title="Recommended storage layout"
+        subtitle="Visual cabinet layout generated from the reviewed assignments."
+      >
+        <StoragePlanDashboard
+          groups={displayGroups}
+          assignments={assignments}
+          highlightedGroupIds={hoveredPair ?? []}
+          onAddManualChemical={addManualChemical}
+          onRemoveManualChemical={removeManualChemical}
+        />
+      </DetailDisclosure>
 
-      <div id="storage-compatibility-matrix" className="rounded-lg border border-zinc-200 p-4">
-        <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-zinc-900">
-          Compatibility between storage groups <Info size={14} className="text-zinc-400" />
-        </div>
+      <DetailDisclosure
+        id="storage-compatibility-matrix"
+        title="Compatibility matrix"
+        subtitle="Use this when you need to inspect the source table behind the cabinet layout."
+      >
         <div className="mb-3 flex flex-wrap gap-4 text-xs text-zinc-600">
           <span className="inline-flex items-center gap-1"><CheckCircle2 size={14} className="text-green-600" /> Maybe compatible - check SDS</span>
           <span className="inline-flex items-center gap-1"><span className="text-base font-bold text-red-600">x</span> Not compatible</span>
@@ -406,54 +466,43 @@ function StorageSdsPanel({
           hoveredPair={hoveredPair}
           onHoverPair={setHoveredPair}
         />
-        <div className="mt-3 flex items-center justify-between gap-3 text-xs text-zinc-500">
-          <span>Based on the supplied storage compatibility table. Highlighted cells show incompatibilities between storage groups currently used in this assessment. Always confirm with the SDS.</span>
-          <button type="button" className="font-medium text-accent-700">View full matrix</button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <label>
-          <span className="field-label">SDS version number</span>
-          <input className="field-input" value={sdsVersion} onChange={(e) => onUpdateSds({ sdsVersion: e.target.value })} placeholder="e.g. v3.1" />
-        </label>
-        <label>
-          <span className="field-label">SDS date</span>
-          <input type="date" className="field-input" value={sdsDate} onChange={(e) => onUpdateSds({ sdsDate: e.target.value })} />
-        </label>
-        <label className="flex items-center gap-2 text-sm text-zinc-700 md:col-span-2">
-          <input
-            type="checkbox"
-            checked={cheminventoryLogged}
-            onChange={(e) => onSetCheminventoryLogged(e.target.checked)}
-          />
-          Hazardous substance logged into ChemInventory
-        </label>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="rounded-lg border border-blue-100 bg-blue-50/50 p-4">
-          <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-blue-800">
-            <Info size={15} /> How this works
-          </div>
-          <p className="text-xs leading-relaxed text-zinc-600">
-            We classify chemicals using the H-codes and GHS pictograms recorded in the COSHH assessment, then apply the supplied storage compatibility table.
-          </p>
-          <button type="button" className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-accent-700">
-            Learn more <ExternalLink size={12} />
-          </button>
-        </div>
-        <div className="rounded-lg border border-violet-100 bg-violet-50/40 p-4">
-          <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-violet-800">
-            <Info size={15} /> Important
-          </div>
-          <p className="text-xs leading-relaxed text-zinc-600">
-            This is guidance only. Always verify the SDS and local storage procedures before storing chemicals.
-          </p>
-        </div>
-      </div>
+        <p className="mt-3 text-xs text-zinc-500">
+          Based on the supplied storage compatibility table. Highlighted cells show incompatibilities between storage groups currently used in this assessment.
+        </p>
+      </DetailDisclosure>
     </div>
   );
+}
+
+function DetailDisclosure({
+  id,
+  title,
+  subtitle,
+  children,
+}: {
+  id?: string;
+  title: string;
+  subtitle: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <details id={id} className="rounded-lg border border-zinc-200 bg-white">
+      <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3 text-left marker:hidden">
+        <ChevronRight size={16} className="shrink-0 text-zinc-500" />
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold text-zinc-900">{title}</span>
+          <span className="block text-xs text-zinc-500">{subtitle}</span>
+        </span>
+      </summary>
+      <div className="border-t border-zinc-100 px-4 pb-4 pt-4">
+        {children}
+      </div>
+    </details>
+  );
+}
+
+function RequiredMark() {
+  return <span className="text-red-600" aria-hidden="true">*</span>;
 }
 
 const CABINET_STYLE: Record<StorageGroupId, {
@@ -560,16 +609,12 @@ function StoragePlanDashboard({
   groups,
   assignments,
   highlightedGroupIds,
-  matrixAlertCount,
-  actionCount,
   onAddManualChemical,
   onRemoveManualChemical,
 }: {
   groups: StorageGroupForDisplay[];
   assignments: ChemicalStorageAssignment[];
   highlightedGroupIds: StorageGroupId[];
-  matrixAlertCount: number;
-  actionCount: number;
   onAddManualChemical: (groupId: StorageGroupId, name: string) => void;
   onRemoveManualChemical: (groupId: StorageGroupId, id: string) => void;
 }) {
@@ -577,23 +622,19 @@ function StoragePlanDashboard({
     .map((id) => groups.find((group) => group.id === id))
     .filter(Boolean) as StorageGroupForDisplay[];
   const visibleGroups = orderedGroups.filter(hasGroupChemicals);
-  const unassigned = assignments.filter((assignment) => !assignment.group);
-  const activeGroupCount = visibleGroups.length + (unassigned.length > 0 ? 1 : 0);
+  const generalShelving = assignments.filter((assignment) => assignment.generalShelving);
+  const activeGroupCount = visibleGroups.length + (generalShelving.length > 0 ? 1 : 0);
 
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white p-4">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div>
+          <div className="mb-4">
             <div>
               <h3 className="text-sm font-semibold text-zinc-900">Recommended Storage Layout</h3>
-              <p className="mt-1 text-sm text-zinc-600">Store chemicals in separate cabinets based on compatibility.</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="pill">{activeGroupCount} active group{activeGroupCount === 1 ? '' : 's'}</span>
-              <span className={clsx('pill', matrixAlertCount > 0 && '!border-rose-200 !bg-rose-50 !text-rose-700')}>{matrixAlertCount} separation alert{matrixAlertCount === 1 ? '' : 's'}</span>
-              <span className={clsx('pill', actionCount > 0 && '!border-amber-200 !bg-amber-50 !text-amber-800')}>{actionCount} review item{actionCount === 1 ? '' : 's'}</span>
-              <a href="#storage-compatibility-matrix" className="btn-secondary text-xs">
-                <Grid3X3 size={14} /> View compatibility matrix
-              </a>
+              <p className="mt-1 text-sm text-zinc-600">
+                {activeGroupCount > 0
+                  ? 'Store chemicals in separate cabinets based on compatibility.'
+                  : 'Add chemicals in Process Steps to generate active storage cabinets.'}
+              </p>
             </div>
           </div>
 
@@ -608,19 +649,16 @@ function StoragePlanDashboard({
                 onRemoveManualChemical={onRemoveManualChemical}
               />
             ))}
-            {unassigned.length > 0 && <GeneralShelvingCard assignments={unassigned} />}
-            {visibleGroups.length === 0 && unassigned.length === 0 && (
+            {generalShelving.length > 0 && <GeneralShelvingCard assignments={generalShelving} />}
+            {visibleGroups.length === 0 && generalShelving.length === 0 && (
               <div className="rounded-md border border-dashed border-zinc-200 p-6 text-center text-sm text-zinc-500">
                 Add chemicals in Process Steps to generate active storage cabinets.
               </div>
             )}
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-xs text-zinc-600">
+          <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-xs text-zinc-600">
             <span><strong className="text-zinc-800">Important note:</strong> This layout is guidance based on recorded GHS/H-code data. Always verify SDS sections 7 and 10 and local chemical storage rules.</span>
-            <button type="button" className="btn-secondary text-xs">
-              <Download size={14} /> Download Storage Plan
-            </button>
           </div>
     </div>
   );
@@ -757,37 +795,70 @@ function ChemicalContainer({
   tone?: StorageGroupId;
   muted?: boolean;
 }) {
-  const isGas = form === 'gas' || form === 'vapour' || form === 'aerosol' || form === 'mist';
-  const isSolid = form === 'solid' || form === 'powder';
-  const color = muted
+  const isGas = form === 'gas' || form === 'vapour' || form === 'mist';
+  const isAerosol = form === 'aerosol';
+  const isPowder = form === 'powder';
+  const isSolid = form === 'solid';
+  const vesselColor = muted
     ? 'bg-zinc-100 border-zinc-200 opacity-40'
     : tone === '1'
       ? 'bg-orange-700 border-orange-800'
       : tone === '5a' || tone === '5b' || tone === '5c'
         ? 'bg-zinc-800 border-zinc-900'
         : 'bg-white border-zinc-300';
-  const cap = tone === '1' || tone === '5a' || tone === '5b' || tone === '5c' ? 'bg-red-600' : tone === '3' ? 'bg-blue-600' : 'bg-zinc-100';
+  const capColor = muted
+    ? 'bg-zinc-100 border-zinc-200'
+    : tone === '1' || tone === '5a' || tone === '5b' || tone === '5c'
+      ? 'bg-red-600 border-red-700'
+      : tone === '3'
+        ? 'bg-blue-600 border-blue-700'
+        : 'bg-zinc-100 border-zinc-300';
+  const labelColor = muted
+    ? 'bg-white/50'
+    : tone === '5a' || tone === '5b' || tone === '5c'
+      ? 'bg-zinc-200/80'
+      : 'bg-white/75';
 
   return (
     <div className="relative z-10 flex min-w-0 flex-col items-center justify-end gap-1.5">
-      <div
-        data-muted-container={muted ? true : undefined}
-        className={clsx(
-          'relative border shadow-sm',
-          isGas
-            ? 'h-14 w-8 rounded-full'
-            : isSolid
-              ? 'h-10 w-11 rounded-md'
-              : 'h-12 w-8 rounded-b-md rounded-t-lg',
-          color,
-        )}
-      >
-        {!muted && isSolid && <span className="absolute inset-x-1 top-1 h-2 rounded-sm bg-white/35" />}
-        {!muted && isSolid && <span className="absolute bottom-1 left-1 right-1 h-1 rounded-full bg-black/10" />}
-        {!isSolid && <span className={clsx('absolute -top-2 left-1/2 h-2 w-5 -translate-x-1/2 rounded-t-sm border border-zinc-300', cap)} />}
-        {!muted && !isGas && !isSolid && <span className="absolute inset-x-0 bottom-3 h-4 bg-white/75" />}
-        {!muted && isGas && <span className="absolute left-1/2 top-2 h-3 w-3 -translate-x-1/2 rounded-full bg-white/70" />}
-      </div>
+      {isGas ? (
+        <div data-muted-container={muted ? true : undefined} className="relative h-16 w-8">
+          <span className={clsx('absolute left-1/2 top-0 h-2 w-4 -translate-x-1/2 rounded-t-sm border', capColor)} />
+          <span className={clsx('absolute inset-x-0 top-2 h-14 rounded-full border shadow-sm', vesselColor)} />
+          {!muted && <span className="absolute left-1/2 top-5 h-3 w-3 -translate-x-1/2 rounded-full bg-white/70" />}
+          {!muted && <span className="absolute bottom-2 left-1/2 h-5 w-1 -translate-x-1/2 rounded-full bg-black/10" />}
+        </div>
+      ) : isAerosol ? (
+        <div data-muted-container={muted ? true : undefined} className="relative h-14 w-8">
+          <span className={clsx('absolute left-1/2 top-0 h-1.5 w-4 -translate-x-1/2 rounded-t-sm border', capColor)} />
+          <span className={clsx('absolute inset-x-0 top-1.5 h-12 rounded-b-md rounded-t-lg border shadow-sm', vesselColor)} />
+          {!muted && <span className={clsx('absolute inset-x-1 top-6 h-4 rounded-sm', labelColor)} />}
+          {!muted && <span className="absolute inset-x-1 bottom-1 h-1 rounded-full bg-black/10" />}
+        </div>
+      ) : isPowder ? (
+        <div data-muted-container={muted ? true : undefined} className="relative h-12 w-11">
+          <span className={clsx('absolute left-1/2 top-0 h-2 w-9 -translate-x-1/2 rounded-t-md border', capColor)} />
+          <span className={clsx('absolute inset-x-0 bottom-0 h-10 rounded-b-lg rounded-t-md border shadow-sm', vesselColor)} />
+          {!muted && <span className={clsx('absolute inset-x-1 bottom-3 h-3 rounded-sm', labelColor)} />}
+          {!muted && <span className="absolute bottom-1 left-2 right-2 h-1 rounded-full bg-black/10" />}
+        </div>
+      ) : isSolid ? (
+        <div data-muted-container={muted ? true : undefined} className="relative h-[3.25rem] w-9">
+          <span className={clsx('absolute left-1/2 top-0 h-2 w-5 -translate-x-1/2 rounded-t-sm border', capColor)} />
+          <span className={clsx('absolute left-1/2 top-2 h-2 w-6 -translate-x-1/2 border-x border-t', vesselColor)} />
+          <span className={clsx('absolute inset-x-0 bottom-0 h-10 rounded-b-lg rounded-t-md border shadow-sm', vesselColor)} />
+          {!muted && <span className={clsx('absolute inset-x-1 bottom-3 h-3 rounded-sm', labelColor)} />}
+          {!muted && <span className="absolute bottom-1 left-2 right-2 h-1 rounded-full bg-black/10" />}
+        </div>
+      ) : (
+        <div data-muted-container={muted ? true : undefined} className="relative h-14 w-8">
+          <span className={clsx('absolute left-1/2 top-0 h-2 w-5 -translate-x-1/2 rounded-t-sm border', capColor)} />
+          <span className={clsx('absolute left-1/2 top-2 h-2 w-6 -translate-x-1/2 border-x border-t', vesselColor)} />
+          <span className={clsx('absolute inset-x-0 bottom-0 h-11 rounded-b-md rounded-t-lg border shadow-sm', vesselColor)} />
+          {!muted && <span className={clsx('absolute inset-x-0 bottom-3 h-4', labelColor)} />}
+          {!muted && <span className="absolute bottom-1 left-2 right-2 h-1 rounded-full bg-black/10" />}
+        </div>
+      )}
       {name ? (
         <div className="min-h-9 max-w-[6.25rem] px-0.5 text-center text-[10px] font-semibold leading-[1.08] text-zinc-900" data-chemical-label>
           <span className="line-clamp-2 break-words">{name}</span>
@@ -965,26 +1036,46 @@ function ClassificationRow({
   assignment,
   highlighted,
   onOverride,
+  onEdit,
+  onConfirm,
 }: {
   assignment: ChemicalStorageAssignment;
   highlighted: boolean;
-  onOverride: (groupId: StorageGroupId | 'review' | 'suggested') => void;
+  onOverride: (groupId: StorageOverride | 'suggested') => void;
+  onEdit: (patch: StorageAssignmentEdit) => void;
+  onConfirm: (confirmed: boolean) => void;
 }) {
   const { chemical, group } = assignment;
-  const [guidance, setGuidance] = useState(group?.guidance ?? 'Check sections 7 and 10 before assigning storage.');
-  const [alertText, setAlertText] = useState(assignment.alert);
 
   return (
-    <tr className={clsx('border-b border-zinc-100 align-top transition', highlighted && 'bg-red-50/60')}>
+    <tr className={clsx(
+      'border-b border-zinc-100 align-top transition',
+      !assignment.confirmed && 'bg-red-50/35',
+      highlighted && 'bg-red-50/60',
+    )}>
+      <td className="px-2 py-3">
+        <label className={clsx(
+          'inline-flex min-h-10 w-full max-w-[5rem] flex-col items-center justify-center gap-1 rounded-md border px-2 py-1.5 text-[10px] font-semibold',
+          assignment.confirmed
+            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+            : 'border-red-200 bg-red-50 text-red-700',
+        )}>
+          <input
+            type="checkbox"
+            checked={assignment.confirmed}
+            onChange={(e) => onConfirm(e.target.checked)}
+            aria-label={`Confirm storage recommendation for ${chemical.name || chemical.cas || 'chemical'}`}
+            className="h-6 w-6 accent-accent-600"
+          />
+          <span>{assignment.confirmed ? 'Done' : 'Required'}</span>
+        </label>
+      </td>
       <td className="break-words px-3 py-3 font-semibold text-zinc-900">{chemical.name || chemical.cas || 'Unnamed chemical'}</td>
       <td className="px-3 py-3">
         <div className="flex flex-wrap gap-1">
           {chemical.ghsPictograms.length > 0
             ? chemical.ghsPictograms.map((id) => <GhsIcon key={id} id={id} size={26} />)
             : <span className="text-zinc-400">None</span>}
-        </div>
-        <div className="mt-1 text-[10px] leading-snug text-zinc-500">
-          {assignment.confidence === 'review' ? 'Review needed' : `${assignment.confidence} confidence`}: {assignment.reason}
         </div>
       </td>
       <td className="break-words px-3 py-3 text-zinc-700">{assignment.hCodes.join(', ') || 'None recorded'}</td>
@@ -1004,11 +1095,11 @@ function ClassificationRow({
             aria-label={`Storage group for ${chemical.name || chemical.cas || 'chemical'}`}
             className={clsx(
               'min-h-9 w-full whitespace-normal appearance-none rounded-md border px-2 py-1.5 pr-7 text-left text-[11px] font-semibold leading-tight outline-none focus:ring-2 focus:ring-accent-500',
-              group ? `${group.tone} border-transparent` : 'border-zinc-200 bg-zinc-100 text-zinc-600',
+              group ? `${group.tone} border-transparent` : assignment.generalShelving ? 'border-transparent bg-emerald-50 text-emerald-700' : 'border-zinc-200 bg-zinc-100 text-zinc-600',
               assignment.overridden && 'ring-1 ring-amber-300',
             )}
-            value={assignment.overridden ? group?.id ?? 'review' : 'suggested'}
-            onChange={(e) => onOverride(e.target.value as StorageGroupId | 'review' | 'suggested')}
+            value={assignment.overridden ? assignment.generalShelving ? 'general' : group?.id ?? 'review' : 'suggested'}
+            onChange={(e) => onOverride(e.target.value as StorageOverride | 'suggested')}
           >
             <option value="suggested">
               {assignment.suggestedGroup ? `${assignment.suggestedGroup.id} - ${storageGroupLabel(assignment.suggestedGroup)}` : 'Review SDS'}
@@ -1016,27 +1107,33 @@ function ClassificationRow({
             {STORAGE_GROUP_DEFS.map((g) => (
               <option key={g.id} value={g.id}>{g.id} - {storageGroupLabel(g)}</option>
             ))}
+            <option value="general">General shelving / non-hazardous</option>
             <option value="review">Review SDS / unassigned</option>
           </select>
           <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-current opacity-70" />
         </div>
+        {assignment.assessorEdited && (
+          <div className="mt-1 text-[10px] font-medium text-amber-700">
+            Edited by assessor
+          </div>
+        )}
       </td>
       <td className="px-3 py-3">
         <textarea
-          className="min-h-20 w-full resize-y rounded-md border border-transparent bg-transparent p-1 text-xs leading-relaxed text-zinc-700 outline-none hover:border-zinc-200 hover:bg-white focus:border-accent-300 focus:bg-white focus:ring-2 focus:ring-accent-100"
-          value={guidance}
-          onChange={(e) => setGuidance(e.target.value)}
+          className="min-h-20 w-full resize-y rounded-md border border-zinc-200 bg-white p-2 text-xs leading-relaxed text-zinc-700 outline-none focus:border-accent-300 focus:ring-2 focus:ring-accent-100"
+          value={assignment.guidance}
+          onChange={(e) => onEdit({ guidance: e.target.value })}
           aria-label={`Storage guidance for ${chemical.name || chemical.cas || 'chemical'}`}
         />
       </td>
       <td className="px-3 py-3">
         <textarea
           className={clsx(
-            'min-h-20 w-full resize-y rounded-md border border-transparent bg-transparent p-1 text-xs leading-relaxed outline-none hover:border-zinc-200 hover:bg-white focus:border-accent-300 focus:bg-white focus:ring-2 focus:ring-accent-100',
+            'min-h-20 w-full resize-y rounded-md border border-zinc-200 bg-white p-2 text-xs leading-relaxed outline-none focus:border-accent-300 focus:ring-2 focus:ring-accent-100',
             assignment.alertLevel === 'danger' ? 'text-red-700' : assignment.alertLevel === 'ok' ? 'text-accent-700' : 'text-zinc-700',
           )}
-          value={alertText}
-          onChange={(e) => setAlertText(e.target.value)}
+          value={assignment.alert}
+          onChange={(e) => onEdit({ alert: e.target.value })}
           aria-label={`Segregation alerts for ${chemical.name || chemical.cas || 'chemical'}`}
         />
       </td>
@@ -1048,17 +1145,23 @@ function ClassificationCard({
   assignment,
   highlighted,
   onOverride,
+  onEdit,
+  onConfirm,
 }: {
   assignment: ChemicalStorageAssignment;
   highlighted: boolean;
-  onOverride: (groupId: StorageGroupId | 'review' | 'suggested') => void;
+  onOverride: (groupId: StorageOverride | 'suggested') => void;
+  onEdit: (patch: StorageAssignmentEdit) => void;
+  onConfirm: (confirmed: boolean) => void;
 }) {
   const { chemical, group } = assignment;
-  const [guidance, setGuidance] = useState(group?.guidance ?? 'Check sections 7 and 10 before assigning storage.');
-  const [alertText, setAlertText] = useState(assignment.alert);
 
   return (
-    <div className={clsx('rounded-lg border border-zinc-200 bg-white p-3 transition', highlighted && 'border-red-200 bg-red-50/50 ring-2 ring-red-200')}>
+    <div className={clsx(
+      'rounded-lg border bg-white p-3 transition',
+      assignment.confirmed ? 'border-zinc-200' : 'border-red-200 bg-red-50/35',
+      highlighted && 'border-red-200 bg-red-50/50 ring-2 ring-red-200',
+    )}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="break-words text-sm font-semibold text-zinc-900">{chemical.name || chemical.cas || 'Unnamed chemical'}</div>
@@ -1069,10 +1172,27 @@ function ClassificationCard({
           </div>
         </div>
         <div className="min-w-[13rem] max-w-full flex-1 sm:flex-none">
+          <label className={clsx(
+            'mb-2 inline-flex min-h-10 items-center gap-2 rounded-md border px-3 py-2 text-xs font-semibold',
+            assignment.confirmed
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+              : 'border-red-200 bg-red-50 text-red-700',
+          )}>
+            <input
+              type="checkbox"
+              checked={assignment.confirmed}
+              onChange={(e) => onConfirm(e.target.checked)}
+              aria-label={`Confirm storage recommendation for ${chemical.name || chemical.cas || 'chemical'}`}
+              className="h-5 w-5 accent-accent-600"
+            />
+            <span>{assignment.confirmed ? 'Storage confirmed' : <>Confirm storage <RequiredMark /></>}</span>
+          </label>
           <StorageGroupSelect assignment={assignment} chemical={chemical} group={group} onOverride={onOverride} />
-          <div className="mt-1 text-[10px] leading-snug text-zinc-500">
-            {assignment.confidence === 'review' ? 'Review needed' : `${assignment.confidence} confidence`}: {assignment.reason}
-          </div>
+          {assignment.assessorEdited && (
+            <div className="mt-1 text-[10px] font-medium text-amber-700">
+              Edited by assessor
+            </div>
+          )}
         </div>
       </div>
 
@@ -1096,22 +1216,22 @@ function ClassificationCard({
 
       <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label>
-          <span className="text-[11px] font-semibold text-zinc-500">Storage guidance</span>
+          <span className="text-[11px] font-semibold text-zinc-500">Storage guidance <RequiredMark /></span>
           <textarea
             className="mt-1 min-h-24 w-full resize-y rounded-md border border-zinc-200 bg-white p-2 text-xs leading-relaxed text-zinc-700 outline-none focus:border-accent-300 focus:ring-2 focus:ring-accent-100"
-            value={guidance}
-            onChange={(e) => setGuidance(e.target.value)}
+            value={assignment.guidance}
+            onChange={(e) => onEdit({ guidance: e.target.value })}
           />
         </label>
         <label>
-          <span className="text-[11px] font-semibold text-zinc-500">Segregation alerts</span>
+          <span className="text-[11px] font-semibold text-zinc-500">Segregation alerts <RequiredMark /></span>
           <textarea
             className={clsx(
               'mt-1 min-h-24 w-full resize-y rounded-md border border-zinc-200 bg-white p-2 text-xs leading-relaxed outline-none focus:border-accent-300 focus:ring-2 focus:ring-accent-100',
               assignment.alertLevel === 'danger' ? 'text-red-700' : assignment.alertLevel === 'ok' ? 'text-accent-700' : 'text-zinc-700',
             )}
-            value={alertText}
-            onChange={(e) => setAlertText(e.target.value)}
+            value={assignment.alert}
+            onChange={(e) => onEdit({ alert: e.target.value })}
           />
         </label>
       </div>
@@ -1128,7 +1248,7 @@ function StorageGroupSelect({
   assignment: ChemicalStorageAssignment;
   chemical: Substance;
   group: StorageGroupDef | null;
-  onOverride: (groupId: StorageGroupId | 'review' | 'suggested') => void;
+  onOverride: (groupId: StorageOverride | 'suggested') => void;
 }) {
   return (
     <div className="relative">
@@ -1136,11 +1256,11 @@ function StorageGroupSelect({
         aria-label={`Storage group for ${chemical.name || chemical.cas || 'chemical'}`}
         className={clsx(
           'min-h-9 w-full whitespace-normal appearance-none rounded-md border px-2 py-1.5 pr-7 text-left text-[11px] font-semibold leading-tight outline-none focus:ring-2 focus:ring-accent-500',
-          group ? `${group.tone} border-transparent` : 'border-zinc-200 bg-zinc-100 text-zinc-600',
+          group ? `${group.tone} border-transparent` : assignment.generalShelving ? 'border-transparent bg-emerald-50 text-emerald-700' : 'border-zinc-200 bg-zinc-100 text-zinc-600',
           assignment.overridden && 'ring-1 ring-amber-300',
         )}
-        value={assignment.overridden ? group?.id ?? 'review' : 'suggested'}
-        onChange={(e) => onOverride(e.target.value as StorageGroupId | 'review' | 'suggested')}
+        value={assignment.overridden ? assignment.generalShelving ? 'general' : group?.id ?? 'review' : 'suggested'}
+        onChange={(e) => onOverride(e.target.value as StorageOverride | 'suggested')}
       >
         <option value="suggested">
           {assignment.suggestedGroup ? `${assignment.suggestedGroup.id} - ${storageGroupLabel(assignment.suggestedGroup)}` : 'Review SDS'}
@@ -1148,9 +1268,11 @@ function StorageGroupSelect({
         {STORAGE_GROUP_DEFS.map((g) => (
           <option key={g.id} value={g.id}>{g.id} - {storageGroupLabel(g)}</option>
         ))}
+        <option value="general">General shelving / non-hazardous</option>
         <option value="review">Review SDS / unassigned</option>
       </select>
       <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-current opacity-70" />
+      <span className="pointer-events-none absolute -right-2 -top-2 text-sm font-bold leading-none text-red-600" aria-hidden="true">*</span>
     </div>
   );
 }

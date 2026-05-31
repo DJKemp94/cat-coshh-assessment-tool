@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useAssessment } from '@/store/assessment';
 import { SectionHeader } from '@/components/common/SectionHeader';
+import { PageIntro } from '@/components/common/PageIntro';
 import { RiskMatrix } from '@/components/common/RiskMatrix';
 import { RiskScore, TaskHazard, riskRating } from '@/types/assessment';
 
@@ -36,6 +37,15 @@ export function TaskHazardsSection() {
             <Plus size={14} /> Add hazard
           </button>
         }
+      />
+
+      <PageIntro
+        body="Use this page to capture hazards from the task or workplace that are not caused by chemical exposure, such as equipment, movement, sharps, electrical risks or manual handling."
+        steps={[
+          { title: '1. Decide if any apply', body: 'Add each relevant non-chemical hazard, or confirm that none apply.' },
+          { title: '2. Rate the risk', body: 'Score the initial risk before controls and the residual risk after controls.' },
+          { title: '3. Record actions', body: 'If more work is needed, add the owner, due date and completion date.' },
+        ]}
       />
 
       {hazards.length === 0 && (

@@ -149,6 +149,28 @@ export interface StorageRequirements {
   sdsDate: string;
   storage: string;
   incompatibles: string;
+  assignments: Record<UUID, StorageAssignmentEdit>;
+}
+
+export type StorageAssignmentGroup =
+  | '1'
+  | '2a'
+  | '2b'
+  | '3'
+  | '4'
+  | '5a'
+  | '5b'
+  | '5c'
+  | '6'
+  | 'general'
+  | 'review';
+
+export interface StorageAssignmentEdit {
+  groupOverride?: StorageAssignmentGroup;
+  guidance?: string;
+  alert?: string;
+  confirmed?: boolean;
+  updatedAt?: string;
 }
 
 export interface EmergencyRequirements {
@@ -276,6 +298,7 @@ export const emptyStorage = (): StorageRequirements => ({
   sdsDate: '',
   storage: '',
   incompatibles: '',
+  assignments: {},
 });
 
 export const emptyEmergency = (): EmergencyRequirements => ({

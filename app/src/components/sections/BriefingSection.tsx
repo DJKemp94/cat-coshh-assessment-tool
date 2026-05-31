@@ -3,6 +3,7 @@ import clsx from 'clsx';
 import { Plus, Trash2, ClipboardPaste, PenLine, X } from 'lucide-react';
 import { useAssessment } from '@/store/assessment';
 import { SectionHeader } from '@/components/common/SectionHeader';
+import { PageIntro } from '@/components/common/PageIntro';
 import { SignaturePad } from '@/components/common/SignaturePad';
 import { emptyBriefing, todayISO } from '@/types/assessment';
 
@@ -65,6 +66,15 @@ export function BriefingSection() {
             </button>
           </div>
         }
+      />
+
+      <PageIntro
+        body="Use this page to record who has been briefed on the completed assessment before they carry out the work."
+        steps={[
+          { title: '1. Add workers', body: 'Add everyone who needs to understand and follow this assessment.' },
+          { title: '2. Brief the assessment', body: 'Make sure they understand the task, hazards, controls, emergency actions and limits.' },
+          { title: '3. Record sign-off', body: 'Capture the name, date and signature or acknowledgement for each person.' },
+        ]}
       />
 
       {bulkOpen && (

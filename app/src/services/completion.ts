@@ -87,8 +87,20 @@ export function sectionMissingItems(a: Assessment, id: CoreSectionId): string[] 
       if (!c.healthSurveillance.trim()) missing.push('health surveillance');
       return missing;
     }
-    case 'additional':
-      return a.additional.storage.trim() ? [] : ['storage requirements'];
+    case 'additional': {
+      const seen = new Set<string>();
+      const chemicals = a.processSteps
+        .flatMap((step) => step.chemicals)
+        .filter((chemical) => {
+          const key = (chemical.cas?.trim() || chemical.name).toLowerCase().trim();
+          if (!key || seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+      if (chemicals.length === 0) return ['chemical storage confirmations'];
+      const unconfirmed = chemicals.filter((chemical) => a.additional.assignments?.[chemical.id]?.confirmed !== true);
+      return unconfirmed.length === 0 ? [] : ['confirm each chemical storage recommendation'];
+    }
     case 'emergency': {
       const x = a.emergency;
       const missing: string[] = [];

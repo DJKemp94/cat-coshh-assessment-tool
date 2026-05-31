@@ -1,7 +1,7 @@
 import {
   Plus, Trash2, RefreshCw, ChevronDown, ChevronRight, ChevronUp, ExternalLink,
   AlertCircle, FlaskConical, Wand2, Loader2, CheckCircle2, Copy, MoreVertical,
-  GripVertical, Wind, Package, MoreHorizontal, Hand, Glasses, Shirt,
+  GripVertical, Wind, Package, Hand, Glasses, Shirt,
   Shield, Footprints, Info, CircleCheck, X,
 } from 'lucide-react';
 import { useMemo, useState, useRef, useEffect } from 'react';
@@ -9,6 +9,7 @@ import type { LucideIcon } from 'lucide-react';
 import clsx from 'clsx';
 import { useAssessment } from '@/store/assessment';
 import { SectionHeader } from '@/components/common/SectionHeader';
+import { PageIntro } from '@/components/common/PageIntro';
 import { HCodeList } from '@/components/common/GhsBadges';
 import { GhsRow, GhsGrid } from '@/components/common/GhsPictograms';
 import { ChemicalAutocomplete } from '@/components/common/ChemicalAutocomplete';
@@ -35,7 +36,6 @@ const ENGINEERING_CONTROLS = [
   { id: 'Fume hood', label: 'Fume hood', Icon: Wind },
   { id: 'Glove box', label: 'Glove box', Icon: Package },
   { id: 'Inert atmosphere', label: 'Inert atmosphere', Icon: FlaskConical },
-  { id: 'Other', label: 'Other', Icon: MoreHorizontal },
   { id: 'None', label: 'None', Icon: X },
 ];
 
@@ -237,6 +237,15 @@ export function SubstancesSection() {
             )}
           </div>
         }
+      />
+
+      <PageIntro
+        body="Use this page to break the job into practical steps, then record the chemicals, quantities, exposure routes, engineering controls and PPE for each step."
+        steps={[
+          { title: '1. Add the step', body: 'Describe what happens in the order the task is carried out.' },
+          { title: '2. Add chemicals', body: 'Enter each chemical used in that step and complete its hazard and exposure details.' },
+          { title: '3. Record step controls', body: 'Select the engineering controls and PPE required before the step can be done safely.' },
+        ]}
       />
 
       {steps.length === 0 ? (
@@ -830,7 +839,7 @@ function ProcessStepCard({
             <div className="mb-2 text-xs font-semibold text-zinc-600">
               Engineering controls<Req />
             </div>
-            <div className={clsx('flex flex-wrap gap-2 rounded-md', controlsMissing.engineering && 'field-missing p-2')}>
+            <div className={clsx('flex flex-wrap gap-1.5 rounded-md', controlsMissing.engineering && 'field-missing p-2')}>
               {ENGINEERING_CONTROLS.map(({ id, label, Icon }) => (
                 <StepControlToggle
                   key={id}
@@ -847,7 +856,7 @@ function ProcessStepCard({
             <div className="mb-2 text-xs font-semibold text-zinc-600">
               PPE<Req />
             </div>
-            <div className={clsx('flex flex-wrap gap-2 rounded-md', controlsMissing.ppe && 'field-missing p-2')}>
+            <div className={clsx('flex flex-wrap gap-1.5 rounded-md', controlsMissing.ppe && 'field-missing p-2')}>
               {PPE_CONTROLS.map(({ id, label, Icon }) => (
                 <StepControlToggle
                   key={id}
@@ -935,19 +944,19 @@ function StepControlToggle({
       type="button"
       onClick={onClick}
       className={clsx(
-        'inline-flex h-9 min-w-[8.25rem] items-center justify-between gap-2.5 rounded-md border px-2.5 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2',
+        'inline-flex h-8 min-w-[7.25rem] items-center justify-between gap-1.5 rounded-md border px-2 text-xs font-medium transition focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2',
         active
           ? 'border-accent-700 bg-accent-600 text-white shadow-soft'
           : 'border-zinc-200 bg-white text-zinc-600 hover:border-accent-200 hover:bg-accent-50 hover:text-accent-800',
       )}
       aria-pressed={active}
     >
-      <span className="inline-flex min-w-0 items-center gap-2">
-        <Icon size={16} className={active ? 'text-white' : 'text-zinc-500'} />
+      <span className="inline-flex min-w-0 items-center gap-1.5">
+        <Icon size={14} className={active ? 'text-white' : 'text-zinc-500'} />
         <span className="truncate">{label}</span>
       </span>
-      <span className="flex h-4 w-4 shrink-0 items-center justify-center">
-        {active && <CircleCheck size={15} className="text-white" />}
+      <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center">
+        {active && <CircleCheck size={13} className="text-white" />}
       </span>
     </button>
   );

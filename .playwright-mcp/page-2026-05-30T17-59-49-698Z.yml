@@ -1,0 +1,163 @@
+- generic [ref=e4]:
+  - complementary [ref=e5]:
+    - generic [ref=e6]:
+      - img "CAT logo" [ref=e7]
+      - generic [ref=e8]:
+        - generic [ref=e9]: CAT
+        - generic [ref=e10]: COSHH Assessment Tool
+    - generic [ref=e11]:
+      - generic [ref=e12]: Assessment
+      - generic [ref=e13]: 2 of 7
+    - navigation [ref=e14]:
+      - button "Overview" [ref=e15] [cursor=pointer]:
+        - img [ref=e16]
+        - generic [ref=e19]: Overview
+        - generic "Section complete" [ref=e20]:
+          - img [ref=e21]
+      - button "Process Steps Section pending" [ref=e23] [cursor=pointer]:
+        - img [ref=e24]
+        - generic [ref=e26]: Process Steps
+        - generic "Section pending" [ref=e27]
+      - button "Non-Chemical Hazards Section pending" [ref=e28] [cursor=pointer]:
+        - img [ref=e29]
+        - generic [ref=e31]: Non-Chemical Hazards
+        - generic "Section pending" [ref=e32]
+      - button "Controls" [ref=e33] [cursor=pointer]:
+        - img [ref=e34]
+        - generic [ref=e37]: Controls
+        - generic "Section complete" [ref=e38]:
+          - img [ref=e39]
+      - button "Storage Section pending" [ref=e41] [cursor=pointer]:
+        - img [ref=e42]
+        - generic [ref=e46]: Storage
+        - generic "Section pending" [ref=e47]
+      - button "Emergency Response Section pending" [ref=e48] [cursor=pointer]:
+        - img [ref=e49]
+        - generic [ref=e54]: Emergency Response
+        - generic "Section pending" [ref=e55]
+      - button "Briefing & Sign-off Section pending" [ref=e56] [cursor=pointer]:
+        - img [ref=e57]
+        - generic [ref=e62]: Briefing & Sign-off
+        - generic "Section pending" [ref=e63]
+      - button "Complete & Export Section pending" [ref=e64] [cursor=pointer]:
+        - img [ref=e65]
+        - generic [ref=e68]: Complete & Export
+        - generic "Section pending" [ref=e69]
+    - generic [ref=e70]:
+      - img [ref=e71]
+      - generic [ref=e72]:
+        - text: Please do not
+        - text: the cat...
+      - img [ref=e73]
+  - generic [ref=e74]:
+    - banner [ref=e75]:
+      - generic [ref=e76]:
+        - generic [ref=e77]: Duplicate COSHH test
+        - generic [ref=e78]: Ref DUP
+      - button "New assessment" [ref=e79] [cursor=pointer]:
+        - img [ref=e80]
+        - generic [ref=e83]: New assessment
+      - button "Download catdraft" [ref=e84] [cursor=pointer]:
+        - img [ref=e85]
+        - generic [ref=e89]: Download catdraft
+      - generic "Import .catdraft backup" [ref=e90] [cursor=pointer]:
+        - img [ref=e91]
+        - generic [ref=e94]: Import catdraft
+      - button "Open settings" [ref=e95] [cursor=pointer]:
+        - img [ref=e96]
+      - button "Open help" [ref=e99] [cursor=pointer]:
+        - img [ref=e100]
+    - main [ref=e103]:
+      - generic [ref=e104]:
+        - generic [ref=e105]:
+          - generic [ref=e107]:
+            - heading "Overview" [level=1] [ref=e108]
+            - paragraph [ref=e109]: Identify the activity, who is doing it, and when it will be reviewed.
+          - generic [ref=e111]:
+            - img [ref=e113]
+            - generic [ref=e115]:
+              - heading "What to do on this page" [level=3] [ref=e116]
+              - paragraph [ref=e117]: Use this page to identify the activity being assessed, where it happens, who is responsible for the assessment, and who could be affected.
+              - generic [ref=e118]:
+                - generic [ref=e119]:
+                  - generic [ref=e120]: 1. Identify the task
+                  - generic [ref=e121]: Give enough context for someone else to understand the activity and location.
+                - generic [ref=e122]:
+                  - generic [ref=e123]: 2. Set ownership
+                  - generic [ref=e124]: Record the assessor, dates and any SOP or reference numbers.
+                - generic [ref=e125]:
+                  - generic [ref=e126]: 3. Confirm people at risk
+                  - generic [ref=e127]: Tick every group who may be exposed or affected by the task.
+          - generic [ref=e129]:
+            - generic [ref=e130]:
+              - generic [ref=e131]:
+                - generic [ref=e132]:
+                  - img [ref=e133]
+                  - text: Business Unit
+                - textbox "Business Unit" [ref=e137]:
+                  - /placeholder: e.g. School of Chemistry
+              - generic [ref=e138]:
+                - generic [ref=e139]:
+                  - img [ref=e140]
+                  - text: Location
+                - textbox "Location" [ref=e143]:
+                  - /placeholder: Building, room
+              - generic [ref=e144]:
+                - generic [ref=e145]:
+                  - img [ref=e146]
+                  - text: Risk Assessor
+                  - generic "required" [ref=e149]: "*"
+                - textbox "Risk Assessor required" [ref=e150]:
+                  - /placeholder: Full name
+                  - text: Tester
+              - generic [ref=e151]:
+                - generic [ref=e152]:
+                  - img [ref=e153]
+                  - text: SOP Ref number(s)
+                - textbox "SOP Ref number(s)" [ref=e156]:
+                  - /placeholder: SOP-...
+              - generic [ref=e157]:
+                - generic [ref=e158]:
+                  - img [ref=e159]
+                  - text: Date of Assessment
+                  - generic "required" [ref=e161]: "*"
+                - textbox "Date of Assessment required" [ref=e162]: 2026-05-25
+              - generic [ref=e163]:
+                - generic [ref=e164]:
+                  - img [ref=e165]
+                  - text: Date of Review
+                - textbox "Date of Review" [ref=e167]: 2027-05-25
+            - generic [ref=e168]:
+              - generic [ref=e169]:
+                - img [ref=e170]
+                - text: Activity Outline
+              - textbox "Activity Outline" [ref=e171]:
+                - /placeholder: Brief description of the activity, equipment, and any notable conditions.
+            - generic [ref=e172]:
+              - generic [ref=e173]:
+                - img [ref=e174]
+                - text: Persons at Risk
+                - generic "required" [ref=e179]: "*"
+              - generic [ref=e180]:
+                - button "Staff" [ref=e181] [cursor=pointer]:
+                  - img [ref=e182]
+                  - text: Staff
+                  - img [ref=e185]
+                - button "Students" [ref=e187] [cursor=pointer]:
+                  - img [ref=e188]
+                  - text: Students
+                - button "Third Party" [ref=e191] [cursor=pointer]:
+                  - img [ref=e192]
+                  - text: Third Party
+                - button "Contractors" [ref=e196] [cursor=pointer]:
+                  - img [ref=e197]
+                  - text: Contractors
+                - button "Visitors" [ref=e202] [cursor=pointer]:
+                  - img [ref=e203]
+                  - text: Visitors
+                - button "Public" [ref=e207] [cursor=pointer]:
+                  - img [ref=e208]
+                  - text: Public
+        - button "Go to Process Steps" [ref=e216] [cursor=pointer]:
+          - text: Go to Process Steps
+          - img [ref=e217]

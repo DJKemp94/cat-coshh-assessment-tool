@@ -2,6 +2,7 @@ import { FileText, FileType2, Lock, ShieldOff } from 'lucide-react';
 import { useState } from 'react';
 import { useAssessment } from '@/store/assessment';
 import { SectionHeader } from '@/components/common/SectionHeader';
+import { PageIntro } from '@/components/common/PageIntro';
 import { exportPdf } from '@/services/exporters/pdf';
 import { exportDocx } from '@/services/exporters/docx';
 import { CoreSectionId, isSectionComplete } from '@/services/completion';
@@ -53,6 +54,15 @@ export function CompleteExportSection() {
       <SectionHeader
         title="Complete & Export"
         subtitle="Export the finished COSHH assessment as PDF or DOCX."
+      />
+
+      <PageIntro
+        body="Use this page as the final check before downloading the assessment. Export is available once the required sections are complete."
+        steps={[
+          { title: '1. Resolve pending sections', body: 'Use the list below to see what still needs attention before export unlocks.' },
+          { title: '2. Export the file', body: 'Download a PDF or DOCX copy for your records, briefing pack or approval route.' },
+          { title: '3. Keep a backup', body: 'Use the catdraft controls in the top bar if you need to restore or continue the draft later.' },
+        ]}
       />
 
       <div className="card p-5">

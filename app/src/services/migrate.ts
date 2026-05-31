@@ -19,6 +19,13 @@ export function migrateAssessment(raw: unknown): Assessment {
       rawAssessment.additional = rawAssessment.storage;
       delete rawAssessment.storage;
     }
+    rawAssessment.additional = {
+      ...emptyStorage(),
+      ...((rawAssessment.additional || {}) as Record<string, unknown>),
+      assignments: typeof ((rawAssessment.additional || {}) as Record<string, unknown>).assignments === 'object' && ((rawAssessment.additional || {}) as Record<string, unknown>).assignments !== null
+        ? ((rawAssessment.additional || {}) as Record<string, unknown>).assignments
+        : {},
+    };
     if (Array.isArray(rawAssessment.processSteps)) {
       rawAssessment.processSteps = rawAssessment.processSteps.map((step) => ({
         ...(step as Record<string, unknown>),
@@ -70,6 +77,7 @@ export function migrateAssessment(raw: unknown): Assessment {
       sdsDate: typeof oldAdditional.sdsDate === 'string' ? oldAdditional.sdsDate : '',
       storage: typeof oldAdditional.storage === 'string' ? oldAdditional.storage : '',
       incompatibles: typeof oldAdditional.incompatibles === 'string' ? oldAdditional.incompatibles : '',
+      assignments: {},
     };
     const emergency = {
       ...emptyEmergency(),

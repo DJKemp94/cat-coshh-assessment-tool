@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useAssessment } from '@/store/assessment';
 import { SectionHeader } from '@/components/common/SectionHeader';
+import { PageIntro } from '@/components/common/PageIntro';
 import { PersonsAtRisk } from '@/types/assessment';
 
 const PERSONS: { key: keyof PersonsAtRisk; label: string; Icon: typeof User }[] = [
@@ -81,6 +82,15 @@ export function OverviewSection() {
       <SectionHeader
         title="Overview"
         subtitle="Identify the activity, who is doing it, and when it will be reviewed."
+      />
+
+      <PageIntro
+        body="Use this page to identify the activity being assessed, where it happens, who is responsible for the assessment, and who could be affected."
+        steps={[
+          { title: '1. Identify the task', body: 'Give enough context for someone else to understand the activity and location.' },
+          { title: '2. Set ownership', body: 'Record the assessor, dates and any SOP or reference numbers.' },
+          { title: '3. Confirm people at risk', body: 'Tick every group who may be exposed or affected by the task.' },
+        ]}
       />
 
       <div className="card overflow-hidden">
