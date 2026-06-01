@@ -153,4 +153,414 @@ body {
 @media print {
   .no-print { display: none !important; }
   body { background: white; }
+  body.report-printing > *:not(#report-print-root) {
+    display: none !important;
+  }
+  #report-print-root {
+    display: block !important;
+  }
+  html, body, #root { height: auto !important; overflow: visible !important; }
+  .fixed {
+    position: static !important;
+    inset: auto !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+  [role="dialog"] {
+    max-width: none !important;
+    max-height: none !important;
+    width: 100% !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  [role="dialog"] > div:first-child {
+    display: none !important;
+  }
+  .overflow-y-auto {
+    overflow: visible !important;
+  }
+  body * { visibility: hidden; }
+  .report-preview-print, .report-preview-print * { visibility: visible; }
+  .report-preview-print {
+    position: static !important;
+    width: 100%;
+  }
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+  .report-page {
+    break-after: page;
+    box-shadow: none !important;
+    margin: 0 !important;
+    width: auto !important;
+    min-height: auto !important;
+  }
+  .report-page:last-child { break-after: auto; }
+}
+
+@layer components {
+  .report-preview-actions {
+    @apply mb-3 flex items-center justify-end gap-2;
+  }
+  .report-doc {
+    @apply space-y-5 bg-zinc-100 p-4 text-[11px] leading-snug text-zinc-900;
+  }
+  .report-page {
+    @apply mx-auto min-h-[760px] w-full max-w-[1120px] bg-white p-8 shadow-soft;
+  }
+  .report-cover {
+    @apply mb-4 flex items-start justify-between gap-8;
+  }
+  .report-eyebrow {
+    @apply mb-1 text-[10px] font-bold uppercase text-blue-900;
+  }
+  .report-cover h1 {
+    @apply m-0 max-w-xl text-2xl font-bold leading-tight text-blue-950;
+  }
+  .report-business {
+    @apply mt-5 text-xs font-medium text-zinc-700;
+  }
+  .report-meta-strip {
+    @apply min-w-[440px] rounded-md border border-zinc-200 bg-white p-3;
+  }
+  .report-generated {
+    @apply mt-2 text-right text-[10px] text-zinc-500;
+  }
+  .report-block {
+    @apply mb-4;
+  }
+  .report-tab {
+    @apply inline-flex rounded-t bg-blue-950 px-3 py-1 text-[11px] font-bold uppercase text-white;
+  }
+  .report-panel {
+    @apply rounded-b rounded-tr border border-zinc-200 bg-white p-3;
+  }
+  .report-panel-amber {
+    @apply bg-amber-50/50;
+  }
+  .report-info-grid {
+    @apply grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-4;
+  }
+  .report-kv {
+    @apply min-w-0;
+  }
+  .report-kv-wide {
+    @apply mt-3;
+  }
+  .report-kv-label {
+    @apply mb-0.5 text-[9px] font-bold uppercase text-blue-950;
+  }
+  .report-kv-value {
+    @apply break-words text-[11px] font-medium text-zinc-800;
+  }
+  .report-two-col {
+    @apply grid grid-cols-1 gap-5 lg:grid-cols-[0.9fr_1.4fr];
+  }
+  .report-card-grid {
+    @apply grid grid-cols-1 gap-3 md:grid-cols-3;
+  }
+  .report-card-stack {
+    @apply grid grid-cols-1 gap-3 md:grid-cols-2;
+  }
+  .report-mini-card {
+    @apply min-h-[88px] rounded-md border p-3;
+  }
+  .report-mini-card h3 {
+    @apply mb-1 text-xs font-bold text-blue-950;
+  }
+  .report-mini-card p {
+    @apply mb-2 text-[10px] font-medium leading-relaxed text-zinc-800;
+  }
+  .report-mini-card p:last-child,
+  .report-table td p:last-child {
+    @apply mb-0;
+  }
+  .report-table td p {
+    @apply mb-2 leading-relaxed;
+  }
+  .report-purple {
+    @apply border-purple-100 bg-purple-50;
+  }
+  .report-blue {
+    @apply border-blue-100 bg-blue-50;
+  }
+  .report-teal {
+    @apply border-teal-100 bg-teal-50;
+  }
+  .report-amber {
+    @apply border-amber-100 bg-amber-50;
+  }
+  .report-severity-approach-1,
+  .report-severity-group-a,
+  .report-severity-ep-ep1 {
+    @apply border-emerald-200 bg-emerald-50 text-emerald-950;
+  }
+  .report-severity-approach-2,
+  .report-severity-group-b,
+  .report-severity-ep-ep2 {
+    @apply border-yellow-200 bg-yellow-50 text-yellow-950;
+  }
+  .report-severity-approach-3,
+  .report-severity-group-c,
+  .report-severity-ep-ep3 {
+    @apply border-orange-200 bg-orange-50 text-orange-950;
+  }
+  .report-severity-approach-4,
+  .report-severity-group-d,
+  .report-severity-group-e,
+  .report-severity-ep-ep4 {
+    @apply border-red-200 bg-red-50 text-red-950;
+  }
+  .report-table {
+    @apply w-full border-collapse bg-white text-[10px];
+  }
+  .report-table th {
+    @apply bg-blue-950 px-2 py-1.5 text-left text-[9px] font-bold uppercase text-white;
+  }
+  .report-table td {
+    @apply border border-zinc-200 px-2 py-1.5 align-top;
+  }
+  .report-table tbody th {
+    @apply w-40 border border-zinc-200 bg-zinc-50 text-blue-950;
+  }
+  .report-table tbody tr:nth-child(even) td {
+    @apply bg-zinc-50;
+  }
+  .report-table-heading {
+    @apply rounded-t bg-blue-950 px-2 py-1.5 text-[9px] font-bold uppercase text-white;
+  }
+  .report-table tbody tr:nth-child(even).report-severity-approach-1 > td,
+  .report-table tbody tr:nth-child(even).report-severity-group-a > td,
+  .report-table tbody tr:nth-child(even).report-severity-ep-ep1 > td {
+    @apply bg-emerald-50;
+  }
+  .report-table tbody tr:nth-child(even).report-severity-approach-2 > td,
+  .report-table tbody tr:nth-child(even).report-severity-group-b > td,
+  .report-table tbody tr:nth-child(even).report-severity-ep-ep2 > td {
+    @apply bg-yellow-50;
+  }
+  .report-table tbody tr:nth-child(even).report-severity-approach-3 > td,
+  .report-table tbody tr:nth-child(even).report-severity-group-c > td,
+  .report-table tbody tr:nth-child(even).report-severity-ep-ep3 > td {
+    @apply bg-orange-50;
+  }
+  .report-table tbody tr:nth-child(even).report-severity-approach-4 > td,
+  .report-table tbody tr:nth-child(even).report-severity-group-d > td,
+  .report-table tbody tr:nth-child(even).report-severity-group-e > td,
+  .report-table tbody tr:nth-child(even).report-severity-ep-ep4 > td {
+    @apply bg-red-50;
+  }
+  .report-table .report-severity-approach-1,
+  .report-table .report-severity-approach-1 > th,
+  .report-table .report-severity-approach-1 > td,
+  .report-table .report-severity-group-a,
+  .report-table .report-severity-group-a > th,
+  .report-table .report-severity-group-a > td,
+  .report-table .report-severity-ep-ep1,
+  .report-table .report-severity-ep-ep1 > th,
+  .report-table .report-severity-ep-ep1 > td {
+    @apply bg-emerald-50 text-emerald-950;
+  }
+  .report-table .report-severity-approach-2,
+  .report-table .report-severity-approach-2 > th,
+  .report-table .report-severity-approach-2 > td,
+  .report-table .report-severity-group-b,
+  .report-table .report-severity-group-b > th,
+  .report-table .report-severity-group-b > td,
+  .report-table .report-severity-ep-ep2,
+  .report-table .report-severity-ep-ep2 > th,
+  .report-table .report-severity-ep-ep2 > td {
+    @apply bg-yellow-50 text-yellow-950;
+  }
+  .report-table .report-severity-approach-3,
+  .report-table .report-severity-approach-3 > th,
+  .report-table .report-severity-approach-3 > td,
+  .report-table .report-severity-group-c,
+  .report-table .report-severity-group-c > th,
+  .report-table .report-severity-group-c > td,
+  .report-table .report-severity-ep-ep3,
+  .report-table .report-severity-ep-ep3 > th,
+  .report-table .report-severity-ep-ep3 > td {
+    @apply bg-orange-50 text-orange-950;
+  }
+  .report-table .report-severity-approach-4,
+  .report-table .report-severity-approach-4 > th,
+  .report-table .report-severity-approach-4 > td,
+  .report-table .report-severity-group-d,
+  .report-table .report-severity-group-d > th,
+  .report-table .report-severity-group-d > td,
+  .report-table .report-severity-group-e,
+  .report-table .report-severity-group-e > th,
+  .report-table .report-severity-group-e > td,
+  .report-table .report-severity-ep-ep4,
+  .report-table .report-severity-ep-ep4 > th,
+  .report-table .report-severity-ep-ep4 > td {
+    @apply bg-red-50 text-red-950;
+  }
+  .report-table .report-recommendation-row.report-severity-approach-1 > td {
+    @apply bg-emerald-50 text-emerald-950;
+  }
+  .report-table .report-recommendation-row.report-severity-approach-2 > td {
+    @apply bg-yellow-50 text-yellow-950;
+  }
+  .report-table .report-recommendation-row.report-severity-approach-3 > td {
+    @apply bg-orange-50 text-orange-950;
+  }
+  .report-table .report-recommendation-row.report-severity-approach-4 > td {
+    @apply bg-red-50 text-red-950;
+  }
+  .report-table .report-recommendation-row > td.report-severity-group-a,
+  .report-table .report-recommendation-row > td.report-severity-ep-ep1 {
+    @apply bg-emerald-50 text-emerald-950;
+  }
+  .report-table .report-recommendation-row > td.report-severity-group-b,
+  .report-table .report-recommendation-row > td.report-severity-ep-ep2 {
+    @apply bg-yellow-50 text-yellow-950;
+  }
+  .report-table .report-recommendation-row > td.report-severity-group-c,
+  .report-table .report-recommendation-row > td.report-severity-ep-ep3 {
+    @apply bg-orange-50 text-orange-950;
+  }
+  .report-table .report-recommendation-row > td.report-severity-group-d,
+  .report-table .report-recommendation-row > td.report-severity-group-e,
+  .report-table .report-recommendation-row > td.report-severity-ep-ep4 {
+    @apply bg-red-50 text-red-950;
+  }
+  .report-table-compact td {
+    @apply py-1;
+  }
+  .report-table-dense {
+    @apply text-[9px];
+  }
+  .report-table-dense th {
+    @apply text-[8px];
+  }
+  .report-table-dense td {
+    @apply px-1.5 py-1.5;
+  }
+  .report-empty {
+    @apply rounded border border-emerald-100 bg-emerald-50 p-6 text-center text-xs font-semibold text-emerald-800;
+  }
+  .report-note {
+    @apply mt-2 rounded border border-blue-100 bg-blue-50 px-2 py-1.5 text-[10px] font-medium text-blue-950;
+  }
+  .report-note-top {
+    @apply mb-3 mt-0;
+  }
+  .report-mb {
+    @apply mb-3;
+  }
+  .report-muted {
+    @apply mt-1 text-[9px] text-zinc-500;
+  }
+  .report-ghs-row {
+    @apply flex flex-wrap gap-0.5;
+  }
+  .report-ghs-legend {
+    @apply mt-3 rounded-md border border-zinc-200 bg-zinc-50 p-2;
+  }
+  .report-ghs-legend-title {
+    @apply mb-1.5 text-[9px] font-bold uppercase text-blue-950;
+  }
+  .report-ghs-legend-grid {
+    @apply grid grid-cols-2 gap-x-4 gap-y-1 md:grid-cols-4;
+  }
+  .report-ghs-legend-item {
+    @apply flex items-center gap-1.5 text-[9px] font-medium text-zinc-800;
+  }
+  .report-signature {
+    @apply h-10 max-w-48 object-contain;
+  }
+  .report-risk-chip {
+    @apply inline-flex rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-900;
+  }
+  .report-risk-chip-residual {
+    @apply border-emerald-200 bg-emerald-50 text-emerald-900;
+  }
+  .report-storage-grid {
+    @apply mt-3 grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3;
+  }
+  .report-storage-card {
+    @apply rounded-md border-l-4 border border-zinc-200 bg-white p-2.5 text-[10px];
+  }
+  .report-storage-card-head {
+    @apply mb-1 flex items-start justify-between gap-2 text-blue-950;
+  }
+  .report-storage-card-head span {
+    @apply rounded-full border px-1.5 py-0.5 text-[8px] font-bold uppercase;
+  }
+  .report-storage-group {
+    @apply mb-1 rounded px-2 py-1 text-[10px] font-bold;
+  }
+  .report-storage-meta {
+    @apply mt-1 text-[9px] text-zinc-700;
+  }
+  .report-storage-flammable {
+    @apply border-l-blue-500 bg-blue-50/40;
+  }
+  .report-storage-flammable .report-storage-group {
+    @apply bg-blue-100 text-blue-950;
+  }
+  .report-storage-corrosive {
+    @apply border-l-violet-500 bg-violet-50/40;
+  }
+  .report-storage-corrosive .report-storage-group {
+    @apply bg-violet-100 text-violet-950;
+  }
+  .report-storage-oxidiser {
+    @apply border-l-amber-500 bg-amber-50/50;
+  }
+  .report-storage-oxidiser .report-storage-group {
+    @apply bg-amber-100 text-amber-950;
+  }
+  .report-storage-toxic {
+    @apply border-l-rose-500 bg-rose-50/40;
+  }
+  .report-storage-toxic .report-storage-group {
+    @apply bg-rose-100 text-rose-950;
+  }
+  .report-storage-reactive {
+    @apply border-l-cyan-500 bg-cyan-50/40;
+  }
+  .report-storage-reactive .report-storage-group {
+    @apply bg-cyan-100 text-cyan-950;
+  }
+  .report-storage-review {
+    @apply border-l-zinc-400 bg-zinc-50;
+  }
+  .report-storage-review .report-storage-group {
+    @apply bg-zinc-100 text-zinc-900;
+  }
+  .report-storage-table {
+    @apply mt-3;
+  }
+  .report-storage-pill {
+    @apply inline-flex rounded-md border px-2 py-1 text-[9px] font-bold;
+  }
+  .report-storage-pill.report-storage-flammable {
+    @apply border-blue-200 bg-blue-100 text-blue-950;
+  }
+  .report-storage-pill.report-storage-corrosive {
+    @apply border-violet-200 bg-violet-100 text-violet-950;
+  }
+  .report-storage-pill.report-storage-oxidiser {
+    @apply border-amber-200 bg-amber-100 text-amber-950;
+  }
+  .report-storage-pill.report-storage-toxic {
+    @apply border-rose-200 bg-rose-100 text-rose-950;
+  }
+  .report-storage-pill.report-storage-reactive {
+    @apply border-cyan-200 bg-cyan-100 text-cyan-950;
+  }
+  .report-storage-pill.report-storage-review {
+    @apply border-zinc-200 bg-zinc-100 text-zinc-900;
+  }
+  .report-status-ok {
+    @apply inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[9px] font-bold text-emerald-800;
+  }
+  .report-status-review {
+    @apply inline-flex rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[9px] font-bold text-red-800;
+  }
 }

@@ -136,9 +136,7 @@ export interface ControlMeasures {
   elimination: string;
   substitution: string;
   reduction: string;
-  engineering: string;
   administrative: string;
-  ppe: { type: string; standard: string };
   airMonitoring: string;
   healthSurveillance: string;
 }
@@ -171,6 +169,25 @@ export interface StorageAssignmentEdit {
   alert?: string;
   confirmed?: boolean;
   updatedAt?: string;
+}
+
+export interface Storage2MatchEdit {
+  cameoChemicalId?: number | null;
+  confirmed?: boolean;
+  note?: string;
+  updatedAt?: string;
+}
+
+export interface Storage2PairEdit {
+  assessorDecision?: 'accept' | 'override-compatible' | 'override-separate';
+  note?: string;
+  updatedAt?: string;
+}
+
+export interface Storage2Requirements {
+  matches: Record<UUID, Storage2MatchEdit>;
+  pairOverrides: Record<string, Storage2PairEdit>;
+  layoutNotes: string;
 }
 
 export interface EmergencyRequirements {
@@ -216,6 +233,7 @@ export interface Assessment {
   processSteps: ProcessStep[];
   controls: ControlMeasures;
   additional: StorageRequirements;
+  storage2: Storage2Requirements;
   emergency: EmergencyRequirements;
   briefing: BriefingEntry[];
   meta: AssessmentMeta;
@@ -285,9 +303,7 @@ export const emptyControls = (): ControlMeasures => ({
   elimination: '',
   substitution: '',
   reduction: '',
-  engineering: '',
   administrative: '',
-  ppe: { type: '', standard: '' },
   airMonitoring: '',
   healthSurveillance: '',
 });
@@ -299,6 +315,12 @@ export const emptyStorage = (): StorageRequirements => ({
   storage: '',
   incompatibles: '',
   assignments: {},
+});
+
+export const emptyStorage2 = (): Storage2Requirements => ({
+  matches: {},
+  pairOverrides: {},
+  layoutNotes: '',
 });
 
 export const emptyEmergency = (): EmergencyRequirements => ({
@@ -351,6 +373,7 @@ export const newAssessment = (): Assessment => {
     processSteps: [],
     controls: emptyControls(),
     additional: emptyStorage(),
+    storage2: emptyStorage2(),
     emergency: emptyEmergency(),
     briefing: [],
     meta: { createdAt: now, updatedAt: now, appVersion: APP_VERSION },

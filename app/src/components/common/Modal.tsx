@@ -8,13 +8,14 @@ interface Props {
   title: string;
   children: React.ReactNode;
   /** Wider variant for the help drawer. */
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
 const SIZE: Record<NonNullable<Props['size']>, string> = {
   sm: 'max-w-md',
   md: 'max-w-2xl',
   lg: 'max-w-4xl',
+  xl: 'max-w-7xl',
 };
 
 export function Modal({ open, onClose, title, children, size = 'md' }: Props) {

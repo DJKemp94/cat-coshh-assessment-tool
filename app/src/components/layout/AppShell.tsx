@@ -7,6 +7,7 @@ import { TaskHazardsSection } from '@/components/sections/TaskHazardsSection';
 import { SubstancesSection } from '@/components/sections/SubstancesSection';
 import { ControlsSection } from '@/components/sections/ControlsSection';
 import { AdditionalSection } from '@/components/sections/AdditionalSection';
+import { Storage20Section } from '@/components/sections/Storage20Section';
 import { EmergencySection } from '@/components/sections/EmergencySection';
 import { BriefingSection } from '@/components/sections/BriefingSection';
 import { CompleteExportSection } from '@/components/sections/CompleteExportSection';
@@ -40,6 +41,7 @@ export function AppShell() {
       case 'substances': return <SubstancesSection />;
       case 'controls': return <ControlsSection />;
       case 'additional': return <AdditionalSection />;
+      case 'storage2': return <Storage20Section />;
       case 'emergency': return <EmergencySection />;
       case 'briefing': return <BriefingSection />;
       case 'completeExport': return <CompleteExportSection />;
@@ -57,7 +59,7 @@ export function AppShell() {
             onOpenHelp={() => setHelpOpen(true)}
           />
           <main className="flex-1 overflow-y-auto bg-zinc-50">
-            <div className={`${section === 'additional' || section === 'emergency' ? 'max-w-7xl' : 'max-w-5xl'} mx-auto p-6`}>
+            <div className={`${section === 'additional' || section === 'storage2' || section === 'emergency' ? 'max-w-7xl' : 'max-w-5xl'} mx-auto p-6`}>
               {content}
               <SectionPager current={section} />
             </div>

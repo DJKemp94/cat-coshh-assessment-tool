@@ -1,5 +1,5 @@
 import {
-  Assessment, ProcessStep, SCHEMA_VERSION, uuid, emptyStorage, emptyEmergency, emptyStepControls,
+  Assessment, ProcessStep, SCHEMA_VERSION, uuid, emptyStorage, emptyStorage2, emptyEmergency, emptyStepControls,
 } from '@/types/assessment';
 
 /**
@@ -24,6 +24,16 @@ export function migrateAssessment(raw: unknown): Assessment {
       ...((rawAssessment.additional || {}) as Record<string, unknown>),
       assignments: typeof ((rawAssessment.additional || {}) as Record<string, unknown>).assignments === 'object' && ((rawAssessment.additional || {}) as Record<string, unknown>).assignments !== null
         ? ((rawAssessment.additional || {}) as Record<string, unknown>).assignments
+        : {},
+    };
+    rawAssessment.storage2 = {
+      ...emptyStorage2(),
+      ...((rawAssessment.storage2 || {}) as Record<string, unknown>),
+      matches: typeof ((rawAssessment.storage2 || {}) as Record<string, unknown>).matches === 'object' && ((rawAssessment.storage2 || {}) as Record<string, unknown>).matches !== null
+        ? ((rawAssessment.storage2 || {}) as Record<string, unknown>).matches
+        : {},
+      pairOverrides: typeof ((rawAssessment.storage2 || {}) as Record<string, unknown>).pairOverrides === 'object' && ((rawAssessment.storage2 || {}) as Record<string, unknown>).pairOverrides !== null
+        ? ((rawAssessment.storage2 || {}) as Record<string, unknown>).pairOverrides
         : {},
     };
     if (Array.isArray(rawAssessment.processSteps)) {
@@ -92,6 +102,7 @@ export function migrateAssessment(raw: unknown): Assessment {
       ...current,
       schemaVersion: SCHEMA_VERSION,
       additional: storage,
+      storage2: emptyStorage2(),
       emergency,
     } as Record<string, unknown>;
     current = v3;

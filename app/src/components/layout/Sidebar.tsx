@@ -5,6 +5,7 @@ import {
   FlaskConical,
   ShieldCheck,
   PackageOpen,
+  Database,
   Siren,
   Users,
   Download,
@@ -29,12 +30,13 @@ const NAV: NavItem[] = [
   { id: 'taskHazards', label: 'Non-Chemical Hazards', Icon: AlertTriangle },
   { id: 'controls', label: 'Controls', Icon: ShieldCheck },
   { id: 'additional', label: 'Storage', Icon: PackageOpen },
-  { id: 'emergency', label: 'Emergency Response', Icon: Siren },
+  { id: 'storage2', label: 'Storage 2.0', Icon: Database },
+  { id: 'emergency', label: 'Emergency Response and Waste', Icon: Siren },
   { id: 'briefing', label: 'Briefing & Sign-off', Icon: Users },
   { id: 'completeExport', label: 'Complete & Export', Icon: Download },
 ];
 
-const CORE_NAV = NAV.filter((n): n is NavItem & { id: CoreSectionId } => n.id !== 'completeExport');
+const CORE_NAV = NAV.filter((n): n is NavItem & { id: CoreSectionId } => n.id !== 'completeExport' && n.id !== 'storage2');
 
 export function Sidebar() {
   const active = useAssessment((s) => s.activeSection);
@@ -48,14 +50,13 @@ export function Sidebar() {
   const coreCompletion = CORE_NAV.map((n) => isSectionComplete(assessment, n.id));
   const allCoreComplete = coreCompletion.every(Boolean);
   const completedCount = coreCompletion.filter(Boolean).length;
-  const unlocked = NAV.map(
-    (item, i) =>
-      testingMode ||
-      i === 0 ||
-      (item.id === 'completeExport'
-        ? allCoreComplete
-        : coreCompletion.slice(0, i).every(Boolean)),
-  );
+  const unlocked = NAV.map((item) => {
+    if (testingMode || item.id === 'overview') return true;
+    if (item.id === 'completeExport') return allCoreComplete;
+    const coreIndex = CORE_NAV.findIndex((coreItem) => coreItem.id === item.id);
+    if (coreIndex < 0) return allCoreComplete || isSectionComplete(assessment, 'additional');
+    return coreCompletion.slice(0, coreIndex).every(Boolean);
+  });
 
   return (
     <aside className="w-64 shrink-0 border-r border-zinc-200 bg-white flex flex-col h-full">
@@ -81,7 +82,9 @@ export function Sidebar() {
           const isActive = id === active;
           const done = id === 'completeExport'
             ? allCoreComplete
-            : isSectionComplete(assessment, id as CoreSectionId);
+            : id === 'storage2'
+              ? true
+              : isSectionComplete(assessment, id as CoreSectionId);
           const isUnlocked = unlocked[i];
           return (
             <button

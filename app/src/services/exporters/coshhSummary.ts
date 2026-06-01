@@ -4,8 +4,8 @@
  */
 
 export const COSHH_INTRO = [
-  'COSHH Essentials is the HSE control-banding screening tool published in HSG193. It selects a recommended control approach for each substance from the combination of (a) the chemical hazard group derived from CLP H-statements, (b) the scale at which the substance is used, and (c) the volatility band for liquids or the dustiness band for solids. The highest approach across all substances drives the recommended controls.',
-  'It is a screening tool only. A competent assessor must verify the recommendation and may impose stricter controls. The scheme does not cover asbestos, lead, pesticides, radioactive materials or biological agents, and does not address physical hazards such as fire, explosion or reactivity.',
+  'COSHH Essentials is the HSE control-banding screening tool published in HSG193. It identifies a suggested control approach for each substance from the combination of (a) the chemical hazard group derived from CLP H-statements, (b) the scale at which the substance is used, and (c) the volatility band for liquids or the dustiness band for solids. The highest approach across all substances is a screening output for assessor review, not automatic approval of controls.',
+  'It is a screening tool only. A competent assessor must verify the screening output against the SDS, task, exposure route, quantity, duration, WELs and local conditions, and may impose stricter controls. The scheme does not cover asbestos, lead, pesticides, radioactive materials or biological agents, and does not address physical hazards such as fire, explosion or reactivity.',
 ];
 
 export const HAZARD_GROUP_HELP: [string, string][] = [

@@ -11,7 +11,8 @@ const SECTION_NAV: { id: PagerSectionId; label: string }[] = [
   { id: 'taskHazards', label: 'Non-Chemical Hazards' },
   { id: 'controls', label: 'Controls' },
   { id: 'additional', label: 'Storage' },
-  { id: 'emergency', label: 'Emergency Response' },
+  { id: 'storage2', label: 'Storage 2.0' },
+  { id: 'emergency', label: 'Emergency Response and Waste' },
   { id: 'briefing', label: 'Briefing & Sign-off' },
   { id: 'completeExport', label: 'Complete & Export' },
 ];
@@ -24,7 +25,7 @@ export function SectionPager({ current }: { current: SectionId }) {
 
   const previous = SECTION_NAV[index - 1];
   const next = SECTION_NAV[index + 1];
-  const currentIsCore = current !== 'completeExport';
+  const currentIsCore = current !== 'completeExport' && current !== 'storage2';
   const missingItems = currentIsCore
     ? sectionMissingItems(assessment, current as CorePagerSectionId as CoreSectionId)
     : [];

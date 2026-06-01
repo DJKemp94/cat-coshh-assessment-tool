@@ -45,15 +45,15 @@ export function AdditionalSection() {
       <SuggestionDisclaimer variant="storage" />
 
       <PageIntro
-        body="Use this page to review the suggested storage group for each chemical, check the SDS, update any asterisked fields, and confirm that the final storage recommendation is suitable."
+        body="Use this page to review the suggested storage group for each chemical, check the SDS, update any asterisked fields, and confirm that the final storage assignment is suitable."
         steps={[
           { title: '1. Check each row', body: 'Compare the suggested group, guidance and segregation alert with SDS sections 7 and 10.' },
           { title: '2. Update if needed', body: 'Change the storage group or text where the SDS or local rules require something different.' },
-          { title: '3. Confirm storage', body: 'Tick each chemical once you are satisfied the storage recommendation is correct.' },
+          { title: '3. Confirm storage', body: 'Tick each chemical once you are satisfied the storage assignment is correct.' },
         ]}
         optionalStep={{
           title: 'Optional: Check Storage Layout',
-          body: 'Review the storage layout against your storage in practice, and ensure that chemicals are correctly segregated as per the recommendations. Use the recommendations as a guide, and always confirm via the SDS.',
+          body: 'Review the storage layout against your storage in practice, and ensure that chemicals are correctly segregated as required. Use the layout as guidance, and always confirm via the SDS.',
         }}
       />
 
@@ -439,7 +439,7 @@ function StorageSdsPanel({
       </div>
 
       <DetailDisclosure
-        title="Recommended storage layout"
+        title="Suggested storage layout"
         subtitle="Visual cabinet layout generated from the reviewed assignments."
       >
         <StoragePlanDashboard
@@ -629,7 +629,7 @@ function StoragePlanDashboard({
     <div>
           <div className="mb-4">
             <div>
-              <h3 className="text-sm font-semibold text-zinc-900">Recommended Storage Layout</h3>
+              <h3 className="text-sm font-semibold text-zinc-900">Suggested Storage Layout</h3>
               <p className="mt-1 text-sm text-zinc-600">
                 {activeGroupCount > 0
                   ? 'Store chemicals in separate cabinets based on compatibility.'
@@ -1064,7 +1064,7 @@ function ClassificationRow({
             type="checkbox"
             checked={assignment.confirmed}
             onChange={(e) => onConfirm(e.target.checked)}
-            aria-label={`Confirm storage recommendation for ${chemical.name || chemical.cas || 'chemical'}`}
+            aria-label={`Confirm storage assignment for ${chemical.name || chemical.cas || 'chemical'}`}
             className="h-6 w-6 accent-accent-600"
           />
           <span>{assignment.confirmed ? 'Done' : 'Required'}</span>
@@ -1182,7 +1182,7 @@ function ClassificationCard({
               type="checkbox"
               checked={assignment.confirmed}
               onChange={(e) => onConfirm(e.target.checked)}
-              aria-label={`Confirm storage recommendation for ${chemical.name || chemical.cas || 'chemical'}`}
+              aria-label={`Confirm storage assignment for ${chemical.name || chemical.cas || 'chemical'}`}
               className="h-5 w-5 accent-accent-600"
             />
             <span>{assignment.confirmed ? 'Storage confirmed' : <>Confirm storage <RequiredMark /></>}</span>

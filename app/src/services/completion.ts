@@ -82,6 +82,8 @@ export function sectionMissingItems(a: Assessment, id: CoreSectionId): string[] 
     case 'controls': {
       const c = a.controls;
       const missing: string[] = [];
+      if (!c.elimination.trim() && !c.substitution.trim()) missing.push('elimination/substitution review');
+      if (!c.reduction.trim()) missing.push('reduction controls');
       if (!c.administrative.trim()) missing.push('administrative controls');
       if (!c.airMonitoring.trim()) missing.push('air monitoring');
       if (!c.healthSurveillance.trim()) missing.push('health surveillance');
@@ -96,10 +98,12 @@ export function sectionMissingItems(a: Assessment, id: CoreSectionId): string[] 
           if (!key || seen.has(key)) return false;
           seen.add(key);
           return true;
-        });
+      });
       if (chemicals.length === 0) return ['chemical storage confirmations'];
+      const missing: string[] = [];
       const unconfirmed = chemicals.filter((chemical) => a.additional.assignments?.[chemical.id]?.confirmed !== true);
-      return unconfirmed.length === 0 ? [] : ['confirm each chemical storage recommendation'];
+      if (unconfirmed.length > 0) missing.push('confirm each chemical storage assignment');
+      return missing;
     }
     case 'emergency': {
       const x = a.emergency;

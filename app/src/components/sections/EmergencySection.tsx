@@ -11,6 +11,7 @@ import { appendUnique, ChipSuggestion } from '@/components/common/SuggestionChip
 import { SuggestionDisclaimer } from '@/components/common/SuggestionDisclaimer';
 import { SuggestionField } from '@/components/common/SuggestionField';
 import { suggestRequirements, RequirementField } from '@/services/suggestRequirements';
+import { classifyStorage } from '@/services/storageClassifier';
 import { Substance } from '@/types/assessment';
 
 const BASE_FIRST_AID_CONSIDERATIONS = [
@@ -55,18 +56,21 @@ const BASE_FIRE_SUGGESTIONS: ChipSuggestion[] = [
 ];
 
 const BASE_WASTE_CONSIDERATIONS = [
-  'Which waste streams will be generated: contaminated solids, liquids, sharps, absorbents or empty containers?',
-  'What container type, label, cap, secondary containment and temporary storage are required?',
-  'Which incompatible wastes must be kept separate?',
-  'Can any material go to drain, or must all waste use hazardous-waste disposal?',
-  'Who arranges collection and what records are needed?',
+  'Which waste streams will be generated: unused chemicals, stock solutions, reaction residues, washings, contaminated solids, sharps, absorbents or empty containers?',
+  'Which waste streams must be collected separately because of chemical incompatibility or disposal restrictions, and what does the SDS confirm for each stream?',
+  'Are mineral acids, organic acids, alkalis, cyanides, sulphides, oxidisers, reducing agents, halogenated solvents, non-halogenated solvents, pyrophoric/water-reactive substances, heavy metals or iodine-containing mixtures present?',
+  'What container material is compatible with each waste stream according to the SDS and local procedure: glass, plastic/HDPE, steel drum, sharps bin or another specified container?',
+  'Is the container intact, leak-tight, securely capped, suitable for liquids or solids as applicable, and free from residues that could react with the waste?',
+  'What label information is needed on each waste container: contents, major components, concentration or solvent/water content, hazards, date and responsible person or laboratory?',
+  'What secondary containment or physical separation is needed while the waste is being filled and before collection?',
+  'How will full containers, obsolete chemicals and contaminated solids/sharps be removed promptly through the approved collection route?',
 ];
 
 const BASE_WASTE_SUGGESTIONS: ChipSuggestion[] = [
-  { text: 'Collect chemical waste in compatible, closed and clearly labelled containers. Keep waste containers closed except when adding waste.' },
-  { text: 'Segregate incompatible waste streams and store waste in secondary containment until collection.' },
-  { text: 'Do not dispose of chemical waste to drain unless the SDS and local procedure explicitly permit it.' },
-  { text: 'Dispose of contaminated absorbents, PPE and residues through the approved hazardous-waste route.' },
+  { text: 'Review the SDS before confirming the waste route, segregation requirements, compatible container and any special disposal precautions for each waste stream.' },
+  { text: 'Collect each waste stream in a clean, intact, leak-tight container that the SDS and local procedure confirm is compatible with the waste.' },
+  { text: 'Keep waste containers closed except when adding waste, store liquid waste in secondary containment, and do not fill liquid waste containers above about three-quarters full.' },
+  { text: 'Label each waste container with the contents, major components, concentration or solvent/water content where relevant, hazards, date and responsible person or laboratory. Retain useful original hazard information where the original container is reused, or deface obsolete labels where a container is repurposed.' },
 ];
 
 export function EmergencySection() {
@@ -333,6 +337,7 @@ function buildEmergencyPrompts(
   const firstAidPrompts = buildFirstAidPrompts(chemicals);
   const spillPrompts = buildSpillPrompts(chemicals, suggestions.emergencySpills);
   const firePrompts = buildFirePrompts(chemicals, suggestions.emergencyFire);
+  const wastePrompts = buildWastePrompts(chemicals);
   return {
     firstAid: {
       considerations: firstAidPrompts.considerations,
@@ -347,13 +352,120 @@ function buildEmergencyPrompts(
       suggestions: firePrompts.suggestions,
     },
     waste: {
-      considerations: [
-        ...(chemicalPrompt ? [chemicalPrompt] : []),
-        ...BASE_WASTE_CONSIDERATIONS,
-      ],
-      suggestions: mergeSuggestions(suggestions.wasteHandling, BASE_WASTE_SUGGESTIONS),
+      considerations: wastePrompts.considerations.length > 0
+        ? wastePrompts.considerations
+        : [
+            ...(chemicalPrompt ? [chemicalPrompt] : []),
+            ...BASE_WASTE_CONSIDERATIONS,
+          ],
+      suggestions: wastePrompts.suggestions,
     },
   };
+}
+
+function buildWastePrompts(chemicals: Substance[]) {
+  if (chemicals.length === 0) {
+    return {
+      considerations: BASE_WASTE_CONSIDERATIONS,
+      suggestions: BASE_WASTE_SUGGESTIONS,
+    };
+  }
+
+  const profiles = chemicals.map((chemical) => ({
+    chemical,
+    classification: classifyStorage(chemical),
+    text: chemicalSearchText(chemical),
+  }));
+  const has = (predicate: (profile: typeof profiles[number]) => boolean) =>
+    profiles.filter(predicate).map((profile) => profile.chemical);
+
+  const mineralAcids = has((p) => p.classification.traits.acid && p.classification.traits.organic === false);
+  const organicAcids = has((p) => p.classification.traits.acid && p.classification.traits.organic === true);
+  const acids = has((p) => p.classification.traits.acid);
+  const bases = has((p) => p.classification.traits.base);
+  const cyanides = has((p) => p.classification.traits.cyanide);
+  const sulfides = has((p) => p.classification.traits.sulfide);
+  const halogenatedSolvents = has((p) => p.classification.traits.halogenatedSolvent);
+  const nonHalogenatedSolvents = has((p) =>
+    !p.classification.traits.halogenatedSolvent &&
+    p.chemical.form === 'liquid' &&
+    p.classification.traits.organic === true &&
+    (p.classification.traits.flammable || /\b(solvent|acetone|ethanol|methanol|propanol|toluene|xylene|acetonitrile|ethyl acetate|hexane|pentane)\b/.test(p.text)),
+  );
+  const oxidisers = has((p) => p.classification.traits.oxidising);
+  const reducers = has((p) => /\b(sodium borohydride|lithium aluminium hydride|lithium aluminum hydride|borohydride|hydride|reducing agent)\b/.test(p.text));
+  const waterReactive = has((p) => p.classification.traits.waterReactive || p.classification.traits.pyrophoric);
+  const heavyMetals = has((p) => /\b(mercury|cadmium|lead|chromium|arsenic|nickel|selenium|antimony|tellurium|thallium|barium)\b/.test(p.text));
+  const iodineMixtures = has((p) => /\b(iodine|iodide)\b/.test(p.text));
+  const solids = has((p) => p.chemical.form === 'solid' || p.chemical.form === 'powder');
+
+  const considerations = [
+    chemicalNamesPrompt(chemicals),
+    `Confirm SDS waste and incompatibility information for: ${chemicalList(chemicals)}.`,
+    'Identify the separate waste streams needed for the chemicals actually used in this task.',
+    'Confirm compatible collection containers, labels, fill limits, secondary containment and collection route for each stream.',
+  ].filter(Boolean) as string[];
+
+  const suggestions: ChipSuggestion[] = [...BASE_WASTE_SUGGESTIONS];
+  const add = (condition: boolean, text: string) => {
+    if (condition) suggestions.push({ text });
+  };
+
+  add(
+    mineralAcids.length > 0 && organicAcids.length > 0,
+    `Collect mineral acid waste (${chemicalList(mineralAcids)}) separately from organic acid waste (${chemicalList(organicAcids)}), and confirm both streams against the SDS.`,
+  );
+  add(
+    acids.length > 0 && bases.length > 0,
+    `Collect acid waste (${chemicalList(acids)}) separately from alkali/base waste (${chemicalList(bases)}), using SDS-confirmed compatible containers for each stream.`,
+  );
+  add(
+    acids.length > 0 && cyanides.length > 0,
+    `Keep cyanide-containing waste (${chemicalList(cyanides)}) separate from acid waste (${chemicalList(acids)}); confirm the cyanide waste container and disposal route against the SDS before collection.`,
+  );
+  add(
+    acids.length > 0 && sulfides.length > 0,
+    `Keep sulphide/sulfide-containing waste (${chemicalList(sulfides)}) separate from acid waste (${chemicalList(acids)}); confirm the waste route against the SDS before collection.`,
+  );
+  add(
+    halogenatedSolvents.length > 0 && nonHalogenatedSolvents.length > 0,
+    `Collect halogenated solvent waste (${chemicalList(halogenatedSolvents)}) separately from non-halogenated solvent waste (${chemicalList(nonHalogenatedSolvents)}).`,
+  );
+  add(
+    oxidisers.length > 0 && (nonHalogenatedSolvents.length > 0 || reducers.length > 0 || acids.length > 0),
+    `Collect oxidising waste (${chemicalList(oxidisers)}) separately from organic solvent/material waste${reducers.length > 0 ? ` and reducing-agent waste (${chemicalList(reducers)})` : ''}; confirm segregation and container compatibility against the SDS.`,
+  );
+  add(
+    waterReactive.length > 0,
+    `Collect water-reactive or pyrophoric waste (${chemicalList(waterReactive)}) as a separate stream using the SDS-approved quench, inerting or containment method before disposal.`,
+  );
+  add(
+    heavyMetals.length > 0 || iodineMixtures.length > 0,
+    `Segregate ${heavyMetals.length > 0 ? `heavy-metal waste (${chemicalList(heavyMetals)})` : ''}${heavyMetals.length > 0 && iodineMixtures.length > 0 ? ' and ' : ''}${iodineMixtures.length > 0 ? `iodine-containing waste (${chemicalList(iodineMixtures)})` : ''} into the specific waste stream required by the SDS and local waste procedure.`,
+  );
+  add(
+    solids.length > 0,
+    `Collect contaminated solid waste from this task (${chemicalList(solids)}) in the compatible solid-waste stream specified by the SDS/local procedure; do not use solid containers for liquid waste.`,
+  );
+
+  return {
+    considerations,
+    suggestions: mergeSuggestions(suggestions).slice(0, 8),
+  };
+}
+
+function chemicalSearchText(chemical: Substance) {
+  return [
+    chemical.name,
+    chemical.cas,
+    chemical.molecularFormula,
+    chemical.canonicalSmiles,
+    chemical.connectivitySmiles,
+    chemical.isomericSmiles,
+    chemical.inchi,
+    chemical.iupacName,
+    chemical.pubchemTitle,
+  ].filter(Boolean).join(' ').toLowerCase();
 }
 
 function mergeSuggestions(primary: ChipSuggestion[] = [], fallback: ChipSuggestion[] = []) {

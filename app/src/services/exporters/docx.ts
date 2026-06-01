@@ -10,6 +10,7 @@ import {
   suggestControls, OverallSuggestion, SubstanceAnalysis,
 } from '@/services/coshhEssentials';
 import { COSHH_INTRO, HAZARD_GROUP_HELP, EP_HELP, APPROACH_HELP } from './coshhSummary';
+import { fullReportOptions, ReportOptions } from './reportOptions';
 
 // Modern palette
 const TEAL = '0d9488';
@@ -419,7 +420,7 @@ const referenceTable = (title: string, rows: [string, string][]): (Paragraph | T
   ];
 };
 
-export async function exportDocx(a: Assessment): Promise<void> {
+export async function exportDocx(a: Assessment, options: ReportOptions = fullReportOptions()): Promise<void> {
   const children: (Paragraph | Table)[] = [];
 
   // Pre-load all pictograms used anywhere in the assessment, plus the full
@@ -447,53 +448,73 @@ export async function exportDocx(a: Assessment): Promise<void> {
 
   // ── Cover / title block ──────────────────────────────
   children.push(...titleBlock(a));
+  let sectionNo = 1;
 
   // ── 01 Overview ──────────────────────────────────────
+  if (options.overview.include) {
   children.push(sectionBreak());
-  children.push(sectionBanner(1, 'Overview'));
-  children.push(kvTable([
-    ['Business Unit', a.overview.businessUnit],
-    ['Location', a.overview.locations],
-    ['Risk Assessor', a.overview.assessor],
-    ['SOP Ref number(s)', a.overview.sopRef],
-    ['Date of Assessment', a.overview.dateOfAssessment],
-    ['Date of Review', a.overview.dateOfNextReview],
-    ['Persons at Risk', personsLine(a.overview.personsAtRisk)],
-  ]));
-  children.push(blank(120));
-  children.push(para('Activity Outline', { bold: true, color: MUTED, size: 18 }));
-  children.push(para(a.overview.activityOutline || DASH, { size: 20 }));
+  children.push(sectionBanner(sectionNo++, 'Overview'));
+  if (options.overview.details) {
+    children.push(kvTable([
+      ['Business Unit', a.overview.businessUnit],
+      ['Location', a.overview.locations],
+      ['Risk Assessor', a.overview.assessor],
+      ['SOP Ref number(s)', a.overview.sopRef],
+      ['Date of Assessment', a.overview.dateOfAssessment],
+      ['Date of Review', a.overview.dateOfNextReview],
+      ['Persons at Risk', personsLine(a.overview.personsAtRisk)],
+    ]));
+    children.push(blank(120));
+  }
+  if (options.overview.activityOutline) {
+    children.push(para('Activity Outline', { bold: true, color: MUTED, size: 18 }));
+    children.push(para(a.overview.activityOutline || DASH, { size: 20 }));
+  }
+  }
 
   // ── 02 Task Hazards ──────────────────────────────────
-  children.push(sectionBanner(2, 'Task Hazards'));
+  if (options.taskHazards.include) {
+  children.push(sectionBanner(sectionNo++, 'Task Hazards'));
   if (a.taskHazards.length === 0) {
     children.push(para('No hazards recorded.', { italics: true, color: MUTED }));
   } else {
     a.taskHazards.forEach((haz, i) => {
       children.push(subHeading(`Hazard ${i + 1} — ${haz.hazard || DASH}`));
-      children.push(kvTable([
+      const rows: [string, string][] = [
         ['How harm occurs', haz.harmMechanism],
-        ['Risk (before controls)',
-          `${riskRating(haz.riskEvaluation) || DASH}  (L${haz.riskEvaluation.likelihood} × S${haz.riskEvaluation.severity})`],
         ['Controls in place', haz.controlsInPlace],
-        ['Residual risk',
-          `${riskRating(haz.residualRisk) || DASH}  (L${haz.residualRisk.likelihood} × S${haz.residualRisk.severity})`],
-        ['Further action', haz.furtherAction],
-        ['Owner', haz.owner],
-        ['Due', haz.dueDate],
-        ['Completed', haz.completionDate],
-      ]));
+      ];
+      if (options.taskHazards.riskDetails) {
+        rows.splice(1, 0,
+          ['Risk (before controls)',
+            `${riskRating(haz.riskEvaluation) || DASH}  (L${haz.riskEvaluation.likelihood} × S${haz.riskEvaluation.severity})`],
+        );
+        rows.push(['Residual risk',
+          `${riskRating(haz.residualRisk) || DASH}  (L${haz.residualRisk.likelihood} × S${haz.residualRisk.severity})`]);
+      }
+      if (options.taskHazards.actions) {
+        rows.push(
+          ['Further action', haz.furtherAction],
+          ['Owner', haz.owner],
+          ['Due', haz.dueDate],
+          ['Completed', haz.completionDate],
+        );
+      }
+      children.push(kvTable(rows));
     });
+  }
   }
 
   // ── 03 Process Steps & Chemicals ─────────────────────
-  children.push(sectionBanner(3, 'COSHH Process Steps & Chemicals'));
+  if (options.process.include) {
+  children.push(sectionBanner(sectionNo++, 'COSHH Process Steps & Chemicals'));
   if (a.processSteps.length === 0) {
     children.push(para('No process steps recorded.', { italics: true, color: MUTED }));
   } else {
     a.processSteps.forEach((step, si) => {
       children.push(subHeading(`Step ${si + 1} — ${step.step || DASH}`));
-      children.push(kvTable(formatStepControls(step)));
+      if (options.process.stepControls) children.push(kvTable(formatStepControls(step)));
+      if (!options.process.chemicalDetails) return;
       if (step.chemicals.length === 0) {
         children.push(para('No chemicals recorded for this step.', { italics: true, color: MUTED }));
       }
@@ -515,18 +536,21 @@ export async function exportDocx(a: Assessment): Promise<void> {
           ['Exposure',
             `${s.exposureDuration || DASH}, ${s.exposureFrequency || DASH}  ·  routes: ${routes || DASH}`],
         ]));
-        // GHS pictograms — rendered as actual images.
-        children.push(para('GHS pictograms', { bold: true, color: MUTED, size: 16, spaceBefore: 80, spaceAfter: 40 }));
-        const pics = s.ghsPictograms
-          .map((id) => usedPictoMap.get(id))
-          .filter((p): p is RasterisedPictogram => !!p);
-        children.push(...pictogramStrip(pics));
+        if (options.process.ghsPictograms) {
+          children.push(para('GHS pictograms', { bold: true, color: MUTED, size: 16, spaceBefore: 80, spaceAfter: 40 }));
+          const pics = s.ghsPictograms
+            .map((id) => usedPictoMap.get(id))
+            .filter((p): p is RasterisedPictogram => !!p);
+          children.push(...pictogramStrip(pics));
+        }
       });
     });
   }
+  }
 
   // ── 04 COSHH Essentials Screening ────────────────────
-  children.push(sectionBanner(4, 'COSHH Essentials Screening'));
+  if (options.controls.include && options.controls.coshhScreening) {
+  children.push(sectionBanner(sectionNo++, 'COSHH Essentials Screening'));
   for (const line of COSHH_INTRO) {
     children.push(para(line, { size: 20, spaceAfter: 120 }));
   }
@@ -567,45 +591,53 @@ export async function exportDocx(a: Assessment): Promise<void> {
     }
   }
 
-  children.push(para('Reference legend', { bold: true, color: TEAL_DARK, size: 20, spaceBefore: 80, spaceAfter: 60 }));
-  children.push(...referenceTable('Hazard group', HAZARD_GROUP_HELP.map(([k, v]) => [`Group ${k}`, v])));
-  children.push(...referenceTable('Exposure predictor (EP) band', EP_HELP));
-  children.push(...referenceTable('Control approach', APPROACH_HELP.map(([k, v]) => [`Approach ${k}`, v])));
+  if (options.controls.coshhLegend) {
+    children.push(para('Reference legend', { bold: true, color: TEAL_DARK, size: 20, spaceBefore: 80, spaceAfter: 60 }));
+    children.push(...referenceTable('Hazard group', HAZARD_GROUP_HELP.map(([k, v]) => [`Group ${k}`, v])));
+    children.push(...referenceTable('Exposure predictor (EP) band', EP_HELP));
+    children.push(...referenceTable('Control approach', APPROACH_HELP.map(([k, v]) => [`Approach ${k}`, v])));
 
-  children.push(subHeading('GHS pictogram legend'));
-  children.push(...pictogramStrip(legendPictos));
+    children.push(subHeading('GHS pictogram legend'));
+    children.push(...pictogramStrip(legendPictos));
+  }
+  }
 
   // ── 05 Control Measures ──────────────────────────────
-  children.push(sectionBanner(5, 'Control Measures'));
-  children.push(kvTable([
-    ['Elimination', a.controls.elimination],
-    ['Substitution', a.controls.substitution],
-    ['Reduction', a.controls.reduction],
-    ['Administrative', a.controls.administrative],
-    ['Air Monitoring', a.controls.airMonitoring],
-    ['Health Surveillance', a.controls.healthSurveillance],
-  ]));
+  if (options.controls.include && options.controls.hierarchy) {
+    children.push(sectionBanner(sectionNo++, 'Control Measures'));
+    children.push(kvTable([
+      ['Elimination', a.controls.elimination],
+      ['Substitution', a.controls.substitution],
+      ['Reduction', a.controls.reduction],
+      ['Administrative', a.controls.administrative],
+      ['Air Monitoring', a.controls.airMonitoring],
+      ['Health Surveillance', a.controls.healthSurveillance],
+    ]));
+  }
 
   // ── 06 Additional Requirements ───────────────────────
-  children.push(sectionBanner(6, 'Additional Requirements'));
-  children.push(kvTable([
-    ['ChemInventory logged', a.additional.cheminventoryLogged ? 'Yes' : 'No'],
-    ['SDS version / date', `${a.additional.sdsVersion || DASH}  ·  ${a.additional.sdsDate || DASH}`],
-    ['Storage', a.additional.storage],
-    ['Incompatible substances', a.additional.incompatibles],
-  ]));
+  if (options.storage.include) {
+    children.push(sectionBanner(sectionNo++, 'Storage'));
+    children.push(kvTable([
+      ['Storage', a.additional.storage],
+      ['Incompatible substances', a.additional.incompatibles],
+    ]));
+  }
 
-  children.push(sectionBanner(7, 'Emergency Response'));
-  children.push(kvTable([
-    ['Emergency — Spills', a.emergency.emergencySpills],
-    ['Emergency — First aid', a.emergency.emergencyFirstAid],
-    ['Emergency — Fire', a.emergency.emergencyFire],
-    ['Waste handling', a.emergency.wasteHandling],
-    ['Other', a.emergency.other],
-  ]));
+  if (options.emergency.include) {
+    children.push(sectionBanner(sectionNo++, 'Emergency Response and Waste'));
+    const rows: [string, string][] = [];
+    if (options.emergency.spills) rows.push(['Emergency — Spills', a.emergency.emergencySpills]);
+    if (options.emergency.firstAid) rows.push(['Emergency — First aid', a.emergency.emergencyFirstAid]);
+    if (options.emergency.fire) rows.push(['Emergency — Fire', a.emergency.emergencyFire]);
+    if (options.emergency.waste) rows.push(['Waste handling', a.emergency.wasteHandling]);
+    if (options.emergency.other) rows.push(['Other', a.emergency.other]);
+    children.push(kvTable(rows.length > 0 ? rows : [['Included content', 'No emergency subsections selected.']]));
+  }
 
   // ── 08 Briefing Record ───────────────────────────────
-  children.push(sectionBanner(8, 'Briefing Record'));
+  if (options.briefing.include) {
+  children.push(sectionBanner(sectionNo++, 'Briefing Record'));
   if (a.briefing.length === 0) {
     children.push(para('No briefing entries recorded.', { italics: true, color: MUTED }));
   } else {
@@ -614,7 +646,7 @@ export async function exportDocx(a: Assessment): Promise<void> {
         `${b.name || '(unsigned)'}    ·    ${b.date || DASH}`,
         { bold: true, size: 22, color: INK, spaceBefore: 120, spaceAfter: 40 },
       ));
-      if (b.signaturePng) {
+      if (options.briefing.signatures && b.signaturePng) {
         try {
           const bytes = dataUrlToBytes(b.signaturePng);
           children.push(new Paragraph({
@@ -632,6 +664,7 @@ export async function exportDocx(a: Assessment): Promise<void> {
         }
       }
     }
+  }
   }
 
   const footer = new Footer({

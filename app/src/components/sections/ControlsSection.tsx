@@ -166,7 +166,7 @@ function CoshhEssentialsPanel({
               {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
               <span className="font-medium">COSHH Essentials screening</span>
               <span className="rounded-md border border-accent-200 bg-accent-50 px-2 py-0.5 text-xs font-semibold text-accent-800">
-                Click to review control recommendations
+                Click to review screening output
               </span>
               {(() => {
                 const present = [...new Set(s.analyses.map((a) => a.approach))].sort((a, b) => a - b);
@@ -225,16 +225,16 @@ function CoshhEssentialsPanel({
                     COSHH Essentials is an HSE control-banding tool. CAT uses the chemicals you've entered into the system, extracts the quantities, physical form and hazard information entered in Process Steps to estimate the control approach likely to be needed.
                   </p>
                   <p>
-                    In the table below, is a list of all chemicals entered into the system alongside the recommended controls using the COSHH essentials screening process.
+                    In the table below, each chemical is shown alongside the COSHH Essentials screening output calculated from the data entered in Process Steps.
                   </p>
                   <p>
-                    Where chemicals are identified under Approach 1, these are likely to be acceptable to handle outside of LEV.
+                    Approach 1 may indicate that general ventilation and good practice could be sufficient, but only where the competent assessor confirms this against the SDS, exposure route, quantity, duration, WELs and local conditions.
                   </p>
                   <p>
-                    Approaches 2 and 3 indicate that the chemical should be handled using some form of LEV, with a higher approach requiring greater protection.
+                    Approaches 2 and 3 indicate that the screening points toward engineering control, normally LEV or equivalent capture/control, with the final control choice confirmed by the assessor.
                   </p>
                   <p>
-                    Where chemicals are identified under Approach 4, there may be some specialist controls required, and you should check the SDS before confirming in your Process step which are the most sensible controls.
+                    Where chemicals are identified under Approach 4, specialist advice is required. Do not rely on the banded screening alone; check the SDS and record the task-specific controls before confirming the process step.
                   </p>
                   <p>
                     You should always check the SDS and make sure the engineering controls and PPE recorded for each process step are suitable, then document the final control measures in the both the Process steps as well as the fields below.
@@ -853,8 +853,8 @@ export function ControlsSection() {
       <PageIntro
         body="Use this page to record the final control measures for the assessment. Start by checking whether the process-step engineering controls and PPE match the COSHH Essentials screening result, then complete the hierarchy of control fields below."
         steps={[
-          { title: '1. Check the screening', body: 'Use COSHH Essentials section to identify the recommended set of controls for the chemicals used.' },
-          { title: '2. Check step controls', body: 'A series of "Checks" are identified based off of comparison between controls you selected in the Process Steps and the COSHH essentials recommendations. Review each "Check", update any controls, and mark the "Checks" as complete as you go.' },
+          { title: '1. Check the screening', body: 'Use the COSHH Essentials section to identify the suggested control approach for the chemicals used.' },
+          { title: '2. Check step controls', body: 'A series of "Checks" are identified by comparing the controls selected in Process Steps with the COSHH Essentials screening output. Review each "Check", update any controls, and mark the "Checks" as complete as you go.' },
           { title: '3. Record other controls', body: 'Review the other steps in the hierarchy of control, and indicate the other controls in place to ensure that work is safely completed. Check the prompts and suggestions for feedback on what to consider, alongside some standardised responses for you to consider.' },
         ]}
       />

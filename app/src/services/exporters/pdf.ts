@@ -3,23 +3,31 @@ import { Assessment, riskRating, PersonsAtRisk, GhsPictogram } from '@/types/ass
 import { exportFileName } from './_filename';
 import { loadPictograms } from './ghsImages';
 import { suggestControls, OverallSuggestion, SubstanceAnalysis } from '@/services/coshhEssentials';
-import { COSHH_INTRO, HAZARD_GROUP_HELP, EP_HELP, APPROACH_HELP } from './coshhSummary';
+import { classifyStorage, StorageGroupId } from '@/services/storageClassifier';
+import { HAZARD_GROUP_HELP, EP_HELP, APPROACH_HELP } from './coshhSummary';
+import { fullReportOptions, ReportOptions } from './reportOptions';
 
 // ── Layout ─────────────────────────────────────────────
-const PAGE_W = 595;
-const PAGE_H = 842;
-const M_X = 48;
-const M_TOP = 64;
-const M_BOTTOM = 56;
+const PAGE_W = 842;
+const PAGE_H = 595;
+const M_X = 30;
+const M_TOP = 34;
+const M_BOTTOM = 40;
 const CONTENT_W = PAGE_W - M_X * 2;
 
 // ── Palette ────────────────────────────────────────────
+const NAVY = rgb(7 / 255, 48 / 255, 99 / 255);
+const NAVY_2 = rgb(14 / 255, 74 / 255, 132 / 255);
 const TEAL = rgb(13 / 255, 148 / 255, 136 / 255);
 const TEAL_DARK = rgb(15 / 255, 118 / 255, 110 / 255);
 const INK = rgb(15 / 255, 23 / 255, 42 / 255);
 const MUTED = rgb(100 / 255, 116 / 255, 139 / 255);
 const LINE = rgb(226 / 255, 232 / 255, 240 / 255);
 const ZEBRA = rgb(248 / 255, 250 / 255, 252 / 255);
+const SOFT_BLUE = rgb(239 / 255, 246 / 255, 255 / 255);
+const SOFT_TEAL = rgb(240 / 255, 253 / 255, 250 / 255);
+const SOFT_AMBER = rgb(255 / 255, 251 / 255, 235 / 255);
+const SOFT_PURPLE = rgb(250 / 255, 245 / 255, 255 / 255);
 const WHITE = rgb(1, 1, 1);
 const DASH = '—';
 
@@ -278,6 +286,461 @@ function cover(ctx: Ctx, a: Assessment): void {
 // ── Pictogram strip ────────────────────────────────────
 interface PictoEntry { id: GhsPictogram; label: string; image: PDFImage }
 
+type Chemical = Assessment['processSteps'][number]['chemicals'][number];
+type RowCell = string | { text: string; bold?: boolean; color?: RGB };
+type ChemicalDetailRow = Chemical & {
+  formSummary: string;
+  quantitySummary: string;
+  welSummary: { twa: string; stel: string; source: string };
+  exposureDuration: string;
+  exposureFrequency: string;
+};
+
+function drawBorder(ctx: Ctx, x: number, y: number, w: number, h: number, color: RGB = LINE) {
+  ctx.page.drawLine({ start: { x, y }, end: { x: x + w, y }, thickness: 0.7, color });
+  ctx.page.drawLine({ start: { x, y: y - h }, end: { x: x + w, y: y - h }, thickness: 0.7, color });
+  ctx.page.drawLine({ start: { x, y }, end: { x, y: y - h }, thickness: 0.7, color });
+  ctx.page.drawLine({ start: { x: x + w, y }, end: { x: x + w, y: y - h }, thickness: 0.7, color });
+}
+
+function drawCard(ctx: Ctx, x: number, topY: number, w: number, h: number, fill: RGB = WHITE, border: RGB = LINE) {
+  ctx.page.drawRectangle({ x, y: topY - h, width: w, height: h, color: fill });
+  drawBorder(ctx, x, topY, w, h, border);
+}
+
+function drawLabelledValue(
+  ctx: Ctx,
+  label: string,
+  value: string,
+  x: number,
+  y: number,
+  w: number,
+  opts: { labelSize?: number; valueSize?: number } = {},
+) {
+  ctx.page.drawText(safe(label.toUpperCase()), {
+    x,
+    y,
+    size: opts.labelSize ?? 6.5,
+    font: ctx.bold,
+    color: NAVY,
+  });
+  const lines = wrap(value || DASH, ctx.font, opts.valueSize ?? 8, w);
+  lines.slice(0, 2).forEach((line, i) => {
+    ctx.page.drawText(line, {
+      x,
+      y: y - 12 - (i * 10),
+      size: opts.valueSize ?? 8,
+      font: ctx.font,
+      color: INK,
+    });
+  });
+}
+
+function drawSectionTab(ctx: Ctx, n: number | string, title: string, x = M_X, y = ctx.y, w?: number) {
+  const label = `${String(n).padStart(2, '0')}  ${title.toUpperCase()}`;
+  const tabW = w ?? Math.min(260, ctx.bold.widthOfTextAtSize(label, 8.5) + 26);
+  ctx.page.drawRectangle({ x, y: y - 18, width: tabW, height: 18, color: NAVY });
+  ctx.page.drawText(safe(label), {
+    x: x + 10,
+    y: y - 12.5,
+    size: 8.5,
+    font: ctx.bold,
+    color: WHITE,
+  });
+}
+
+function drawHeader(ctx: Ctx, a: Assessment) {
+  const title = a.overview.activityTitle || 'Untitled assessment';
+  ctx.page.drawText('COSHH RISK ASSESSMENT', {
+    x: M_X,
+    y: PAGE_H - M_TOP - 4,
+    size: 8.5,
+    font: ctx.bold,
+    color: NAVY_2,
+  });
+  wrap(title, ctx.bold, 21, 350).slice(0, 2).forEach((line, i) => {
+    ctx.page.drawText(line, {
+      x: M_X,
+      y: PAGE_H - M_TOP - 26 - (i * 24),
+      size: 21,
+      font: ctx.bold,
+      color: NAVY,
+    });
+  });
+  ctx.page.drawText(safe(a.overview.businessUnit || 'Business unit not set'), {
+    x: M_X,
+    y: PAGE_H - M_TOP - 76,
+    size: 9,
+    font: ctx.font,
+    color: INK,
+  });
+
+  const metaX = PAGE_W - M_X - 405;
+  drawCard(ctx, metaX, PAGE_H - 24, 405, 58, WHITE, LINE);
+  const meta: [string, string][] = [
+    ['Ref', a.overview.riskAssessmentRef],
+    ['Assessor', a.overview.assessor],
+    ['Assessed', a.overview.dateOfAssessment],
+    ['Next review', a.overview.dateOfNextReview],
+  ];
+  const colW = 405 / 4;
+  meta.forEach(([label, value], i) => {
+    const x = metaX + 16 + (i * colW);
+    if (i > 0) {
+      ctx.page.drawLine({
+        start: { x: metaX + (i * colW), y: PAGE_H - 34 },
+        end: { x: metaX + (i * colW), y: PAGE_H - 70 },
+        thickness: 0.6,
+        color: LINE,
+      });
+    }
+    drawLabelledValue(ctx, label, value || DASH, x, PAGE_H - 45, colW - 24, { valueSize: 8.5 });
+  });
+
+  const generated = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+  const line = `Generated ${generated} with CAT — COSHH Assessment Tool`;
+  const w = ctx.font.widthOfTextAtSize(line, 7.5);
+  ctx.page.drawText(safe(line), {
+    x: PAGE_W - M_X - w,
+    y: PAGE_H - 98,
+    size: 7.5,
+    font: ctx.font,
+    color: MUTED,
+  });
+  ctx.y = PAGE_H - 122;
+}
+
+function drawCompactKvGrid(ctx: Ctx, rows: [string, string][], x: number, topY: number, w: number, cols: number) {
+  const colW = w / cols;
+  const rowH = 32;
+  rows.forEach(([label, value], i) => {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    drawLabelledValue(ctx, label, value || DASH, x + (col * colW) + 12, topY - 25 - (row * rowH), colW - 24);
+  });
+}
+
+function drawInfoCard(
+  ctx: Ctx,
+  title: string,
+  body: string,
+  x: number,
+  topY: number,
+  w: number,
+  h: number,
+  fill: RGB = WHITE,
+) {
+  drawCard(ctx, x, topY, w, h, fill);
+  ctx.page.drawText(safe(title), {
+    x: x + 12,
+    y: topY - 17,
+    size: 9,
+    font: ctx.bold,
+    color: NAVY,
+  });
+  wrap(body || DASH, ctx.font, 8, w - 24).slice(0, Math.max(2, Math.floor((h - 28) / 10))).forEach((line, i) => {
+    ctx.page.drawText(line, {
+      x: x + 12,
+      y: topY - 32 - (i * 10),
+      size: 8,
+      font: ctx.font,
+      color: INK,
+    });
+  });
+}
+
+function chemicalNames(step: Assessment['processSteps'][number]) {
+  return step.chemicals.map((chemical) => chemical.name.trim()).filter(Boolean).join(', ') || DASH;
+}
+
+function hCodeSummary(c: Chemical) {
+  return c.hazardStatements.map((h) => h.text ? `${h.code} ${h.text}` : h.code).join('; ') || DASH;
+}
+
+function uniqueText(values: Array<string | undefined>) {
+  const unique = [...new Set(values.map((value) => value?.trim()).filter(Boolean) as string[])];
+  return unique.length ? unique.join(', ') : DASH;
+}
+
+function chemicalDetailRows(a: Assessment): ChemicalDetailRow[] {
+  const groups = new Map<string, Chemical[]>();
+  a.processSteps.flatMap((step) => step.chemicals).forEach((chemical) => {
+    const key = (chemical.cas?.trim() || chemical.name).toLowerCase().trim() || chemical.id;
+    groups.set(key, [...(groups.get(key) ?? []), chemical]);
+  });
+  return [...groups.values()].map((items) => {
+    const primary = items[0];
+    return {
+      ...primary,
+      hazardStatements: [...new Map(items.flatMap((item) => item.hazardStatements).map((h) => [h.code, h])).values()],
+      ghsPictograms: [...new Set(items.flatMap((item) => item.ghsPictograms))],
+      formSummary: uniqueText(items.map((item) => item.form)),
+      quantitySummary: uniqueText(items.map((item) => item.quantity)),
+      welSummary: {
+        twa: uniqueText(items.map((item) => item.wel.twa)),
+        stel: uniqueText(items.map((item) => item.wel.stel)),
+        source: uniqueText(items.map((item) => item.wel.source)),
+      },
+      exposureDuration: uniqueText(items.map((item) => item.exposureDuration)),
+      exposureFrequency: uniqueText(items.map((item) => item.exposureFrequency)),
+    };
+  });
+}
+
+function exposureSummary(c: Chemical) {
+  const routes = Object.entries(c.exposureRoutes).filter(([, on]) => on).map(([name]) => name).join(', ');
+  return [c.exposureDuration, c.exposureFrequency, routes].filter(Boolean).join(' · ') || DASH;
+}
+
+function approachColor(approach: number) {
+  if (approach === 1) return rgb(6 / 255, 95 / 255, 70 / 255);
+  if (approach === 2) return rgb(133 / 255, 77 / 255, 14 / 255);
+  if (approach === 3) return rgb(154 / 255, 52 / 255, 18 / 255);
+  return rgb(153 / 255, 27 / 255, 27 / 255);
+}
+
+function groupColor(group: string) {
+  if (group === 'A') return rgb(6 / 255, 95 / 255, 70 / 255);
+  if (group === 'B') return rgb(133 / 255, 77 / 255, 14 / 255);
+  if (group === 'C') return rgb(154 / 255, 52 / 255, 18 / 255);
+  return rgb(153 / 255, 27 / 255, 27 / 255);
+}
+
+function epColor(ep?: string) {
+  if (ep === 'EP1') return rgb(6 / 255, 95 / 255, 70 / 255);
+  if (ep === 'EP2') return rgb(133 / 255, 77 / 255, 14 / 255);
+  if (ep === 'EP3') return rgb(154 / 255, 52 / 255, 18 / 255);
+  if (ep === 'EP4') return rgb(153 / 255, 27 / 255, 27 / 255);
+  return INK;
+}
+
+const STORAGE_LABELS: Record<StorageGroupId, string> = {
+  '1': 'Flammable Cabinet',
+  '2a': 'Corrosives Cabinet (Acids)',
+  '2b': 'Organic Acids Cabinet',
+  '3': 'Corrosives Cabinet (Bases)',
+  '4': 'Oxidizers Cabinet',
+  '5a': 'Toxins Cabinet - inorganic',
+  '5b': 'Toxins Cabinet - organic',
+  '5c': 'Locked Poisons Cabinet',
+  '6': 'Reactive Materials Cabinet',
+};
+
+const STORAGE_GUIDANCE: Record<StorageGroupId, string> = {
+  '1': 'Keep away from heat, sparks, ignition sources and oxidizers.',
+  '2a': 'Store acids separately from bases, cyanides, sulphides and oxidizers.',
+  '2b': 'Store organic acids separately from bases and oxidizers unless the SDS confirms compatibility.',
+  '3': 'Store bases separately from acids and oxidizers.',
+  '4': 'Keep away from organic materials, flammables, acids and reducing agents.',
+  '5a': 'Store securely with restricted access and compatible secondary containment.',
+  '5b': 'Store securely with restricted access. Keep liquids below solids where practicable.',
+  '5c': 'Store in locked storage with access restricted to authorised users.',
+  '6': 'Keep dry, tightly closed, and away from water, acids and incompatible materials.',
+};
+
+const STORAGE_INCOMPATIBLES: Record<StorageGroupId, string> = {
+  '1': 'Oxidizers, strong acids/bases, inorganic toxins and reactive materials unless SDS confirms compatibility.',
+  '2a': 'Bases, cyanides, sulphides, flammables, organic acids and reactive materials unless SDS confirms compatibility.',
+  '2b': 'Bases, oxidizers, mineral acids, toxins and reactive materials unless SDS confirms compatibility.',
+  '3': 'Acids, flammables, organic toxins and reactive materials unless SDS confirms compatibility.',
+  '4': 'Flammables, organic materials, organic acids, organic toxins and reactive materials unless SDS confirms compatibility.',
+  '5a': 'Flammables, acids, organic acids, organic toxins and reactive materials unless SDS confirms compatibility.',
+  '5b': 'Acids, bases, oxidizers, inorganic toxins and reactive materials unless SDS confirms compatibility.',
+  '5c': 'Store separately and securely unless SDS/local poison controls confirm compatibility.',
+  '6': 'Water, acids, oxidizers and incompatible aqueous waste streams unless SDS confirms compatibility.',
+};
+
+function storageAssignmentFor(a: Assessment, chemical: Chemical) {
+  const classification = classifyStorage(chemical);
+  const edit = a.additional.assignments?.[chemical.id];
+  const override = edit?.groupOverride;
+  const groupId = override && override !== 'general' && override !== 'review'
+    ? override
+    : classification.groupId;
+  const groupLabel = override === 'general'
+    ? 'General shelving / non-hazardous item'
+    : override === 'review' || !groupId
+      ? 'Review SDS sections 7 and 10'
+      : STORAGE_LABELS[groupId];
+  const guidance = edit?.guidance ?? (groupId ? STORAGE_GUIDANCE[groupId] : 'Check SDS sections 7 and 10 before assigning storage.');
+  const alert = edit?.alert ?? (groupId ? STORAGE_INCOMPATIBLES[groupId] : 'Check SDS sections 7 and 10.');
+  return {
+    groupLabel,
+    suggested: classification.groupId ? STORAGE_LABELS[classification.groupId] : 'Review required',
+    guidance,
+    alert,
+    reason: override ? 'Assessor override. Verify against SDS sections 7 and 10.' : classification.reason,
+    hazards: classification.primaryHazards.join(', ') || classification.hCodes.join(', ') || DASH,
+    confirmed: edit?.confirmed === true ? 'Confirmed' : 'Not confirmed',
+  };
+}
+
+function approachesPresent(coshh: OverallSuggestion) {
+  return [...new Set(coshh.analyses.map((a) => a.approach))].sort((a, b) => a - b);
+}
+
+function drawSimpleTable(
+  ctx: Ctx,
+  columns: Array<{ title: string; w: number }>,
+  rows: RowCell[][],
+  opts: { x?: number; topY?: number; width?: number; fontSize?: number; headerFill?: RGB; rowMinH?: number } = {},
+) {
+  const x = opts.x ?? M_X;
+  const width = opts.width ?? CONTENT_W;
+  const fontSize = opts.fontSize ?? 7.5;
+  const headerH = 20;
+  const widths = columns.map((c) => c.w * width);
+  let y = opts.topY ?? ctx.y;
+
+  const drawHeaderRow = () => {
+    drawRect(ctx, x, y - headerH, width, headerH, opts.headerFill ?? NAVY);
+    let cx = x;
+    columns.forEach((c, i) => {
+      ctx.page.drawText(safe(c.title.toUpperCase()), {
+        x: cx + 5,
+        y: y - 13,
+        size: 6.6,
+        font: ctx.bold,
+        color: WHITE,
+      });
+      cx += widths[i];
+    });
+    y -= headerH;
+  };
+
+  drawHeaderRow();
+  rows.forEach((row, ri) => {
+    const wrapped = row.map((cell, ci) => {
+      const value = typeof cell === 'string' ? cell : cell.text;
+      const font = typeof cell === 'string' ? ctx.font : (cell.bold ? ctx.bold : ctx.font);
+      return wrap(value || DASH, font, fontSize, widths[ci] - 10).slice(0, 5);
+    });
+    const rowH = Math.max(opts.rowMinH ?? 24, Math.max(...wrapped.map((lines) => lines.length)) * (fontSize + 2.5) + 10);
+    if (y - rowH < M_BOTTOM + 20) {
+      ctx.y = y;
+      newPage(ctx);
+      y = ctx.y;
+      drawHeaderRow();
+    }
+    if (ri % 2 === 1) drawRect(ctx, x, y - rowH, width, rowH, ZEBRA);
+    drawBorder(ctx, x, y, width, rowH, LINE);
+    let cx = x;
+    wrapped.forEach((lines, ci) => {
+      const cell = row[ci];
+      const font = typeof cell === 'string' ? ctx.font : (cell.bold ? ctx.bold : ctx.font);
+      const color = typeof cell === 'string' ? INK : (cell.color ?? INK);
+      lines.forEach((line, li) => {
+        ctx.page.drawText(line, {
+          x: cx + 5,
+          y: y - 12 - (li * (fontSize + 2.5)),
+          size: fontSize,
+          font,
+          color,
+        });
+      });
+      cx += widths[ci];
+    });
+    y -= rowH;
+  });
+  ctx.y = y - 10;
+}
+
+function drawMiniPictograms(ctx: Ctx, entries: PictoEntry[], x: number, y: number, size = 18) {
+  entries.slice(0, 4).forEach((entry, i) => {
+    ctx.page.drawImage(entry.image, { x: x + (i * (size + 4)), y: y - size, width: size, height: size });
+  });
+}
+
+function drawChemicalDetailTable(
+  ctx: Ctx,
+  chemicals: ChemicalDetailRow[],
+  pictoMap: Map<GhsPictogram, PictoEntry>,
+  showGhs: boolean,
+) {
+  const columns = [
+    { title: '#', w: 0.04 },
+    { title: 'Chemical', w: 0.18 },
+    { title: 'Form / qty', w: 0.10 },
+    { title: 'Hazard statements', w: 0.27 },
+    { title: 'WEL TWA / STEL', w: 0.13 },
+    { title: 'Exposure', w: 0.15 },
+    { title: 'GHS', w: 0.13 },
+  ];
+  const widths = columns.map((c) => c.w * CONTENT_W);
+  const headerH = 20;
+  let y = ctx.y;
+
+  const drawHeaderRow = () => {
+    drawRect(ctx, M_X, y - headerH, CONTENT_W, headerH, NAVY);
+    let cx = M_X;
+    columns.forEach((c, i) => {
+      ctx.page.drawText(c.title.toUpperCase(), {
+        x: cx + 5,
+        y: y - 13,
+        size: 6.6,
+        font: ctx.bold,
+        color: WHITE,
+      });
+      cx += widths[i];
+    });
+    y -= headerH;
+  };
+
+  drawHeaderRow();
+  chemicals.forEach((chemical, index) => {
+    const pictoEntries = showGhs
+      ? chemical.ghsPictograms.map((id) => pictoMap.get(id)).filter((p): p is PictoEntry => !!p)
+      : [];
+    const cells = [
+      String(index + 1),
+      `${chemical.name || DASH}${chemical.cas ? `\nCAS ${chemical.cas}` : ''}${chemical.pubchemCid ? `\nPubChem CID ${chemical.pubchemCid}` : ''}`,
+      `Forms: ${chemical.formSummary}\nMass/volume range: ${chemical.quantitySummary}`,
+      hCodeSummary(chemical),
+      `TWA: ${chemical.welSummary.twa}\nSTEL: ${chemical.welSummary.stel}\nSource: ${chemical.welSummary.source}`,
+      exposureSummary(chemical),
+      pictoEntries.map((entry) => entry.label).join('\n') || DASH,
+    ];
+    const wrapped = cells.map((cell, ci) => wrap(cell, ci === 1 ? ctx.bold : ctx.font, 6.4, widths[ci] - 10).slice(0, 5));
+    const textRowH = Math.max(...wrapped.map((lines) => lines.length)) * 8.8 + 10;
+    const iconRows = Math.ceil(pictoEntries.length / 4);
+    const rowH = Math.max(44, textRowH, iconRows ? (iconRows * 18) + 18 : 0);
+    if (y - rowH < M_BOTTOM + 20) {
+      ctx.y = y;
+      newPage(ctx);
+      y = ctx.y;
+      drawHeaderRow();
+    }
+    if (index % 2 === 1) drawRect(ctx, M_X, y - rowH, CONTENT_W, rowH, ZEBRA);
+    drawBorder(ctx, M_X, y, CONTENT_W, rowH, LINE);
+    let cx = M_X;
+    wrapped.forEach((lines, ci) => {
+      if (ci === 6 && pictoEntries.length > 0) {
+        pictoEntries.forEach((entry, pi) => {
+          const iconX = cx + 5 + ((pi % 4) * 18);
+          const iconY = y - 8 - (Math.floor(pi / 4) * 18);
+          ctx.page.drawImage(entry.image, { x: iconX, y: iconY - 14, width: 14, height: 14 });
+        });
+        return;
+      }
+      const font = ci === 1 ? ctx.bold : ctx.font;
+      lines.forEach((line, li) => {
+        ctx.page.drawText(line, {
+          x: cx + 5,
+          y: y - 12 - (li * 8.8),
+          size: 6.4,
+          font,
+          color: INK,
+        });
+      });
+      cx += widths[ci];
+    });
+    y -= rowH;
+  });
+  ctx.y = y - 10;
+}
+
+void [formatStepControls, sectionBanner, kvBlock, cover, drawMiniPictograms];
+
 function drawPictograms(ctx: Ctx, entries: PictoEntry[], opts: { withLabels?: boolean } = {}): void {
   if (entries.length === 0) {
     drawText(ctx, 'No GHS pictograms recorded.', { color: MUTED, size: 9 });
@@ -374,7 +837,13 @@ function drawCoshhBreakdown(ctx: Ctx, analyses: SubstanceAnalysis[], drivingAppr
     wrapped.forEach((lines, idx) => {
       let ly = ctx.y - 12;
       const useFont = idx === 0 ? ctx.bold : (idx === 6 ? ctx.bold : ctx.font);
-      const color = (idx === 6 && drives) ? TEAL_DARK : INK;
+      const color = idx === 1
+        ? groupColor(a.hazardGroup)
+        : idx === 5
+          ? epColor(a.exposurePredictor)
+          : idx === 6
+            ? approachColor(a.approach)
+            : INK;
       for (const ln of lines) {
         ctx.page.drawText(ln, { x: cx + 6, y: ly, size: 9, font: useFont, color });
         ly -= 11;
@@ -443,7 +912,7 @@ function renderFooters(doc: PDFDocument, font: PDFFont): void {
   });
 }
 
-export async function exportPdf(a: Assessment): Promise<void> {
+export async function exportPdf(a: Assessment, options: ReportOptions = fullReportOptions()): Promise<void> {
   const doc = await PDFDocument.create();
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
@@ -478,182 +947,242 @@ export async function exportPdf(a: Assessment): Promise<void> {
     a.processSteps.flatMap((s) => s.chemicals),
   );
 
-  // Cover
-  cover(ctx, a);
+  const chemicals = a.processSteps.flatMap((step) => step.chemicals);
+  const emergencyRows: [string, string][] = [];
+  if (options.emergency.spills) emergencyRows.push(['Spills', a.emergency.emergencySpills]);
+  if (options.emergency.firstAid) emergencyRows.push(['First aid', a.emergency.emergencyFirstAid]);
+  if (options.emergency.fire) emergencyRows.push(['Fire', a.emergency.emergencyFire]);
+  if (options.emergency.waste) emergencyRows.push(['Waste handling', a.emergency.wasteHandling]);
+  if (options.emergency.other) emergencyRows.push(['Other', a.emergency.other]);
 
-  // 01 Overview
-  sectionBanner(ctx, 1, 'Overview');
-  kvBlock(ctx, [
-    ['Business Unit', a.overview.businessUnit],
-    ['Location', a.overview.locations],
-    ['Risk Assessor', a.overview.assessor],
-    ['SOP Ref number(s)', a.overview.sopRef],
-    ['Date of Assessment', a.overview.dateOfAssessment],
-    ['Date of Review', a.overview.dateOfNextReview],
-    ['Persons at Risk', personsLine(a.overview.personsAtRisk)],
-  ]);
-  drawText(ctx, 'Activity Outline', { size: 9, bold: true, color: MUTED });
-  drawText(ctx, a.overview.activityOutline || '—', { size: 10 });
-  ctx.y -= 6;
+  drawHeader(ctx, a);
+  let sectionNo = 1;
 
-  // 02 Task Hazards
-  sectionBanner(ctx, 2, 'Task Hazards');
-  if (a.taskHazards.length === 0) {
-    drawText(ctx, 'No hazards recorded.', { color: MUTED });
-  } else {
-    a.taskHazards.forEach((h, i) => {
-      subHeading(ctx, `Hazard ${i + 1} — ${h.hazard || '—'}`);
-      kvBlock(ctx, [
-        ['How harm occurs', h.harmMechanism],
-        ['Risk (before controls)',
-          `${riskRating(h.riskEvaluation) || '—'}  (L${h.riskEvaluation.likelihood} × S${h.riskEvaluation.severity})`],
-        ['Controls in place', h.controlsInPlace],
-        ['Residual risk',
-          `${riskRating(h.residualRisk) || '—'}  (L${h.residualRisk.likelihood} × S${h.residualRisk.severity})`],
-        ['Further action', h.furtherAction],
-        ['Owner', h.owner],
-        ['Due', h.dueDate],
-        ['Completed', h.completionDate],
-      ]);
-    });
+  if (options.overview.include) {
+    drawSectionTab(ctx, sectionNo++, 'Overview');
+    drawCard(ctx, M_X, ctx.y - 18, CONTENT_W, 88, WHITE);
+    if (options.overview.details) {
+      drawCompactKvGrid(ctx, [
+        ['Business Unit', a.overview.businessUnit],
+        ['Location', a.overview.locations],
+        ['Risk Assessor', a.overview.assessor],
+        ['SOP Ref number(s)', a.overview.sopRef],
+        ['Date of Assessment', a.overview.dateOfAssessment],
+        ['Date of Review', a.overview.dateOfNextReview],
+        ['Persons at Risk', personsLine(a.overview.personsAtRisk)],
+      ], M_X, ctx.y - 18, CONTENT_W * 0.72, 3);
+    }
+    if (options.overview.activityOutline) {
+      drawLabelledValue(ctx, 'Activity Outline', a.overview.activityOutline || DASH,
+        M_X + CONTENT_W * 0.72 + 8, ctx.y - 43, CONTENT_W * 0.26);
+    }
+    ctx.y -= 108;
   }
 
-  // 03 Process Steps & Chemicals
-  sectionBanner(ctx, 3, 'COSHH Process Steps & Chemicals');
-  if (a.processSteps.length === 0) {
-    drawText(ctx, 'No process steps recorded.', { color: MUTED });
-  } else {
-    a.processSteps.forEach((step, si) => {
-      subHeading(ctx, `Step ${si + 1} — ${step.step || '—'}`);
-      kvBlock(ctx, formatStepControls(step));
-      if (step.chemicals.length === 0) {
-        drawText(ctx, 'No chemicals recorded for this step.', { color: MUTED, size: 9 });
-      }
-      step.chemicals.forEach((s, ci) => {
-        const idParts = [
-          s.cas ? `CAS ${s.cas}` : null,
-          s.pubchemCid ? `PubChem CID ${s.pubchemCid}` : null,
-        ].filter(Boolean).join('  ·  ');
-        ctx.y -= 4;
-        drawText(ctx, `${si + 1}.${ci + 1}    ${s.name || '—'}${idParts ? `    (${idParts})` : ''}`,
-          { bold: true, size: 11 });
-        const routes = Object.entries(s.exposureRoutes).filter(([, v]) => v).map(([k]) => k).join(', ');
-        kvBlock(ctx, [
-          ['Form / quantity', `${s.form}  ·  ${s.quantity || '—'}`],
-          ['H-codes', s.hazardStatements.map((c) => `${c.code} ${c.text}`).join('; ') || '—'],
-          ['WEL TWA / STEL',
-            `${s.wel.twa || '—'}  /  ${s.wel.stel || '—'}${s.wel.source ? `  (${s.wel.source})` : ''}`],
-          ['Exposure',
-            `${s.exposureDuration || '—'}, ${s.exposureFrequency || '—'}  ·  routes: ${routes || '—'}`],
-        ]);
-        drawText(ctx, 'GHS pictograms', { size: 8, bold: true, color: MUTED });
-        ctx.y -= 2;
-        const entries = s.ghsPictograms
-          .map((id) => pictoMap.get(id))
-          .filter((p): p is PictoEntry => !!p);
-        drawPictograms(ctx, entries);
-        ctx.y -= 4;
+  const topY = ctx.y;
+  const leftW = (CONTENT_W * 0.38);
+  const rightW = CONTENT_W - leftW - 18;
+  if (options.taskHazards.include) {
+    drawSectionTab(ctx, sectionNo++, 'Task Hazards', M_X, topY);
+    drawCard(ctx, M_X, topY - 18, leftW, 104, a.taskHazards.length ? SOFT_AMBER : SOFT_TEAL);
+    if (a.taskHazards.length === 0) {
+      ctx.page.drawText('No non-chemical hazards recorded.', {
+        x: M_X + 24,
+        y: topY - 70,
+        size: 9,
+        font: ctx.bold,
+        color: TEAL_DARK,
       });
+    } else {
+      const rows = a.taskHazards.slice(0, 3).map((haz, i) => [
+        `${i + 1}`,
+        haz.hazard || DASH,
+        options.taskHazards.riskDetails ? `${riskRating(haz.residualRisk) || DASH}` : DASH,
+        options.taskHazards.actions ? (haz.furtherAction || DASH) : DASH,
+      ]);
+      drawSimpleTable(ctx, [
+        { title: '#', w: 0.08 },
+        { title: 'Hazard', w: 0.44 },
+        { title: 'Residual', w: 0.16 },
+        { title: 'Action', w: 0.32 },
+      ], rows, { x: M_X + 12, topY: topY - 42, width: leftW - 24, fontSize: 6.8, rowMinH: 22 });
+    }
+  }
+
+  if (options.process.include) {
+    drawSectionTab(ctx, sectionNo++, 'Process Steps & Chemicals', M_X + leftW + 18, topY);
+    drawCard(ctx, M_X + leftW + 18, topY - 18, rightW, 104, WHITE);
+    const rows = a.processSteps.map((step, i) => [
+      `Step ${i + 1}`,
+      { text: step.step || DASH, bold: true },
+      chemicalNames(step),
+      options.process.stepControls ? formatStepControlList(step.controls.engineering) : DASH,
+      options.process.stepControls ? formatStepControlList(step.controls.ppe) : DASH,
+    ]);
+    drawSimpleTable(ctx, [
+      { title: 'Step', w: 0.14 },
+      { title: 'Activity', w: 0.28 },
+      { title: 'Chemicals', w: 0.15 },
+      { title: 'Engineering controls', w: 0.23 },
+      { title: 'PPE', w: 0.20 },
+    ], rows.length ? rows : [['-', 'No process steps recorded.', '-', '-', '-']], {
+      x: M_X + leftW + 30,
+      topY: topY - 42,
+      width: rightW - 24,
+      fontSize: 6.8,
+      rowMinH: 24,
     });
   }
 
-  // 04 COSHH Essentials Screening
-  sectionBanner(ctx, 4, 'COSHH Essentials Screening');
-  for (const line of COSHH_INTRO) {
-    drawText(ctx, line, { size: 9 });
-    ctx.y -= 2;
-  }
-  if (!coshh) {
-    drawText(ctx, 'No substances have been recorded, so a screening could not be produced.',
-      { color: MUTED });
-  } else {
-    subHeading(ctx, `Recommended approach — ${coshh.approachLabel}`);
-    const d = coshh.driver;
-    if (d) {
-      const line =
-        `Driven by ${d.name} — hazard group ${d.hazardGroup}` +
-        (d.drivingHCodes.length ? ` (${d.drivingHCodes.join(', ')})` : '') +
-        `, scale ${d.scale}` +
-        (d.bandKind !== 'not-applicable' ? `, ${d.bandKind} ${d.band}` : '') +
-        (d.exposurePredictor ? `, exposure predictor ${d.exposurePredictor}` : '') + '.';
-      drawText(ctx, line, { size: 10 });
+  ctx.y = topY - 132;
+
+  if (options.controls.include && (options.controls.hierarchy || options.controls.coshhScreening)) {
+    drawSectionTab(ctx, sectionNo++, 'Controls', M_X, ctx.y);
+    const controlsTop = ctx.y - 18;
+    drawCard(ctx, M_X, controlsTop, CONTENT_W, 126, WHITE);
+    const controlW = CONTENT_W / 3;
+    if (options.controls.coshhScreening && coshh) {
+      const present = approachesPresent(coshh).map((approach) => `Approach ${approach}`).join(', ');
+      drawInfoCard(ctx, 'COSHH screening output', `Substance-level screening gives: ${present}. Highest output: ${coshh.approachLabel}, driven by ${coshh.driver?.name || DASH}. This is not a single blanket recommendation; see Appendix C and verify against SDS/task conditions.`,
+        M_X + 10, controlsTop - 14, controlW - 16, 90, SOFT_PURPLE);
     }
-    drawText(ctx, `Reference: ${coshh.gSheetRef}.`, { size: 9, color: MUTED });
-    ctx.y -= 6;
-    drawText(ctx, 'Per-substance breakdown', { size: 10, bold: true, color: TEAL_DARK });
-    ctx.y -= 2;
-    drawCoshhBreakdown(ctx, coshh.analyses, coshh.approach);
-    if (coshh.warnings.length) {
-      ctx.y -= 4;
-      drawText(ctx, 'Caveats & assumptions', { size: 10, bold: true, color: TEAL_DARK });
-      coshh.warnings.forEach((w) => drawText(ctx, `• ${w}`, { size: 9 }));
-      ctx.y -= 4;
+    if (options.controls.hierarchy) {
+      drawInfoCard(ctx, 'Hierarchy controls', 'Elimination, substitution and reduction controls are recorded in Appendix D for assessor review.',
+        M_X + controlW + 4, controlsTop - 14, controlW - 16, 90, SOFT_BLUE);
+      drawInfoCard(ctx, 'Administration / monitoring', 'Administrative controls, air monitoring and health surveillance are recorded in Appendix D.',
+        M_X + (controlW * 2) - 2, controlsTop - 14, controlW - 8, 90, SOFT_TEAL);
     }
+    ctx.y -= 146;
   }
-  drawText(ctx, 'Reference legend', { size: 10, bold: true, color: TEAL_DARK });
-  ctx.y -= 4;
-  drawReferenceTable(ctx, 'Hazard group',
-    HAZARD_GROUP_HELP.map(([k, v]): [string, string] => [`Group ${k}`, v]));
-  drawReferenceTable(ctx, 'Exposure predictor (EP) band', EP_HELP);
-  drawReferenceTable(ctx, 'Control approach',
-    APPROACH_HELP.map(([k, v]): [string, string] => [`Approach ${k}`, v]));
 
-  subHeading(ctx, 'GHS pictogram legend');
-  drawPictograms(ctx, legendEntries, { withLabels: true });
-  ctx.y -= 4;
+  if (ctx.y - 125 < M_BOTTOM + 20) newPage(ctx);
+  const lowerTop = ctx.y;
+  if (options.storage.include) {
+    drawSectionTab(ctx, sectionNo++, 'Storage', M_X, lowerTop);
+    drawInfoCard(ctx, 'Storage and segregation', `Storage: ${a.additional.storage || DASH}\nIncompatibles: ${a.additional.incompatibles || DASH}`,
+      M_X, lowerTop - 18, CONTENT_W, 74, WHITE);
+    ctx.y = lowerTop - 96;
+  }
+  if (options.emergency.include) {
+    if (ctx.y - 170 < M_BOTTOM + 20) newPage(ctx);
+    drawSectionTab(ctx, sectionNo++, 'Emergency Response and Waste', M_X, ctx.y);
+    const emergencyTop = ctx.y;
+    drawCard(ctx, M_X, emergencyTop - 18, CONTENT_W, 176, WHITE);
+    drawSimpleTable(ctx, [
+      { title: 'Area', w: 0.26 },
+      { title: 'Instruction', w: 0.74 },
+    ], emergencyRows.length ? emergencyRows : [['Included content', 'No emergency subsections selected.']], {
+      x: M_X + 12,
+      topY: emergencyTop - 42,
+      width: CONTENT_W - 24,
+      fontSize: 6.8,
+      rowMinH: 20,
+    });
+  }
 
-  // 05 Control Measures
-  sectionBanner(ctx, 5, 'Control Measures');
-  kvBlock(ctx, [
-    ['Elimination', a.controls.elimination],
-    ['Substitution', a.controls.substitution],
-    ['Reduction', a.controls.reduction],
-    ['Administrative', a.controls.administrative],
-    ['Air Monitoring', a.controls.airMonitoring],
-    ['Health Surveillance', a.controls.healthSurveillance],
-  ]);
+  if (options.briefing.include) {
+    if (ctx.y - 76 < M_BOTTOM + 20) newPage(ctx);
+    drawSectionTab(ctx, sectionNo++, 'Briefing & Sign-off', M_X, ctx.y);
+    drawCard(ctx, M_X, ctx.y - 18, CONTENT_W, 54, WHITE);
+    const briefing = a.briefing.length
+      ? a.briefing.map((b) => `${b.name || '(unsigned)'} · ${b.date || DASH}`).join('    ')
+      : 'No briefing entries recorded.';
+    ctx.page.drawText(safe(briefing), {
+      x: M_X + 14,
+      y: ctx.y - 50,
+      size: 8,
+      font: ctx.font,
+      color: INK,
+    });
+  }
 
-  // 05 Additional
-  sectionBanner(ctx, 6, 'Additional Requirements');
-  kvBlock(ctx, [
-    ['ChemInventory logged', a.additional.cheminventoryLogged ? 'Yes' : 'No'],
-    ['SDS version / date', `${a.additional.sdsVersion || '—'}  ·  ${a.additional.sdsDate || '—'}`],
-    ['Storage', a.additional.storage],
-    ['Incompatible substances', a.additional.incompatibles],
-  ]);
+  if (options.process.include && options.process.chemicalDetails && chemicals.length > 0) {
+    newPage(ctx);
+    drawSectionTab(ctx, 'A1', 'Appendix A — Chemical Detail', M_X, ctx.y);
+    ctx.y -= 24;
+    drawChemicalDetailTable(ctx, chemicalDetailRows(a), pictoMap, options.process.ghsPictograms);
+  }
 
-  sectionBanner(ctx, 7, 'Emergency Response');
-  kvBlock(ctx, [
-    ['Emergency — Spills', a.emergency.emergencySpills],
-    ['Emergency — First aid', a.emergency.emergencyFirstAid],
-    ['Emergency — Fire', a.emergency.emergencyFire],
-    ['Waste handling', a.emergency.wasteHandling],
-    ['Other', a.emergency.other],
-  ]);
+  if (options.storage.include && chemicals.length > 0) {
+    newPage(ctx);
+    drawSectionTab(ctx, 'B1', 'Appendix B — Storage Classification Detail', M_X, ctx.y);
+    ctx.y -= 24;
+    drawText(ctx, 'Storage assignments are report evidence from the Storage page. Each row must still be checked against SDS sections 7 and 10 and local storage rules.', {
+      size: 8,
+      color: MUTED,
+    });
+    ctx.y -= 4;
+    const rows = chemicals.map((chemical, index) => {
+      const storage = storageAssignmentFor(a, chemical);
+      return [
+        `${index + 1}`,
+        { text: `${chemical.name || DASH}${chemical.cas ? `\nCAS ${chemical.cas}` : ''}`, bold: true },
+        storage.groupLabel,
+        storage.suggested,
+        storage.hazards,
+        storage.guidance,
+        storage.alert,
+        `${storage.confirmed}\n${storage.reason}`,
+      ];
+    });
+    drawSimpleTable(ctx, [
+      { title: '#', w: 0.04 },
+      { title: 'Chemical', w: 0.15 },
+      { title: 'Final storage group', w: 0.15 },
+      { title: 'Suggested group', w: 0.13 },
+      { title: 'Hazards', w: 0.12 },
+      { title: 'Guidance', w: 0.17 },
+      { title: 'Segregation alert', w: 0.14 },
+      { title: 'Confirmation / reason', w: 0.10 },
+    ], rows, { fontSize: 6.2, rowMinH: 42 });
+  }
 
-  // 06 Briefing
-  sectionBanner(ctx, 8, 'Briefing Record');
-  if (a.briefing.length === 0) {
-    drawText(ctx, 'No briefing entries recorded.', { color: MUTED });
-  } else {
-    for (const b of a.briefing) {
-      ensure(ctx, 70);
+  if (options.controls.include && options.controls.coshhScreening) {
+    newPage(ctx);
+    drawSectionTab(ctx, 'C1', 'Appendix C — COSHH Essentials Screening', M_X, ctx.y);
+    ctx.y -= 28;
+    if (!coshh) {
+      drawText(ctx, 'No substances have been recorded, so a screening could not be produced.', { color: MUTED });
+    } else {
+      drawInfoCard(ctx, 'Assessor confirmation', `This is a substance-level screening output, not one blanket control recommendation. Verify each chemical against SDS, task, route, quantity, duration, WELs and local conditions.`,
+        M_X, ctx.y, CONTENT_W, 56, SOFT_AMBER);
+      ctx.y -= 82;
+      drawText(ctx, 'Per-substance breakdown', { size: 9, bold: true, color: NAVY });
       ctx.y -= 4;
-      drawText(ctx, `${b.name || '(unsigned)'}    ·    ${b.date || '—'}`,
-        { bold: true, size: 11 });
-      if (b.signaturePng) {
-        try {
-          const png = await doc.embedPng(b.signaturePng);
-          const w = 160;
-          const h = (png.height / png.width) * w;
-          ensure(ctx, h + 8);
-          ctx.page.drawImage(png, { x: M_X, y: ctx.y - h, width: w, height: h });
-          ctx.y -= h + 8;
-        } catch {
-          drawText(ctx, '(signature could not be embedded)', { color: MUTED, size: 9 });
-        }
+      drawCoshhBreakdown(ctx, coshh.analyses, coshh.approach);
+      if (coshh.warnings.length) {
+        drawInfoCard(ctx, 'Caveats & assumptions', coshh.warnings.join('\n'), M_X, ctx.y, CONTENT_W, 76, WHITE);
+        ctx.y -= 86;
       }
     }
+  }
+
+  if (options.controls.include && options.controls.hierarchy) {
+    newPage(ctx);
+    drawSectionTab(ctx, 'D1', 'Appendix D — Control Measures Detail', M_X, ctx.y);
+    ctx.y -= 24;
+    drawSimpleTable(ctx, [
+      { title: 'Control area', w: 0.22 },
+      { title: 'Recorded assessment content', w: 0.78 },
+    ], [
+      ['Elimination', a.controls.elimination || DASH],
+      ['Substitution', a.controls.substitution || DASH],
+      ['Reduction', a.controls.reduction || DASH],
+      ['Administrative controls', a.controls.administrative || DASH],
+      ['Air monitoring', a.controls.airMonitoring || DASH],
+      ['Health surveillance', a.controls.healthSurveillance || DASH],
+    ], { fontSize: 7.2, rowMinH: 26 });
+  }
+
+  if (options.controls.include && options.controls.coshhLegend) {
+    newPage(ctx);
+    drawSectionTab(ctx, 'E1', 'Appendix E — Reference Legend', M_X, ctx.y);
+    ctx.y -= 28;
+    drawReferenceTable(ctx, 'Hazard group', HAZARD_GROUP_HELP.map(([k, v]): [string, string] => [`Group ${k}`, v]));
+    drawReferenceTable(ctx, 'Exposure predictor (EP) band', EP_HELP);
+    drawReferenceTable(ctx, 'Control approach', APPROACH_HELP.map(([k, v]): [string, string] => [`Approach ${k}`, v]));
+    subHeading(ctx, 'GHS pictogram legend');
+    drawPictograms(ctx, legendEntries, { withLabels: true });
   }
 
   renderFooters(doc, font);
