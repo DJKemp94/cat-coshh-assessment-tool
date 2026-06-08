@@ -7,9 +7,10 @@ import clsx from 'clsx';
 import { useAssessment } from '@/store/assessment';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { PageIntro } from '@/components/common/PageIntro';
-import { appendUnique } from '@/components/common/SuggestionChips';
+import { appendUniqueBullet } from '@/components/common/SuggestionChips';
 import { SuggestionField } from '@/components/common/SuggestionField';
 import { suggestControls, OverallSuggestion, SubstanceAnalysis, Approach, APPROACH_LABEL } from '@/services/coshhEssentials';
+import { EP_EXPOSURE_TABLE, EP_EXPOSURE_TABLE_EXPLANATION } from '@/services/exporters/coshhSummary';
 import { ProcessStep } from '@/types/assessment';
 
 const BASE_ELIM_SUB_CONSIDERATIONS = [
@@ -91,7 +92,7 @@ const BASE_HEALTH_SURVEILLANCE_SUGGESTIONS = [
   'Any Occupational Health restrictions or monitoring requirements will be followed.',
 ];
 
-const append = appendUnique;
+const append = appendUniqueBullet;
 
 const ENGINEERING_LABELS: Record<string, string> = {
   'Fume hood': 'Fume hood',
@@ -117,11 +118,11 @@ const APPROACH_COLOR: Record<number, string> = {
 };
 
 const HAZARD_GROUP_HELP = [
-  ['A', 'Lower health hazard band: H304, H315, H319, H336 and similar lower-toxicity effects.'],
+  ['A', 'Lower health hazard band: H304, H315, H319, H336, EU66 and similar lower-toxicity effects.'],
   ['B', 'Harmful / STOT category 2 band: H302, H312, H332, H371.'],
-  ['C', 'Toxic, corrosive, serious eye damage, sensitising skin, respiratory irritation or STOT category 1/2: H301, H311, H314, H317, H318, H331, H335, H370, H373.'],
+  ['C', 'Toxic, corrosive, serious eye damage, sensitising skin, respiratory irritation or STOT category 1/2: H301, H311, H314, H317, H318, H331, H335, H370, H373, EU71.'],
   ['D', 'Fatal acute toxicity, suspected carcinogen/reproductive toxicant, lactation hazard or repeated-exposure organ damage: H300, H310, H330, H351, H360, H361, H362, H372.'],
-  ['E', 'Respiratory sensitiser, mutagen or carcinogen category 1/suspected mutagen: H334, H340, H341, H350. Specialist advice is required.'],
+  ['E', 'Respiratory sensitiser, mutagen, carcinogen category 1/suspected mutagen or toxic by eye contact: H334, H340, H341, H350, EU70. Specialist advice is required.'],
 ] as const;
 
 const EP_HELP = [
@@ -210,6 +211,7 @@ function CoshhEssentialsPanel({
                 <Glossary title="EP band" entries={EP_HELP as unknown as ReadonlyArray<readonly [string, string]>} keyMin="2.5rem" />
                 <Glossary title="Approach" entries={APPROACH_HELP as unknown as ReadonlyArray<readonly [string, string]>} keyMin="1.5rem" />
               </div>
+              <EpExposureReference className="mt-4" />
               <p className="mt-2 text-zinc-500 italic">
                 EP is calculated from amount in use plus dustiness for solids or volatility for liquids.
               </p>
@@ -750,6 +752,48 @@ function StepReviewCheck({
         {item.message}
       </span>
     </button>
+  );
+}
+
+function EpExposureReference({ className = '' }: { className?: string }) {
+  return (
+    <div className={clsx('overflow-hidden rounded-md border border-accent-200 bg-white', className)}>
+      <div className="border-b border-accent-100 bg-white px-2.5 py-1.5 text-xs font-semibold text-zinc-900">
+        Predicted exposure ranges by EP band and control approach
+      </div>
+      <p className="border-b border-accent-100 px-2.5 py-2 text-[11px] leading-relaxed text-zinc-600">
+        {EP_EXPOSURE_TABLE_EXPLANATION}
+      </p>
+      {EP_EXPOSURE_TABLE.map((section) => (
+        <div key={section.title}>
+          <div className="border-b border-zinc-200 bg-zinc-50 px-2.5 py-1 text-center text-[11px] font-semibold text-zinc-800">
+            {section.title}
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[520px] text-[11px]">
+              <thead className="bg-white text-zinc-600">
+                <tr>
+                  <th className="border-b border-zinc-200 p-1.5 text-left font-medium">EP band</th>
+                  <th className="border-b border-zinc-200 p-1.5 text-left font-medium">Control approach 1</th>
+                  <th className="border-b border-zinc-200 p-1.5 text-left font-medium">Control approach 2</th>
+                  <th className="border-b border-zinc-200 p-1.5 text-left font-medium">Control approach 3</th>
+                </tr>
+              </thead>
+              <tbody>
+                {section.rows.map(([ep, a1, a2, a3]) => (
+                  <tr key={ep} className="odd:bg-white even:bg-zinc-50/70">
+                    <th className="border-b border-zinc-100 p-1.5 text-left font-semibold text-zinc-800">{ep}</th>
+                    <td className="border-b border-zinc-100 p-1.5 text-zinc-700">{a1}</td>
+                    <td className="border-b border-zinc-100 p-1.5 text-zinc-700">{a2}</td>
+                    <td className="border-b border-zinc-100 p-1.5 text-zinc-700">{a3}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 

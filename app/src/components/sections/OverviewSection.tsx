@@ -125,7 +125,7 @@ export function OverviewSection() {
           <label className="mt-5 block">
             <span className="overview-label">
               <List size={16} />
-              Activity Outline
+              RA Title
             </span>
             <textarea
               className="field-textarea !min-h-[94px]"

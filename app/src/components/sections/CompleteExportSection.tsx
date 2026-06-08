@@ -158,7 +158,7 @@ const GROUPS: Array<{
     label: 'Overview',
     items: [
       { key: 'details', label: 'Assessment details' },
-      { key: 'activityOutline', label: 'Activity outline' },
+      { key: 'activityOutline', label: 'RA title' },
     ],
   },
   {

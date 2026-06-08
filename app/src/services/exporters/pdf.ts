@@ -1,11 +1,23 @@
 import { PDFDocument, StandardFonts, rgb, PDFFont, PDFPage, PDFImage, RGB } from 'pdf-lib';
-import { Assessment, riskRating, PersonsAtRisk, GhsPictogram } from '@/types/assessment';
+import { Assessment, riskRating, PersonsAtRisk, GhsPictogram, Substance } from '@/types/assessment';
 import { exportFileName } from './_filename';
 import { loadPictograms } from './ghsImages';
 import { suggestControls, OverallSuggestion, SubstanceAnalysis } from '@/services/coshhEssentials';
-import { classifyStorage, StorageGroupId } from '@/services/storageClassifier';
-import { HAZARD_GROUP_HELP, EP_HELP, APPROACH_HELP } from './coshhSummary';
+import {
+  HAZARD_GROUP_HELP,
+  EP_HELP,
+  APPROACH_HELP,
+  EP_EXPOSURE_TABLE,
+  EP_EXPOSURE_TABLE_EXPLANATION,
+} from './coshhSummary';
 import { fullReportOptions, ReportOptions } from './reportOptions';
+import { resolveCameoMatch } from '@/services/cameoStorage';
+import {
+  classifyStorage20,
+  applyStorage20Edit,
+  storage20RequirementsText,
+  STORAGE20_ZONE_LABELS,
+} from '@/services/storage20Classifier';
 
 // ── Layout ─────────────────────────────────────────────
 const PAGE_W = 842;
@@ -39,6 +51,16 @@ const formatStepControls = (step: { controls?: { engineering?: string[]; ppe?: s
   ['PPE', formatStepControlList(step.controls?.ppe)],
   ['Other step controls', step.controls?.other?.trim() || DASH],
 ] as [string, string][];
+
+function uniqueChemicals(a: Assessment): Substance[] {
+  const seen = new Set<string>();
+  return a.processSteps.flatMap((step) => step.chemicals).filter((chemical) => {
+    const key = (chemical.cas?.trim() || chemical.name).toLowerCase().trim();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
 
 interface Ctx {
   doc: PDFDocument;
@@ -239,7 +261,7 @@ function cover(ctx: Ctx, a: Assessment): void {
   ctx.y -= 22;
 
   // Title (wraps if long)
-  const title = a.overview.activityTitle || 'Untitled assessment';
+  const title = a.overview.activityOutline || 'Untitled assessment';
   const titleLines = wrap(title, ctx.bold, 24, CONTENT_W);
   for (const ln of titleLines) {
     ctx.page.drawText(ln, { x: M_X, y: ctx.y - 24, size: 24, font: ctx.bold, color: INK });
@@ -350,7 +372,7 @@ function drawSectionTab(ctx: Ctx, n: number | string, title: string, x = M_X, y 
 }
 
 function drawHeader(ctx: Ctx, a: Assessment) {
-  const title = a.overview.activityTitle || 'Untitled assessment';
+  const title = a.overview.activityOutline || 'Untitled assessment';
   ctx.page.drawText('COSHH RISK ASSESSMENT', {
     x: M_X,
     y: PAGE_H - M_TOP - 4,
@@ -512,67 +534,6 @@ function epColor(ep?: string) {
   if (ep === 'EP3') return rgb(154 / 255, 52 / 255, 18 / 255);
   if (ep === 'EP4') return rgb(153 / 255, 27 / 255, 27 / 255);
   return INK;
-}
-
-const STORAGE_LABELS: Record<StorageGroupId, string> = {
-  '1': 'Flammable Cabinet',
-  '2a': 'Corrosives Cabinet (Acids)',
-  '2b': 'Organic Acids Cabinet',
-  '3': 'Corrosives Cabinet (Bases)',
-  '4': 'Oxidizers Cabinet',
-  '5a': 'Toxins Cabinet - inorganic',
-  '5b': 'Toxins Cabinet - organic',
-  '5c': 'Locked Poisons Cabinet',
-  '6': 'Reactive Materials Cabinet',
-};
-
-const STORAGE_GUIDANCE: Record<StorageGroupId, string> = {
-  '1': 'Keep away from heat, sparks, ignition sources and oxidizers.',
-  '2a': 'Store acids separately from bases, cyanides, sulphides and oxidizers.',
-  '2b': 'Store organic acids separately from bases and oxidizers unless the SDS confirms compatibility.',
-  '3': 'Store bases separately from acids and oxidizers.',
-  '4': 'Keep away from organic materials, flammables, acids and reducing agents.',
-  '5a': 'Store securely with restricted access and compatible secondary containment.',
-  '5b': 'Store securely with restricted access. Keep liquids below solids where practicable.',
-  '5c': 'Store in locked storage with access restricted to authorised users.',
-  '6': 'Keep dry, tightly closed, and away from water, acids and incompatible materials.',
-};
-
-const STORAGE_INCOMPATIBLES: Record<StorageGroupId, string> = {
-  '1': 'Oxidizers, strong acids/bases, inorganic toxins and reactive materials unless SDS confirms compatibility.',
-  '2a': 'Bases, cyanides, sulphides, flammables, organic acids and reactive materials unless SDS confirms compatibility.',
-  '2b': 'Bases, oxidizers, mineral acids, toxins and reactive materials unless SDS confirms compatibility.',
-  '3': 'Acids, flammables, organic toxins and reactive materials unless SDS confirms compatibility.',
-  '4': 'Flammables, organic materials, organic acids, organic toxins and reactive materials unless SDS confirms compatibility.',
-  '5a': 'Flammables, acids, organic acids, organic toxins and reactive materials unless SDS confirms compatibility.',
-  '5b': 'Acids, bases, oxidizers, inorganic toxins and reactive materials unless SDS confirms compatibility.',
-  '5c': 'Store separately and securely unless SDS/local poison controls confirm compatibility.',
-  '6': 'Water, acids, oxidizers and incompatible aqueous waste streams unless SDS confirms compatibility.',
-};
-
-function storageAssignmentFor(a: Assessment, chemical: Chemical) {
-  const classification = classifyStorage(chemical);
-  const edit = a.additional.assignments?.[chemical.id];
-  const override = edit?.groupOverride;
-  const groupId = override && override !== 'general' && override !== 'review'
-    ? override
-    : classification.groupId;
-  const groupLabel = override === 'general'
-    ? 'General shelving / non-hazardous item'
-    : override === 'review' || !groupId
-      ? 'Review SDS sections 7 and 10'
-      : STORAGE_LABELS[groupId];
-  const guidance = edit?.guidance ?? (groupId ? STORAGE_GUIDANCE[groupId] : 'Check SDS sections 7 and 10 before assigning storage.');
-  const alert = edit?.alert ?? (groupId ? STORAGE_INCOMPATIBLES[groupId] : 'Check SDS sections 7 and 10.');
-  return {
-    groupLabel,
-    suggested: classification.groupId ? STORAGE_LABELS[classification.groupId] : 'Review required',
-    guidance,
-    alert,
-    reason: override ? 'Assessor override. Verify against SDS sections 7 and 10.' : classification.reason,
-    hazards: classification.primaryHazards.join(', ') || classification.hCodes.join(', ') || DASH,
-    confirmed: edit?.confirmed === true ? 'Confirmed' : 'Not confirmed',
-  };
 }
 
 function approachesPresent(coshh: OverallSuggestion) {
@@ -893,6 +854,28 @@ function drawReferenceTable(ctx: Ctx, title: string, rows: [string, string][]): 
   ctx.y -= 10;
 }
 
+function drawEpExposureTable(ctx: Ctx): void {
+  subHeading(ctx, 'Predicted exposure ranges by EP band and control approach');
+  drawText(ctx, EP_EXPOSURE_TABLE_EXPLANATION, { size: 7.6, color: MUTED });
+  ctx.y -= 4;
+  const cols = [
+    { title: 'EP band', w: 0.25 },
+    { title: 'Control approach 1', w: 0.25 },
+    { title: 'Control approach 2', w: 0.25 },
+    { title: 'Control approach 3', w: 0.25 },
+  ];
+  EP_EXPOSURE_TABLE.forEach((section) => {
+    ensure(ctx, 42);
+    drawRect(ctx, M_X, ctx.y - 18, CONTENT_W, 18, TEAL);
+    ctx.page.drawText(safe(section.title), {
+      x: M_X + 8, y: ctx.y - 13, size: 8.5, font: ctx.bold, color: WHITE,
+    });
+    ctx.y -= 18;
+    drawSimpleTable(ctx, cols, section.rows.map((row) => [...row]), { fontSize: 8.2, rowMinH: 17 });
+    ctx.y -= 2;
+  });
+}
+
 // ── Page footer rendered after layout pass ─────────────
 function renderFooters(doc: PDFDocument, font: PDFFont): void {
   const pages = doc.getPages();
@@ -973,7 +956,7 @@ export async function exportPdf(a: Assessment, options: ReportOptions = fullRepo
       ], M_X, ctx.y - 18, CONTENT_W * 0.72, 3);
     }
     if (options.overview.activityOutline) {
-      drawLabelledValue(ctx, 'Activity Outline', a.overview.activityOutline || DASH,
+      drawLabelledValue(ctx, 'RA Title', a.overview.activityOutline || DASH,
         M_X + CONTENT_W * 0.72 + 8, ctx.y - 43, CONTENT_W * 0.26);
     }
     ctx.y -= 108;
@@ -1056,12 +1039,47 @@ export async function exportPdf(a: Assessment, options: ReportOptions = fullRepo
   }
 
   if (ctx.y - 125 < M_BOTTOM + 20) newPage(ctx);
-  const lowerTop = ctx.y;
   if (options.storage.include) {
-    drawSectionTab(ctx, sectionNo++, 'Storage', M_X, lowerTop);
-    drawInfoCard(ctx, 'Storage and segregation', `Storage: ${a.additional.storage || DASH}\nIncompatibles: ${a.additional.incompatibles || DASH}`,
-      M_X, lowerTop - 18, CONTENT_W, 74, WHITE);
-    ctx.y = lowerTop - 96;
+    const storageChemicals = uniqueChemicals(a);
+    if (storageChemicals.length > 0) {
+      const estHeight = 18 + 20 + Math.min(storageChemicals.length, 3) * 28 + 40;
+      if (ctx.y - estHeight < M_BOTTOM + 20) newPage(ctx);
+
+      drawSectionTab(ctx, sectionNo++, 'Storage', M_X, ctx.y);
+      ctx.y -= 28;
+      drawText(ctx, 'Per-chemical storage assignments from Storage 2.0. Confirm each row against SDS sections 7 and 10.', {
+        size: 7.5,
+        color: MUTED,
+      });
+      const rows = storageChemicals.map((chemical) => {
+        const match = resolveCameoMatch(chemical, a.storage2.matches[chemical.id]);
+        const automatic = classifyStorage20(match);
+        const assignment = applyStorage20Edit(automatic, a.storage2.assignmentOverrides?.[chemical.id]);
+        return [
+          { text: `${chemical.name || DASH}${chemical.cas ? `\nCAS ${chemical.cas}` : ''}`, bold: true },
+          chemical.ghsPictograms.join(', ') || DASH,
+          chemical.hazardStatements.map((h) => h.code).join(', ') || DASH,
+          STORAGE20_ZONE_LABELS[assignment.zoneId],
+          storage20RequirementsText(assignment),
+        ];
+      });
+      drawSimpleTable(ctx, [
+        { title: 'Chemical', w: 0.22 },
+        { title: 'GHS', w: 0.14 },
+        { title: 'H-codes', w: 0.18 },
+        { title: 'Assignment', w: 0.24 },
+        { title: 'Requirements', w: 0.22 },
+      ], rows, {
+        fontSize: 6.5,
+        rowMinH: 22,
+      });
+      ctx.y -= 8;
+    } else {
+      drawSectionTab(ctx, sectionNo++, 'Storage', M_X, ctx.y);
+      drawInfoCard(ctx, 'Storage 2.0', 'No chemicals recorded in process steps.',
+        M_X, ctx.y - 18, CONTENT_W, 46, WHITE);
+      ctx.y -= 70;
+    }
   }
   if (options.emergency.include) {
     if (ctx.y - 170 < M_BOTTOM + 20) newPage(ctx);
@@ -1105,35 +1123,36 @@ export async function exportPdf(a: Assessment, options: ReportOptions = fullRepo
 
   if (options.storage.include && chemicals.length > 0) {
     newPage(ctx);
-    drawSectionTab(ctx, 'B1', 'Appendix B — Storage Classification Detail', M_X, ctx.y);
+    drawSectionTab(ctx, 'B1', 'Appendix B — Storage 2.0 Classification Detail', M_X, ctx.y);
     ctx.y -= 24;
-    drawText(ctx, 'Storage assignments are report evidence from the Storage page. Each row must still be checked against SDS sections 7 and 10 and local storage rules.', {
+    drawText(ctx, 'Storage assignments generated by Storage 2.0. Each row must still be checked against SDS sections 7 and 10 and local storage rules.', {
       size: 8,
       color: MUTED,
     });
     ctx.y -= 4;
-    const rows = chemicals.map((chemical, index) => {
-      const storage = storageAssignmentFor(a, chemical);
+    const storageChemicals = uniqueChemicals(a);
+    const rows = storageChemicals.map((chemical, index) => {
+      const match = resolveCameoMatch(chemical, a.storage2.matches[chemical.id]);
+      const automatic = classifyStorage20(match);
+      const assignment = applyStorage20Edit(automatic, a.storage2.assignmentOverrides?.[chemical.id]);
       return [
         `${index + 1}`,
         { text: `${chemical.name || DASH}${chemical.cas ? `\nCAS ${chemical.cas}` : ''}`, bold: true },
-        storage.groupLabel,
-        storage.suggested,
-        storage.hazards,
-        storage.guidance,
-        storage.alert,
-        `${storage.confirmed}\n${storage.reason}`,
+        STORAGE20_ZONE_LABELS[assignment.zoneId],
+        chemical.ghsPictograms.join(', ') || DASH,
+        chemical.hazardStatements.map((h) => h.code).join(', ') || DASH,
+        storage20RequirementsText(assignment),
+        assignment.reasons.join('; ') || 'Assessor review required.',
       ];
     });
     drawSimpleTable(ctx, [
       { title: '#', w: 0.04 },
       { title: 'Chemical', w: 0.15 },
-      { title: 'Final storage group', w: 0.15 },
-      { title: 'Suggested group', w: 0.13 },
-      { title: 'Hazards', w: 0.12 },
-      { title: 'Guidance', w: 0.17 },
-      { title: 'Segregation alert', w: 0.14 },
-      { title: 'Confirmation / reason', w: 0.10 },
+      { title: 'Storage Group Assignment', w: 0.18 },
+      { title: 'GHS', w: 0.12 },
+      { title: 'H-codes', w: 0.13 },
+      { title: 'Requirements', w: 0.16 },
+      { title: 'Classification reason', w: 0.22 },
     ], rows, { fontSize: 6.2, rowMinH: 42 });
   }
 
@@ -1147,7 +1166,9 @@ export async function exportPdf(a: Assessment, options: ReportOptions = fullRepo
       drawInfoCard(ctx, 'Assessor confirmation', `This is a substance-level screening output, not one blanket control recommendation. Verify each chemical against SDS, task, route, quantity, duration, WELs and local conditions.`,
         M_X, ctx.y, CONTENT_W, 56, SOFT_AMBER);
       ctx.y -= 82;
-      drawText(ctx, 'Per-substance breakdown', { size: 9, bold: true, color: NAVY });
+      drawText(ctx, 'Recommendations: substance-level screening output', { size: 9, bold: true, color: NAVY });
+      ctx.y -= 13;
+      drawText(ctx, 'The table below is CAT\'s substance-level COSHH Essentials screening result for this assessment. The highest approach across the substances drives the suggested control approach, but the assessor must still confirm suitable task-specific controls.', { size: 7.6, color: MUTED });
       ctx.y -= 4;
       drawCoshhBreakdown(ctx, coshh.analyses, coshh.approach);
       if (coshh.warnings.length) {
@@ -1178,9 +1199,12 @@ export async function exportPdf(a: Assessment, options: ReportOptions = fullRepo
     newPage(ctx);
     drawSectionTab(ctx, 'E1', 'Appendix E — Reference Legend', M_X, ctx.y);
     ctx.y -= 28;
+    drawText(ctx, 'Guidance: COSHH Essentials reference tables', { size: 9, bold: true, color: NAVY });
+    ctx.y -= 8;
     drawReferenceTable(ctx, 'Hazard group', HAZARD_GROUP_HELP.map(([k, v]): [string, string] => [`Group ${k}`, v]));
     drawReferenceTable(ctx, 'Exposure predictor (EP) band', EP_HELP);
     drawReferenceTable(ctx, 'Control approach', APPROACH_HELP.map(([k, v]): [string, string] => [`Approach ${k}`, v]));
+    drawEpExposureTable(ctx);
     subHeading(ctx, 'GHS pictogram legend');
     drawPictograms(ctx, legendEntries, { withLabels: true });
   }

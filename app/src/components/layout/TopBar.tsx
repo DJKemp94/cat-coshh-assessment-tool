@@ -15,7 +15,7 @@ export function TopBar({ onOpenSettings, onOpenHelp }: Props) {
   const reset = useAssessment((s) => s.resetAssessment);
   const [busy, setBusy] = useState<string | null>(null);
 
-  const title = assessment.overview.activityTitle || 'New COSHH Assessment';
+  const title = assessment.overview.activityOutline || 'New COSHH Assessment';
   const ref = assessment.overview.riskAssessmentRef;
 
   const run = async (label: string, fn: () => Promise<void> | void) => {

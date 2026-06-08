@@ -1,26 +1,32 @@
 import { useMemo, useState } from 'react';
 import type React from 'react';
-import { AlertTriangle, CheckCircle2, Database, FlaskConical, Search, ShieldAlert, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronRight, Database, FlaskConical, Info, XCircle } from 'lucide-react';
 import clsx from 'clsx';
 import { useAssessment } from '@/store/assessment';
 import { PageIntro } from '@/components/common/PageIntro';
 import { SectionHeader } from '@/components/common/SectionHeader';
+import { GhsIcon } from '@/components/common/GhsPictograms';
 import {
   buildCameoPairs,
-  CAMEO_GROUP_TO_CABINET,
   cameoMeta,
   CameoCompatibility,
-  CameoGroupFinding,
   CameoPairFinding,
   CameoMatch,
-  CameoReactiveGroup,
   findCameoChemicalById,
-  lookupGroupPairReactivity,
   resolveCameoMatch,
   searchCameoChemicals,
 } from '@/services/cameoStorage';
-import { classifyStorage } from '@/services/storageClassifier';
-import { Storage2MatchEdit, Storage2PairEdit, Substance } from '@/types/assessment';
+import {
+  classifyStorage20,
+  Storage20Assignment,
+  Storage20CabinetId,
+  Storage20Category,
+  Storage20ZoneId,
+  CabinetZoneDef,
+  ZONES,
+  CABINET_ORDER,
+} from '@/services/storage20Classifier';
+import { Storage2AssignmentEdit, Storage2MatchEdit, Substance } from '@/types/assessment';
 
 export function Storage20Section() {
   const assessment = useAssessment((s) => s.assessment);
@@ -33,8 +39,6 @@ export function Storage20Section() {
     [chemicals, storage2.matches],
   );
   const pairs = useMemo(() => buildCameoPairs(matches, storage2.pairOverrides), [matches, storage2.pairOverrides]);
-  const unmatched = matches.filter((match) => !match.cameo);
-  const unconfirmed = matches.filter((match) => !match.confirmed);
 
   const updateMatch = (chemicalId: string, patch: Storage2MatchEdit) => {
     updateStorage2({
@@ -49,12 +53,12 @@ export function Storage20Section() {
     });
   };
 
-  const updatePair = (pairKey: string, patch: Storage2PairEdit) => {
+  const updateAssignment = (chemicalId: string, patch: Storage2AssignmentEdit) => {
     updateStorage2({
-      pairOverrides: {
-        ...storage2.pairOverrides,
-        [pairKey]: {
-          ...(storage2.pairOverrides[pairKey] ?? {}),
+      assignmentOverrides: {
+        ...(storage2.assignmentOverrides ?? {}),
+        [chemicalId]: {
+          ...((storage2.assignmentOverrides ?? {})[chemicalId] ?? {}),
           ...patch,
           updatedAt: new Date().toISOString(),
         },
@@ -68,35 +72,59 @@ export function Storage20Section() {
         title="Storage 2.0"
         subtitle={
           chemicals.length > 0
-            ? `CAMEO compatibility review for ${chemicals.length} chemical${chemicals.length === 1 ? '' : 's'} from Process Steps.`
-            : 'Add chemicals in Process Steps to run CAMEO compatibility checks.'
+          ? `Storage recommendations for ${chemicals.length} chemical${chemicals.length === 1 ? '' : 's'} from Process Steps.`
+          : 'Add chemicals in Process Steps to see storage recommendations.'
         }
       />
 
       <PageIntro
-        body="Use this experimental page to match assessment chemicals to CAMEO records, review CAMEO reactive-group incompatibilities, and plan physical segregation."
+        body="Review and confirm the suggested storage groups, chemical matching, and cabinet layout for the chemicals in this assessment."
         steps={[
-          { title: '1. Confirm matches', body: 'Check that each CAT chemical maps to the right CAMEO chemical or mark it unmatched for SDS review.' },
-          { title: '2. Review pairs', body: 'Prioritise incompatible and caution findings before deciding whether chemicals can share storage.' },
-          { title: '3. Separate where needed', body: 'Use the generated separation groups as evidence for cabinet or secondary containment decisions.' },
+          { title: '1. Check each row', body: 'Compare the suggested storage group, guidance and compatibility information with SDS sections 7 and 10.' },
+          { title: '2. Update if needed', body: 'Change the reference record, storage group or requirements where the SDS or local rules require something different.' },
+          { title: '3. Confirm storage', body: 'Tick each chemical once you are satisfied the storage assignment is correct.' },
         ]}
         optionalStep={{
-          title: 'Source',
-          body: `CAMEO Chemicals ${cameoMeta.version}, imported ${cameoMeta.importDate.slice(0, 10)}. This is reactive compatibility evidence; still verify SDS sections 7 and 10.`,
+          title: 'Check storage layout',
+          body: 'Review the cabinet layout against storage in practice and ensure chemicals are correctly segregated. Use the layout as guidance and always confirm via the SDS.',
         }}
       />
 
-      <div className="grid gap-4 lg:grid-cols-4">
-        <SummaryTile label="CAMEO matches" value={`${matches.length - unmatched.length}/${matches.length}`} tone={unmatched.length ? 'warn' : 'ok'} />
-        <SummaryTile label="Need confirmation" value={String(unconfirmed.length)} tone={unconfirmed.length ? 'warn' : 'ok'} />
-        <SummaryTile label="High concern pairs" value={String(pairs.filter((pair) => matrixCompatibility(pair) === 'Incompatible').length)} tone="danger" />
-        <SummaryTile label="Caution pairs" value={String(pairs.filter((pair) => matrixCompatibility(pair) === 'Caution').length)} tone="warn" />
-      </div>
+      <Panel
+        title="How storage recommendations work"
+        subtitle="Understand what powers the storage group suggestions on this page."
+        icon={<Info size={18} />}
+        collapsible
+        defaultOpen={false}
+      >
+        <div className="space-y-2 text-xs text-zinc-600">
+          <p>
+            The system starts with <strong>GHS hazard data</strong> — hazard statements, pictograms
+            and signal words — from the Safety Data Sheet or <strong>PubChem</strong>. These codes
+            determine core properties (flammable, corrosive, toxic, water-reactive, etc.) for every
+            chemical in the assessment.
+          </p>
+          <p>
+            To refine those classifications, the system also cross-references against the{' '}
+            <strong>CAMEO Chemicals</strong> dataset (NOAA, U.S.), which covers{' '}
+            {cameoMeta.counts.chemicals.toLocaleString()} chemicals grouped into{' '}
+            {cameoMeta.counts.reactiveGroups} reactive groups with over{' '}
+            {cameoMeta.counts.reactivity.toLocaleString()} known chemical-pair reactions. If a
+            match is found, the chemical's reactive group membership is used alongside the GHS data
+            to produce the final storage recommendation.
+          </p>
+          <p className="text-zinc-400">
+            Database: CAMEO Chemicals v{cameoMeta.version}, imported{' '}
+            {cameoMeta.importDate.slice(0, 10)} &middot; Always verify against the Safety Data
+            Sheet.
+          </p>
+        </div>
+      </Panel>
 
       <div className="mt-4 space-y-4">
-        <MatchReviewPanel matches={matches} onUpdateMatch={updateMatch} />
-        <PairFindingsPanel pairs={pairs} onUpdatePair={updatePair} />
-        <CabinetSchemePanel matches={matches} pairs={pairs} notes={storage2.layoutNotes} onNotes={(layoutNotes) => updateStorage2({ layoutNotes })} />
+        <MatchReviewPanel matches={matches} assignmentEdits={storage2.assignmentOverrides ?? {}} onUpdateMatch={updateMatch} onUpdateAssignment={updateAssignment} />
+        <PairFindingsPanel matches={matches} pairs={pairs} assignmentEdits={storage2.assignmentOverrides ?? {}} />
+        <CabinetSchemePanel matches={matches} assignmentEdits={storage2.assignmentOverrides ?? {}} notes={storage2.layoutNotes} onNotes={(layoutNotes) => updateStorage2({ layoutNotes })} />
       </div>
     </section>
   );
@@ -112,108 +140,186 @@ function uniqueChemicals(chemicals: Substance[]) {
   });
 }
 
-function SummaryTile({ label, value, tone }: { label: string; value: string; tone: 'ok' | 'warn' | 'danger' }) {
-  return (
-    <div className={clsx(
-      'rounded-lg border bg-white p-4',
-      tone === 'ok' && 'border-emerald-200',
-      tone === 'warn' && 'border-amber-200',
-      tone === 'danger' && 'border-red-200',
-    )}>
-      <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">{label}</div>
-      <div className={clsx(
-        'mt-2 text-2xl font-semibold',
-        tone === 'ok' && 'text-emerald-700',
-        tone === 'warn' && 'text-amber-700',
-        tone === 'danger' && 'text-red-700',
-      )}>{value}</div>
-    </div>
-  );
-}
+function Panel({ title, subtitle, icon, children, collapsible = false, defaultOpen = true }: { title: string; subtitle: string; icon: React.ReactNode; children: React.ReactNode; collapsible?: boolean; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
 
-function Panel({ title, subtitle, icon, children }: { title: string; subtitle: string; icon: React.ReactNode; children: React.ReactNode }) {
+  if (!collapsible) {
+    return (
+      <div className="rounded-lg border border-zinc-200 bg-white">
+        <div className="flex items-start gap-3 border-b border-zinc-100 px-4 py-3">
+          <span className="mt-0.5 text-accent-700">{icon}</span>
+          <div>
+            <h3 className="text-sm font-semibold text-zinc-900">{title}</h3>
+            <p className="mt-1 text-xs text-zinc-500">{subtitle}</p>
+          </div>
+        </div>
+        <div className="p-4">{children}</div>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-lg border border-zinc-200 bg-white">
-      <div className="flex items-start gap-3 border-b border-zinc-100 px-4 py-3">
-        <span className="mt-0.5 text-accent-700">{icon}</span>
-        <div>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full cursor-pointer items-start gap-3 border-b border-zinc-100 px-4 py-3 text-left"
+        aria-expanded={open}
+      >
+        <span className={open ? 'mt-0.5 text-accent-700' : 'mt-0.5 text-zinc-400'}>{icon}</span>
+        <div className="min-w-0 flex-1">
           <h3 className="text-sm font-semibold text-zinc-900">{title}</h3>
           <p className="mt-1 text-xs text-zinc-500">{subtitle}</p>
         </div>
-      </div>
-      <div className="p-4">{children}</div>
+        <ChevronRight
+          size={16}
+          className={`mt-1 shrink-0 text-zinc-400 transition-transform ${open ? 'rotate-90' : ''}`}
+        />
+      </button>
+      {open && <div className="p-4">{children}</div>}
     </div>
   );
 }
 
-function MatchReviewPanel({ matches, onUpdateMatch }: { matches: CameoMatch[]; onUpdateMatch: (chemicalId: string, patch: Storage2MatchEdit) => void }) {
+function EditableStar() {
+  return <span className="text-red-600" title="Editable field">*</span>;
+}
+
+function MatchReviewPanel({
+  matches,
+  assignmentEdits,
+  onUpdateMatch,
+  onUpdateAssignment,
+}: {
+  matches: CameoMatch[];
+  assignmentEdits: Record<string, Storage2AssignmentEdit>;
+  onUpdateMatch: (chemicalId: string, patch: Storage2MatchEdit) => void;
+  onUpdateAssignment: (chemicalId: string, patch: Storage2AssignmentEdit) => void;
+}) {
+  const assignmentRows = useMemo(() => matches
+    .map((match) => {
+      const automaticAssignment = classifyStorage20(match);
+      const autoMatch = resolveCameoMatch(match.chemical);
+      const recordChanged = match.confidence === 'manual' && match.cameo?.id !== autoMatch.cameo?.id;
+      return {
+        automaticAssignment,
+        assignment: applyAssignmentEdit(automaticAssignment, assignmentEdits[match.chemical.id]),
+        recordChanged,
+      };
+    })
+    .sort((a, b) => {
+      const nameA = (a.assignment.match.chemical.name || a.assignment.match.chemical.cas || '').toLowerCase();
+      const nameB = (b.assignment.match.chemical.name || b.assignment.match.chemical.cas || '').toLowerCase();
+      return nameA.localeCompare(nameB, undefined, { sensitivity: 'base', numeric: true });
+    }), [matches, assignmentEdits]);
+
   return (
-    <Panel title="CAMEO chemical matching" subtitle="CAS exact matches are preferred. Manually change a match where the CAMEO record is not the intended substance." icon={<Database size={18} />}>
-      <div className="space-y-3">
-        {matches.map((match) => (
-          <MatchCard key={match.chemical.id} match={match} onUpdate={(patch) => onUpdateMatch(match.chemical.id, patch)} />
-        ))}
-        {matches.length === 0 && <EmptyMessage>Add chemicals in Process Steps to generate CAMEO matches.</EmptyMessage>}
+    <Panel title="Chemical classification and database matching" subtitle="Review GHS hazards, reactive groups and the generated storage group assignment in one place." icon={<Database size={18} />}>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[1200px] table-fixed border-collapse text-left text-[11px]">
+          <colgroup>
+            <col className="w-[4%]" />
+            <col className="w-[10%]" />
+            <col className="w-[7%]" />
+            <col className="w-[8%]" />
+            <col className="w-[16%]" />
+            <col className="w-[12%]" />
+            <col className="w-[24%]" />
+            <col className="w-[19%]" />
+          </colgroup>
+          <thead>
+            <tr className="border-y border-zinc-200 bg-zinc-50 text-zinc-600">
+              <th className="px-2 py-2 font-semibold">Confirm</th>
+              <th className="px-2 py-2 font-semibold">Chemical</th>
+              <th className="px-2 py-2 font-semibold">GHS</th>
+              <th className="px-2 py-2 font-semibold">H-codes</th>
+              <th className="px-2 py-2 font-semibold">
+                <span className="inline-flex items-center gap-1">
+                  Reference record <EditableStar />
+                  <details className="group relative inline-block align-text-top">
+                    <summary
+                      className="flex h-4 w-4 cursor-pointer list-none items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-400 transition hover:border-accent-300 hover:text-accent-700 focus:outline-none focus:ring-2 focus:ring-accent-100 [&::-webkit-details-marker]:hidden"
+                      aria-label="About Reference record column"
+                      title="About this column"
+                    >
+                      <Info size={10} />
+                    </summary>
+                    <div className="absolute left-1/2 z-20 mt-1 w-72 -translate-x-1/2 rounded-lg border border-zinc-200 bg-white p-3 text-[11px] leading-relaxed text-zinc-600 shadow-lg">
+                      <strong className="block text-xs font-semibold text-zinc-900">What is this column?</strong>
+                      <p className="mt-1">
+                        This column shows the reference database record matched to your chemical. The database
+                        record determines the reactive groups used for storage recommendations.
+                      </p>
+                      <p className="mt-1">
+                        <strong>Check:</strong> verify the matched name matches your chemical. If not, use the
+                        dropdown to search for and select the correct record.
+                      </p>
+                      <p className="mt-1">
+                        <strong>No database match:</strong> no record was found for this chemical. Storage
+                        recommendations will be based on GHS hazard data alone. You can try searching the
+                        dropdown for a suitable record, or check back when the chemical data is updated.
+                      </p>
+                    </div>
+                  </details>
+                </span>
+              </th>
+              <th className="px-2 py-2 font-semibold">Reactive groups</th>
+              <th className="px-2 py-2 font-semibold">Storage Group Assignment <EditableStar /></th>
+              <th className="px-2 py-2 font-semibold">Requirements <EditableStar /></th>
+            </tr>
+          </thead>
+          <tbody>
+            {assignmentRows.map(({ automaticAssignment, assignment, recordChanged }) => (
+              <ClassificationMatchRow
+                key={assignment.match.chemical.id}
+                assignment={assignment}
+                automaticAssignment={automaticAssignment}
+                edit={assignmentEdits[assignment.match.chemical.id]}
+                recordChanged={recordChanged}
+                onUpdate={(patch) => onUpdateMatch(assignment.match.chemical.id, patch)}
+                onUpdateAssignment={(patch) => onUpdateAssignment(assignment.match.chemical.id, patch)}
+              />
+            ))}
+            {assignmentRows.length === 0 && (
+              <tr>
+                <td colSpan={8} className="px-2 py-6 text-center text-sm text-zinc-500">
+                  Add chemicals in Process Steps to generate storage recommendations.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </Panel>
   );
 }
 
-function MatchCard({ match, onUpdate }: { match: CameoMatch; onUpdate: (patch: Storage2MatchEdit) => void }) {
-  const [query, setQuery] = useState(match.chemical.cas || match.chemical.name);
+function ClassificationMatchRow({
+  assignment,
+  automaticAssignment,
+  edit,
+  recordChanged,
+  onUpdate,
+  onUpdateAssignment,
+}: {
+  assignment: Storage20Assignment;
+  automaticAssignment: Storage20Assignment;
+  edit?: Storage2AssignmentEdit;
+  recordChanged: boolean;
+  onUpdate: (patch: Storage2MatchEdit) => void;
+  onUpdateAssignment: (patch: Storage2AssignmentEdit) => void;
+}) {
+  const match = assignment.match;
+  const chemical = match.chemical;
+  const query = chemical.name || chemical.cas || '';
   const options = useMemo(() => searchCameoChemicals(query), [query]);
   const selected = match.cameo ? findCameoChemicalById(match.cameo.id) : null;
+  const requirementText = edit?.requirements ?? requirementTextForAssignment(assignment);
 
   return (
-    <div className={clsx('rounded-lg border p-3', match.confirmed ? 'border-emerald-200 bg-emerald-50/30' : 'border-amber-200 bg-amber-50/30')}>
-      <div className="grid gap-3 xl:grid-cols-[1fr_1.25fr_auto]">
-        <div>
-          <div className="text-sm font-semibold text-zinc-900">{match.chemical.name || match.chemical.cas || 'Unnamed chemical'}</div>
-          <div className="mt-1 text-xs text-zinc-500">
-            {match.chemical.cas ? `CAS ${match.chemical.cas}` : 'No CAS recorded'} · {match.reason}
-          </div>
-          <div className="mt-2 flex flex-wrap gap-1">
-            <ConfidenceBadge confidence={match.confidence} />
-            {match.groups.map((group) => <span key={group.id} className="rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] text-zinc-700">{group.name}</span>)}
-            {match.groups.length === 0 && <span className="rounded bg-red-50 px-1.5 py-0.5 text-[11px] text-red-700">No reactive groups</span>}
-          </div>
-        </div>
-
-        <div>
-          <label className="text-[11px] font-semibold text-zinc-500">CAMEO record</label>
-          <div className="mt-1 grid gap-2 sm:grid-cols-[1fr_1.2fr]">
-            <div className="relative">
-              <Search size={14} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-zinc-400" />
-              <input
-                className="w-full rounded-md border border-zinc-200 py-2 pl-7 pr-2 text-xs outline-none focus:border-accent-300 focus:ring-2 focus:ring-accent-100"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search CAMEO name or CAS"
-              />
-            </div>
-            <select
-              className="w-full rounded-md border border-zinc-200 px-2 py-2 text-xs outline-none focus:border-accent-300 focus:ring-2 focus:ring-accent-100"
-              value={selected?.id ?? ''}
-              onChange={(e) => onUpdate({ cameoChemicalId: e.target.value ? Number(e.target.value) : null, confirmed: false })}
-            >
-              <option value="">No CAMEO match / SDS review</option>
-              {options.map((chemical) => (
-                <option key={chemical.id} value={chemical.id}>{chemical.name}{chemical.cas[0] ? ` · ${chemical.cas[0]}` : ''}</option>
-              ))}
-              {selected && !options.some((option) => option.id === selected.id) && (
-                <option value={selected.id}>{selected.name}{selected.cas[0] ? ` · ${selected.cas[0]}` : ''}</option>
-              )}
-            </select>
-          </div>
-          {match.cameo && (
-            <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-zinc-600">
-              {match.cameo.chemicalProfile || match.cameo.airWaterReactions || match.cameo.specialHazards || 'No CAMEO profile text available.'}
-            </p>
-          )}
-        </div>
-
+    <tr className={clsx('border-b border-zinc-100 align-top transition', !match.confirmed && 'bg-amber-50/35')}>
+      <td className="px-2 py-3">
         <label className={clsx(
-          'inline-flex min-h-11 items-center justify-center gap-2 rounded-md border px-3 py-2 text-xs font-semibold',
+          'inline-flex min-h-9 w-full items-center justify-center rounded-md border px-1.5 py-1.5',
           match.confirmed ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-800',
         )}>
           <input
@@ -221,206 +327,435 @@ function MatchCard({ match, onUpdate }: { match: CameoMatch; onUpdate: (patch: S
             className="h-5 w-5 accent-accent-600"
             checked={match.confirmed}
             onChange={(e) => onUpdate({ confirmed: e.target.checked })}
+            aria-label={`Confirm reference match for ${chemical.name || chemical.cas || 'chemical'}`}
           />
-          {match.confirmed ? 'Match confirmed' : 'Confirm match'}
         </label>
-      </div>
-    </div>
-  );
-}
-
-function ConfidenceBadge({ confidence }: { confidence: CameoMatch['confidence'] }) {
-  const label = {
-    'exact-cas': 'CAS match',
-    'exact-name': 'Name match',
-    synonym: 'Synonym match',
-    manual: 'Manual match',
-    unmatched: 'Unmatched',
-  }[confidence];
-  return (
-    <span className={clsx(
-      'rounded px-1.5 py-0.5 text-[11px] font-semibold',
-      confidence === 'unmatched' ? 'bg-red-50 text-red-700' : confidence === 'manual' ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-700',
-    )}>{label}</span>
-  );
-}
-
-function PairFindingsPanel({ pairs, onUpdatePair }: { pairs: ReturnType<typeof buildCameoPairs>; onUpdatePair: (pairKey: string, patch: Storage2PairEdit) => void }) {
-  const [selectedGroupPair, setSelectedGroupPair] = useState<string | null>(null);
-
-  // Collect all distinct CAMEO reactive groups across all matches
-  const allGroups = useMemo(() => {
-    const groupMap = new Map<number, CameoReactiveGroup>();
-    for (const pair of pairs) {
-      for (const finding of pair.groupFindings) {
-        groupMap.set(finding.leftGroup.id, finding.leftGroup);
-        groupMap.set(finding.rightGroup.id, finding.rightGroup);
-      }
-    }
-    return [...groupMap.values()].sort((a, b) => a.name.localeCompare(b.name));
-  }, [pairs]);
-
-  // Map each group → chemicals that belong to it
-  const chemicalsByGroup = useMemo(() => {
-    const map = new Map<number, CameoMatch[]>();
-    for (const pair of pairs) {
-      for (const finding of pair.groupFindings) {
-        for (const group of [finding.leftGroup, finding.rightGroup]) {
-          const list = map.get(group.id) ?? [];
-          const candidates = [pair.left, pair.right];
-          for (const candidate of candidates) {
-            if (candidate.groups.some((g) => g.id === group.id) && !list.some((m) => m.chemical.id === candidate.chemical.id)) {
-              list.push(candidate);
-            }
-          }
-          map.set(group.id, list);
-        }
-      }
-    }
-    return map;
-  }, [pairs]);
-
-  // Group-pair → affected chemical pairs lookup
-  const chemicalPairsByGroupPair = useMemo(() => {
-    const map = new Map<string, CameoPairFinding[]>();
-    for (const pair of pairs) {
-      for (const finding of pair.groupFindings) {
-        const key = pairKeyForGroups(finding.leftGroup.id, finding.rightGroup.id);
-        const list = map.get(key) ?? [];
-        if (!list.some((p) => p.key === pair.key)) {
-          list.push(pair);
-        }
-        map.set(key, list);
-      }
-    }
-    return map;
-  }, [pairs]);
-
-  const selectedFinding = selectedGroupPair ? lookupGroupPairReactivity(...selectedGroupPair.split(':').map(Number) as [number, number]) : null;
-  const selectedChemicalPairs = selectedGroupPair ? (chemicalPairsByGroupPair.get(selectedGroupPair) ?? []) : [];
-
-  return (
-    <Panel title="Compatibility matrix (by reactive group)" subtitle="CAMEO reactive group compatibility. Hover a cell to see which chemicals belong to each group. Click to inspect evidence and affected chemical pairs." icon={<AlertTriangle size={18} />}>
-      <div className="mb-3 flex flex-wrap gap-4 text-xs text-zinc-600">
-        <span className="inline-flex items-center gap-1"><CheckCircle2 size={14} className="text-emerald-600" /> Compatible</span>
-        <span className="inline-flex items-center gap-1"><ShieldAlert size={14} className="text-amber-600" /> Caution</span>
-        <span className="inline-flex items-center gap-1"><span className="text-base font-bold text-red-600">x</span> Incompatible</span>
-        <span className="inline-flex items-center gap-1"><span className="text-xs font-bold text-zinc-500">?</span> Unknown</span>
-      </div>
-
-      {allGroups.length > 1 ? (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] border-collapse text-center text-[11px]">
-            <thead>
-              <tr>
-                <th className="sticky left-0 z-10 border border-zinc-200 bg-zinc-50 p-2 text-left text-zinc-500">Reactive group</th>
-                {allGroups.map((group, index) => (
-                  <th key={group.id} className="border border-zinc-200 bg-zinc-50 p-2 align-bottom font-semibold text-zinc-700">
-                    <div className="mx-auto flex flex-col items-center gap-0.5">
-                      <span className="inline-flex h-4 w-4 items-center justify-center rounded bg-zinc-100 text-[9px]">{index + 1}</span>
-                      <span className="text-[10px] leading-tight" style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>{shortGroupName(group)}</span>
-                    </div>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {allGroups.map((rowGroup, rowIndex) => (
-                <tr key={rowGroup.id}>
-                  <th className="sticky left-0 z-10 border border-zinc-200 bg-zinc-50 p-2 text-left font-semibold text-zinc-700">
-                    <span className="mr-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded bg-zinc-100 px-1 text-[10px]">{rowIndex + 1}</span>
-                    <span className="text-[11px]">{shortGroupName(rowGroup)}</span>
-                  </th>
-                  {allGroups.map((colGroup, colIndex) => {
-                    if (rowGroup.id === colGroup.id) {
-                      return <td key={colGroup.id} className="border border-zinc-200 bg-zinc-50 p-2 text-zinc-300">-</td>;
-                    }
-                    const finding = lookupGroupPairReactivity(rowGroup.id, colGroup.id);
-                    const compatibility = finding?.compatibility ?? 'Unknown';
-                    const key = pairKeyForGroups(rowGroup.id, colGroup.id);
-                    const isSelected = selectedGroupPair === key;
-                    const leftChemicals = chemicalsByGroup.get(rowGroup.id) ?? [];
-                    const rightChemicals = chemicalsByGroup.get(colGroup.id) ?? [];
-
-                    return (
-                      <td
-                        key={colGroup.id}
-                        className={clsx(
-                          'group relative border border-zinc-200 p-2 transition',
-                          colIndex < rowIndex && 'opacity-60',
-                          isSelected && 'ring-2 ring-accent-300 ring-inset',
-                          compatibility === 'Incompatible' && 'bg-red-50 hover:bg-red-100',
-                          compatibility === 'Caution' && 'bg-amber-50 hover:bg-amber-100',
-                          compatibility === 'Compatible' && 'bg-white hover:bg-emerald-50',
-                          compatibility === 'Unknown' && 'bg-zinc-50 hover:bg-zinc-100',
-                        )}
-                      >
-                        <button
-                          type="button"
-                          className="mx-auto flex h-7 w-7 items-center justify-center rounded outline-none focus:ring-2 focus:ring-accent-300"
-                          aria-label={`${rowGroup.name} ↔ ${colGroup.name}: ${compatibility}`}
-                          onClick={() => setSelectedGroupPair(isSelected ? null : key)}
-                        >
-                          <MatrixSymbol compatibility={compatibility} />
-                        </button>
-                        {/* Tooltip on hover */}
-                        <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1 -translate-x-1/2 hidden whitespace-nowrap rounded bg-zinc-900 px-2.5 py-1.5 text-left text-xs text-white shadow-lg group-hover:block">
-                          <div className="font-semibold">{rowGroup.name}</div>
-                          {leftChemicals.slice(0, 5).map((m) => (
-                            <div key={m.chemical.id} className="text-zinc-300">• {shortChemicalName(m)}</div>
-                          ))}
-                          {leftChemicals.length > 5 && <div className="text-zinc-400">... +{leftChemicals.length - 5} more</div>}
-                          <div className="mt-1 border-t border-zinc-700 pt-1 font-semibold">{colGroup.name}</div>
-                          {rightChemicals.slice(0, 5).map((m) => (
-                            <div key={m.chemical.id} className="text-zinc-300">• {shortChemicalName(m)}</div>
-                          ))}
-                          {rightChemicals.length > 5 && <div className="text-zinc-400">... +{rightChemicals.length - 5} more</div>}
-                        </div>
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      </td>
+      <td className="break-words px-2 py-3">
+        <div className="font-semibold text-zinc-900">{chemical.name || chemical.cas || 'Unnamed chemical'}</div>
+        <div className="mt-1 text-zinc-500">{chemical.cas ? `CAS ${chemical.cas}` : 'No CAS recorded'}</div>
+      </td>
+      <td className="px-2 py-3">
+        <div className="flex flex-wrap gap-1">
+          {chemical.ghsPictograms.length > 0
+            ? chemical.ghsPictograms.map((id) => <GhsIcon key={id} id={id} size={24} />)
+            : <span className="text-zinc-400">None</span>}
         </div>
-      ) : (
-        <EmptyMessage>Add at least two CAMEO-matched chemicals to generate a compatibility matrix.</EmptyMessage>
+      </td>
+      <td className="break-words px-2 py-3 text-zinc-700">
+        {chemical.hazardStatements.length > 0
+          ? chemical.hazardStatements.map((h) => h.code).join(', ')
+          : 'None recorded'}
+      </td>
+      <td className="px-2 py-3">
+        <div className="grid gap-1.5">
+          <select
+            className="w-full rounded-md border border-zinc-200 px-2 py-1.5 text-[11px] outline-none focus:border-accent-300 focus:ring-2 focus:ring-accent-100"
+            value={selected?.id ?? ''}
+            onChange={(e) => onUpdate({ cameoChemicalId: e.target.value ? Number(e.target.value) : null, confirmed: false })}
+          >
+            <option value="">No database match</option>
+            {options.map((chemicalOption) => (
+              <option key={chemicalOption.id} value={chemicalOption.id}>{chemicalOption.name}</option>
+            ))}
+            {selected && !options.some((option) => option.id === selected.id) && (
+              <option value={selected.id}>{selected.name}</option>
+            )}
+          </select>
+          {recordChanged && <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">User override</span>}
+        </div>
+      </td>
+      <td className="px-2 py-3">
+        <div className="flex flex-wrap gap-1">
+          {match.groups.length > 0
+            ? match.groups.map((group) => <span key={group.id} className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-700">{group.id}: {group.name}</span>)
+            : <span className="rounded bg-red-50 px-1.5 py-0.5 text-[10px] text-red-700">No reactive groups matched</span>}
+        </div>
+      </td>
+      <td className="px-2 py-3">
+        <select
+          className={clsx('w-full rounded-md border px-2 py-1.5 text-[11px] font-semibold outline-none focus:border-accent-300 focus:ring-2 focus:ring-accent-100', assignmentClassName(assignment.zoneId))}
+          value={edit?.zoneOverride ?? assignment.zoneId}
+          onChange={(event) => onUpdateAssignment({ zoneOverride: event.target.value === automaticAssignment.zoneId ? undefined : event.target.value })}
+          aria-label={`Storage Group Assignment for ${chemical.name || chemical.cas || 'chemical'}`}
+        >
+          {STORAGE20_ZONE_OPTIONS.map((option) => (
+            <option key={option.id} value={option.id}>{option.label}</option>
+          ))}
+        </select>
+        <div className="mt-1 flex flex-wrap gap-1">
+          <InfoBadge label={`Confidence: ${confidenceLabel(assignment.confidence)}`} title="Confidence reflects how strong the automatic classification evidence is." tone={assignment.confidence} />
+          <AssignmentInfo assignment={assignment} />
+          {edit?.zoneOverride && <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">User override</span>}
+        </div>
+      </td>
+      <td className="px-2 py-3">
+        <textarea
+          className="min-h-16 w-full resize-y rounded-md border border-zinc-200 bg-white p-2 text-[11px] leading-relaxed text-zinc-700 outline-none focus:border-accent-300 focus:ring-2 focus:ring-accent-100"
+          value={requirementText}
+          onChange={(event) => onUpdateAssignment({ requirements: event.target.value })}
+          aria-label={`Storage requirements for ${chemical.name || chemical.cas || 'chemical'}`}
+        />
+      </td>
+    </tr>
+  );
+}
+
+const STORAGE20_ZONE_OPTIONS = [
+  { id: 'organicSolventsAcids', label: 'Organic solvents and organic acids' },
+  { id: 'volatilePoisonsChlorinated', label: 'Volatile poisons and chlorinated solvents' },
+  { id: 'nonOxidizingAcids', label: 'Non-oxidizing organic and mineral acids' },
+  { id: 'oxidizingAcids', label: 'Oxidizing acids in double containment' },
+  { id: 'solidBases', label: 'Solid bases' },
+  { id: 'liquidBases', label: 'Liquid bases' },
+  { id: 'oxidizersOnly', label: 'Oxidizers, excluding oxidizing acids or organic peroxides' },
+  { id: 'dryPoisons', label: 'Non-volatile poisons - dry' },
+  { id: 'liquidPoisons', label: 'Non-volatile poisons - liquid' },
+  { id: 'drySolids', label: 'Dry solids' },
+  { id: 'specialReview', label: 'Hard isolation / dedicated reactive storage' },
+  { id: 'review', label: 'Unassigned / assessor review' },
+] satisfies Array<{ id: Storage20ZoneId; label: string }>;
+
+function applyAssignmentEdit(assignment: Storage20Assignment, edit?: Storage2AssignmentEdit): Storage20Assignment {
+  const zoneOverride = isStorage20ZoneId(edit?.zoneOverride) ? edit.zoneOverride : undefined;
+  if (!zoneOverride && !edit?.requirements) return assignment;
+  return {
+    ...assignment,
+    zoneId: zoneOverride ?? assignment.zoneId,
+    cabinetId: zoneOverride ? ZONES[zoneOverride].cabinetId : assignment.cabinetId,
+    category: zoneOverride ? categoryForZone(zoneOverride) : assignment.category,
+    requirements: edit?.requirements !== undefined ? splitRequirements(edit.requirements) : assignment.requirements,
+    source: zoneOverride ? 'review' : assignment.source,
+    confidence: zoneOverride ? 'review' : assignment.confidence,
+    reasons: zoneOverride ? ['User selected the storage group assignment. Verify against SDS sections 7 and 10.'] : assignment.reasons,
+  };
+}
+
+function isStorage20ZoneId(value: string | undefined): value is Storage20ZoneId {
+  return Boolean(value && Object.prototype.hasOwnProperty.call(ZONES, value));
+}
+
+function categoryForZone(zoneId: Storage20ZoneId): Storage20Category {
+  if (zoneId === 'specialReview') return 'waterReactive';
+  if (zoneId === 'oxidizersOnly') return 'oxidizingAgent';
+  if (zoneId === 'oxidizingAcids') return 'oxidizingAcid';
+  if (zoneId === 'nonOxidizingAcids') return 'inorganicAcid';
+  if (zoneId === 'solidBases') return 'solidBase';
+  if (zoneId === 'liquidBases') return 'liquidBase';
+  if (zoneId === 'organicSolventsAcids') return 'organicSolvent';
+  if (zoneId === 'volatilePoisonsChlorinated') return 'volatilePoison';
+  if (zoneId === 'dryPoisons') return 'inorganicPoison';
+  if (zoneId === 'liquidPoisons') return 'organicPoison';
+  if (zoneId === 'drySolids') return 'drySolid';
+  return 'review';
+}
+
+function splitRequirements(value: string) {
+  return value.split(/[;\n]/).map((item) => item.trim()).filter(Boolean);
+}
+
+function requirementTextForAssignment(assignment: Storage20Assignment) {
+  return [...assignment.requirements, ...assignment.constraints].slice(0, 4).join('; ') || 'Check SDS sections 7 and 10';
+}
+
+function confidenceLabel(value: Storage20Assignment['confidence']) {
+  if (value === 'high') return 'High';
+  if (value === 'medium') return 'Medium';
+  return 'Review';
+}
+
+function sourceLabel(value: Storage20Assignment['source']) {
+  if (value === 'combined') return 'GHS + reference data';
+  if (value === 'ghs') return 'GHS fallback';
+  if (value === 'pubchem') return 'PubChem fallback';
+  if (value === 'cameo') return 'Reference database';
+  return 'User/SDS review';
+}
+
+function InfoBadge({ label, title, tone }: { label: string; title: string; tone?: Storage20Assignment['confidence'] }) {
+  return (
+    <span
+      title={title}
+      className={clsx(
+        'rounded px-1.5 py-0.5 text-[10px] font-semibold',
+        tone === 'high' && 'bg-emerald-100 text-emerald-800',
+        tone === 'medium' && 'bg-amber-100 text-amber-800',
+        tone === 'review' && 'bg-red-100 text-red-800',
+        !tone && 'bg-zinc-100 text-zinc-700',
       )}
+    >
+      {label}
+    </span>
+  );
+}
 
-      {/* Legend: group index → name */}
-      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-zinc-600">
-        {allGroups.map((group, index) => (
-          <span key={group.id} className="inline-flex items-center gap-1">
-            <span className="inline-flex h-5 w-5 items-center justify-center rounded bg-zinc-100 text-[10px] font-semibold text-zinc-700">{index + 1}</span>
-            {shortGroupName(group)}
-          </span>
-        ))}
+function AssignmentInfo({ assignment }: { assignment: Storage20Assignment }) {
+  return (
+    <details className="group relative inline-block">
+      <summary
+        className="flex h-5 w-5 cursor-pointer list-none items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-600 transition hover:border-accent-300 hover:text-accent-700 focus:outline-none focus:ring-2 focus:ring-accent-100 [&::-webkit-details-marker]:hidden"
+        aria-label={`Assignment source: ${sourceLabel(assignment.source)}`}
+        title="Show assignment source"
+      >
+        <Info size={12} />
+      </summary>
+      <div className="absolute right-0 z-20 mt-1 w-72 rounded-lg border border-zinc-200 bg-white p-3 text-[11px] leading-relaxed text-zinc-700 shadow-lg">
+        <div className="font-semibold text-zinc-900">Assignment source</div>
+        <div className="mt-1">{sourceLabel(assignment.source)}</div>
+        <div className="mt-2 font-semibold text-zinc-900">Reason</div>
+        <div className="mt-1">{assignment.reasons.join(' ') || 'No automatic reason recorded.'}</div>
       </div>
+    </details>
+  );
+}
 
-      {/* Selected group-pair evidence */}
-      <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-        {selectedFinding ? (
-          <GroupPairEvidence
-            finding={selectedFinding}
-            chemicalPairs={selectedChemicalPairs}
-            onUpdatePair={onUpdatePair}
-            leftChemicals={chemicalsByGroup.get(selectedFinding.leftGroup.id) ?? []}
-            rightChemicals={chemicalsByGroup.get(selectedFinding.rightGroup.id) ?? []}
-          />
-        ) : (
-          <div className="text-sm text-zinc-500">Click a matrix cell to view group-pair evidence and affected chemical pairs.</div>
-        )}
+function assignmentClassName(zoneId: Storage20ZoneId) {
+  const zone = ZONES[zoneId];
+  return clsx(zone.className, zone.textClassName, 'border-transparent');
+}
+
+function PairFindingsPanel({ matches, pairs, assignmentEdits }: { matches: CameoMatch[]; pairs: ReturnType<typeof buildCameoPairs>; assignmentEdits: Record<string, Storage2AssignmentEdit> }) {
+  const assignments = useMemo(() => matches.map((match) => applyAssignmentEdit(classifyStorage20(match), assignmentEdits[match.chemical.id])), [matches, assignmentEdits]);
+  const assignmentsByGroup = useMemo(() => {
+    const map = new Map<MatrixGroupId, Storage20Assignment[]>();
+    for (const assignment of assignments) {
+      const groupId = matrixGroupForAssignment(assignment);
+      if (!groupId) continue;
+      map.set(groupId, [...(map.get(groupId) ?? []), assignment]);
+    }
+    return map;
+  }, [assignments]);
+  const pairsByChemicalKey = useMemo(() => new Map(pairs.map((pair) => [pair.key, pair])), [pairs]);
+
+  return (
+    <Panel title="Compatibility matrix (by storage group)" subtitle="Storage-group compatibility based on the supplied cabinet scheme. Hover or focus a cell to see the chemicals in each group and compatibility evidence where available." icon={<AlertTriangle size={18} />} collapsible defaultOpen={false}>
+      <div className="mb-3 flex flex-wrap gap-4 text-xs text-zinc-600">
+        <span className="inline-flex items-center gap-1"><CheckCircle2 size={14} className="text-emerald-600" /> Maybe compatible - check SDS</span>
+        <span className="inline-flex items-center gap-1"><XCircle size={14} className="text-red-600" /> Not compatible for shared storage</span>
+        <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-accent-600" /> Relevant to this assessment</span>
+      </div>
+      <div className="overflow-x-auto pb-24">
+        <table className="w-full min-w-[920px] border-collapse text-center text-[11px]">
+          <thead>
+            <tr>
+              <th className="sticky left-0 z-20 border border-zinc-200 bg-zinc-50 p-2 text-left font-semibold text-zinc-500">Group</th>
+              {MATRIX_GROUPS.map((group) => (
+                <th key={group.id} className="border border-zinc-200 bg-zinc-50 p-2 font-semibold leading-tight text-zinc-700">
+                  <div className="mx-auto max-w-20">{group.label}</div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {MATRIX_GROUPS.map((row, rowIndex) => (
+              <tr key={row.id}>
+                <th className="sticky left-0 z-10 border border-zinc-200 bg-zinc-50 p-2 text-left font-semibold leading-tight text-zinc-700">{row.label}</th>
+                {MATRIX_GROUPS.map((col, colIndex) => {
+                  const compatible = STORAGE20_MATRIX[row.id][col.id];
+                  const rowAssignments = assignmentsByGroup.get(row.id) ?? [];
+                  const colAssignments = assignmentsByGroup.get(col.id) ?? [];
+                  const affectedPairs = affectedMatrixPairs(rowAssignments, colAssignments, pairsByChemicalKey);
+                  const relevantToAssessment = isRelevantMatrixCell(row.id, col.id, rowAssignments, colAssignments);
+                  const isDiagonal = row.id === col.id;
+                  const showRelevantDot = relevantToAssessment && !isDiagonal;
+
+                  return (
+                    <td
+                      key={col.id}
+                      className={clsx(
+                        'group relative h-12 border p-1 transition',
+                        isDiagonal ? 'bg-zinc-100 text-zinc-300 opacity-70' : compatible ? 'bg-white hover:bg-emerald-50' : 'bg-red-50 hover:bg-red-100',
+                        'border-zinc-200',
+                      )}
+                    >
+                      {showRelevantDot && (
+                        <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-accent-600" title="Relevant to this assessment" />
+                      )}
+                      <button
+                        type="button"
+                        className={clsx(
+                          'mx-auto flex h-8 w-8 items-center justify-center rounded outline-none focus:ring-2 focus:ring-accent-300',
+                          !showRelevantDot && !isDiagonal && 'opacity-55',
+                        )}
+                        aria-label={`${row.label} and ${col.label}: ${compatible ? 'maybe compatible' : 'not compatible'}`}
+                      >
+                        {!isDiagonal && (
+                          compatible
+                            ? <CheckCircle2 size={17} className="text-emerald-600" />
+                            : <span className="text-base font-bold text-red-600">x</span>
+                        )}
+                      </button>
+                      <MatrixHoverCard
+                        row={row}
+                        col={col}
+                        compatible={compatible}
+                        rowAssignments={rowAssignments}
+                        colAssignments={colAssignments}
+                        affectedPairs={affectedPairs}
+                        relevantToAssessment={relevantToAssessment}
+                        align={colIndex >= MATRIX_GROUPS.length - 3 ? 'right' : colIndex <= 2 ? 'left' : 'center'}
+                        verticalAlign={rowIndex >= MATRIX_GROUPS.length - 3 ? 'top' : 'bottom'}
+                      />
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </Panel>
   );
 }
 
-function MatrixSymbol({ compatibility }: { compatibility: CameoCompatibility }) {
-  if (compatibility === 'Incompatible') return <span className="text-base font-bold text-red-600">x</span>;
-  if (compatibility === 'Caution') return <ShieldAlert size={16} className="text-amber-600" />;
-  if (compatibility === 'Compatible') return <CheckCircle2 size={16} className="text-emerald-600" />;
-  return <span className="text-xs font-bold text-zinc-500">?</span>;
+type MatrixGroupId =
+  | 'inorganicAcids'
+  | 'oxidizingAcids'
+  | 'organicAcids'
+  | 'alkaliCaustic'
+  | 'oxidizingAgents'
+  | 'inorganicPoisons'
+  | 'organicPoisons'
+  | 'waterReactive'
+  | 'organicSolvents';
+
+interface MatrixGroupDef {
+  id: MatrixGroupId;
+  label: string;
+}
+
+const MATRIX_GROUPS: MatrixGroupDef[] = [
+  { id: 'inorganicAcids', label: 'Inorganic Acids' },
+  { id: 'oxidizingAcids', label: 'Oxidising Acids' },
+  { id: 'organicAcids', label: 'Organic Acids' },
+  { id: 'alkaliCaustic', label: 'Alkali / Caustic' },
+  { id: 'oxidizingAgents', label: 'Oxidising Agents' },
+  { id: 'inorganicPoisons', label: 'Inorganic Poisons' },
+  { id: 'organicPoisons', label: 'Organic Poisons' },
+  { id: 'waterReactive', label: 'Water Reactive' },
+  { id: 'organicSolvents', label: 'Organic Solvents' },
+];
+
+const STORAGE20_MATRIX: Record<MatrixGroupId, Record<MatrixGroupId, boolean>> = {
+  inorganicAcids: { inorganicAcids: true, oxidizingAcids: true, organicAcids: false, alkaliCaustic: false, oxidizingAgents: true, inorganicPoisons: false, organicPoisons: false, waterReactive: false, organicSolvents: false },
+  oxidizingAcids: { inorganicAcids: true, oxidizingAcids: true, organicAcids: false, alkaliCaustic: false, oxidizingAgents: true, inorganicPoisons: false, organicPoisons: false, waterReactive: false, organicSolvents: false },
+  organicAcids: { inorganicAcids: false, oxidizingAcids: false, organicAcids: true, alkaliCaustic: false, oxidizingAgents: false, inorganicPoisons: false, organicPoisons: false, waterReactive: false, organicSolvents: true },
+  alkaliCaustic: { inorganicAcids: false, oxidizingAcids: false, organicAcids: false, alkaliCaustic: true, oxidizingAgents: true, inorganicPoisons: true, organicPoisons: false, waterReactive: false, organicSolvents: false },
+  oxidizingAgents: { inorganicAcids: true, oxidizingAcids: true, organicAcids: false, alkaliCaustic: true, oxidizingAgents: true, inorganicPoisons: true, organicPoisons: false, waterReactive: false, organicSolvents: false },
+  inorganicPoisons: { inorganicAcids: false, oxidizingAcids: false, organicAcids: false, alkaliCaustic: true, oxidizingAgents: true, inorganicPoisons: true, organicPoisons: false, waterReactive: false, organicSolvents: false },
+  organicPoisons: { inorganicAcids: false, oxidizingAcids: false, organicAcids: false, alkaliCaustic: false, oxidizingAgents: false, inorganicPoisons: false, organicPoisons: true, waterReactive: true, organicSolvents: true },
+  waterReactive: { inorganicAcids: false, oxidizingAcids: false, organicAcids: false, alkaliCaustic: false, oxidizingAgents: false, inorganicPoisons: false, organicPoisons: true, waterReactive: true, organicSolvents: true },
+  organicSolvents: { inorganicAcids: false, oxidizingAcids: false, organicAcids: true, alkaliCaustic: false, oxidizingAgents: false, inorganicPoisons: false, organicPoisons: true, waterReactive: true, organicSolvents: true },
+};
+
+function matrixGroupForAssignment(assignment: Storage20Assignment): MatrixGroupId | null {
+  const categoryMap: Partial<Record<Storage20Category, MatrixGroupId>> = {
+    waterReactive: 'waterReactive',
+    oxidizingAgent: 'oxidizingAgents',
+    oxidizingAcid: 'oxidizingAcids',
+    inorganicAcid: 'inorganicAcids',
+    organicAcid: 'organicAcids',
+    solidBase: 'alkaliCaustic',
+    liquidBase: 'alkaliCaustic',
+    organicSolvent: 'organicSolvents',
+    volatilePoison: 'organicPoisons',
+    inorganicPoison: 'inorganicPoisons',
+    organicPoison: 'organicPoisons',
+  };
+  return categoryMap[assignment.category] ?? null;
+}
+
+function affectedMatrixPairs(rowAssignments: Storage20Assignment[], colAssignments: Storage20Assignment[], pairsByChemicalKey: Map<string, CameoPairFinding>) {
+  const results: CameoPairFinding[] = [];
+  for (const left of rowAssignments) {
+    for (const right of colAssignments) {
+      if (left.match.chemical.id === right.match.chemical.id) continue;
+      const key = [left.match.chemical.id, right.match.chemical.id].sort().join('::');
+      const pair = pairsByChemicalKey.get(key);
+      if (pair && !results.some((candidate) => candidate.key === pair.key)) results.push(pair);
+    }
+  }
+  return results;
+}
+
+function isRelevantMatrixCell(rowId: MatrixGroupId, colId: MatrixGroupId, rowAssignments: Storage20Assignment[], colAssignments: Storage20Assignment[]) {
+  if (rowId === colId) return rowAssignments.length > 0;
+  return rowAssignments.length > 0 && colAssignments.length > 0;
+}
+
+function MatrixHoverCard({
+  row,
+  col,
+  compatible,
+  rowAssignments,
+  colAssignments,
+  affectedPairs,
+  relevantToAssessment,
+  align,
+  verticalAlign,
+}: {
+  row: MatrixGroupDef;
+  col: MatrixGroupDef;
+  compatible: boolean;
+  rowAssignments: Storage20Assignment[];
+  colAssignments: Storage20Assignment[];
+  affectedPairs: CameoPairFinding[];
+  relevantToAssessment: boolean;
+  align: 'left' | 'center' | 'right';
+  verticalAlign: 'top' | 'bottom';
+}) {
+  return (
+    <div className={clsx(
+      'pointer-events-none absolute z-30 hidden w-96 rounded-lg border border-zinc-200 bg-white p-3 text-left text-zinc-800 shadow-xl group-hover:block group-focus-within:block',
+      verticalAlign === 'bottom' && 'top-full mt-2',
+      verticalAlign === 'top' && 'bottom-full mb-2',
+      align === 'left' && 'left-0',
+      align === 'center' && 'left-1/2 -translate-x-1/2',
+      align === 'right' && 'right-0',
+    )} data-testid={`storage2-matrix-hover-${row.id}-${col.id}`}>
+      <div className={clsx('inline-flex rounded px-2 py-1 text-xs font-semibold', compatible ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800')}>
+        {compatible ? 'Maybe compatible - check SDS' : 'Not compatible for shared storage'}
+      </div>
+      {relevantToAssessment && (
+        <div className="mt-2 inline-flex rounded bg-accent-50 px-2 py-1 text-[11px] font-semibold text-accent-800">Relevant to this assessment</div>
+      )}
+      <div className="mt-2 grid grid-cols-2 gap-3">
+        <MatrixChemicalList title={row.label} assignments={rowAssignments} />
+        <MatrixChemicalList title={col.label} assignments={colAssignments} />
+      </div>
+      <div className="mt-3 border-t border-zinc-100 pt-2">
+        <div className="text-[11px] font-semibold text-zinc-500">Compatibility evidence</div>
+        {affectedPairs.length > 0 ? (
+          <ul className="mt-1 space-y-1 text-[11px] leading-snug text-zinc-700">
+            {affectedPairs.slice(0, 5).map((pair) => (
+              <li key={pair.key}>
+                <span className="font-semibold">{pair.left.chemical.name || pair.left.chemical.cas}</span>
+                <span className="mx-1 text-zinc-400">↔</span>
+                <span className="font-semibold">{pair.right.chemical.name || pair.right.chemical.cas}</span>
+                <span className="ml-1 text-zinc-500">({matrixCompatibility(pair)})</span>
+              </li>
+            ))}
+            {affectedPairs.length > 5 && <li className="text-zinc-500">+{affectedPairs.length - 5} more pairs</li>}
+          </ul>
+        ) : (
+          <div className="mt-1 text-[11px] text-zinc-500">No direct compatibility evidence for this cell. Use the storage group rule and SDS.</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MatrixChemicalList({ title, assignments }: { title: string; assignments: Storage20Assignment[] }) {
+  return (
+    <div>
+      <div className="text-[11px] font-semibold text-zinc-900">{title}</div>
+      <ul className="mt-1 space-y-1 text-[11px] leading-snug text-zinc-700">
+        {assignments.length > 0
+          ? assignments.map((assignment) => <li key={assignment.match.chemical.id}>{assignment.match.chemical.name || assignment.match.chemical.cas}</li>)
+          : <li className="text-zinc-400">No chemicals in this group</li>}
+      </ul>
+    </div>
+  );
 }
 
 function matrixCompatibility(pair: CameoPairFinding): CameoCompatibility {
@@ -457,347 +792,54 @@ function hasStrongStorageEvidence(pair: CameoPairFinding) {
   return false;
 }
 
-function shortChemicalName(match: CameoMatch) {
-  const name = match.chemical.name || match.chemical.cas || 'Unnamed';
-  return name.length > 28 ? `${name.slice(0, 25)}...` : name;
-}
 
-function shortGroupName(group: CameoReactiveGroup) {
-  return group.name.length > 40 ? `${group.name.slice(0, 37)}...` : group.name;
-}
 
-function pairKeyForGroups(leftGroupId: number, rightGroupId: number) {
-  return [leftGroupId, rightGroupId].sort((a, b) => a - b).join(':');
-}
-
-function GroupPairEvidence({
-  finding,
-  chemicalPairs,
-  onUpdatePair,
-  leftChemicals,
-  rightChemicals,
-}: {
-  finding: CameoGroupFinding;
-  chemicalPairs: CameoPairFinding[];
-  onUpdatePair: (pairKey: string, patch: Storage2PairEdit) => void;
-  leftChemicals: CameoMatch[];
-  rightChemicals: CameoMatch[];
-}) {
-  return (
-    <div className={clsx('rounded-lg border p-3', toneForCompatibility(finding.compatibility))}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="text-sm font-semibold text-zinc-900">
-            {finding.leftGroup.name} ↔ {finding.rightGroup.name}
-          </div>
-          <div className="mt-1 text-xs text-zinc-600">
-            CAMEO compatibility: {finding.compatibility}
-          </div>
-        </div>
-        <CompatibilityBadge compatibility={finding.compatibility} original={finding.compatibility} />
-      </div>
-
-      {(finding.gasProducts.length > 0 || finding.hazards.length > 0) && (
-        <div className="mt-3 rounded-md bg-white/70 p-2 text-xs">
-          {finding.gasProducts.length > 0 && (
-            <div className="font-medium text-red-700">Gas products: {finding.gasProducts.join(', ')}</div>
-          )}
-          {finding.hazards.length > 0 && (
-            <div className="mt-1 text-zinc-600">{finding.hazards.slice(0, 4).join('; ')}</div>
-          )}
-          {finding.hazardsDocumentation && (
-            <div className="mt-1 italic text-zinc-500">{finding.hazardsDocumentation.slice(0, 200)}</div>
-          )}
-        </div>
-      )}
-
-      <div className="mt-3">
-        <div className="text-xs font-semibold text-zinc-500">Chemicals in these groups</div>
-        <div className="mt-2 grid gap-2 md:grid-cols-2">
-          <div className="rounded-md bg-white/70 p-2 text-xs">
-            <div className="font-semibold text-zinc-700">{finding.leftGroup.name}</div>
-            <ul className="mt-1 list-inside list-disc space-y-0.5 text-zinc-600">
-              {leftChemicals.map((m) => (
-                <li key={m.chemical.id}>{m.chemical.name || m.chemical.cas}</li>
-              ))}
-            </ul>
-          </div>
-          <div className="rounded-md bg-white/70 p-2 text-xs">
-            <div className="font-semibold text-zinc-700">{finding.rightGroup.name}</div>
-            <ul className="mt-1 list-inside list-disc space-y-0.5 text-zinc-600">
-              {rightChemicals.map((m) => (
-                <li key={m.chemical.id}>{m.chemical.name || m.chemical.cas}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      {chemicalPairs.length > 0 && (
-        <div className="mt-3">
-          <div className="text-xs font-semibold text-zinc-500">
-            Affected chemical pairs ({chemicalPairs.length})
-          </div>
-          <div className="mt-2 space-y-2">
-            {chemicalPairs.slice(0, 6).map((pair) => (
-              <div key={pair.key} className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-white/70 p-2 text-xs">
-                <div>
-                  <span className="font-semibold text-zinc-800">
-                    {pair.left.chemical.name || pair.left.chemical.cas}
-                  </span>
-                  <span className="mx-1 text-zinc-400">+</span>
-                  <span className="font-semibold text-zinc-800">
-                    {pair.right.chemical.name || pair.right.chemical.cas}
-                  </span>
-                  <span className="ml-2 text-zinc-500">({matrixCompatibility(pair)})</span>
-                </div>
-                <select
-                  className="rounded border border-zinc-200 px-1.5 py-1 text-[11px] outline-none focus:border-accent-300"
-                  value={pair.override?.assessorDecision ?? 'accept'}
-                  onChange={(e) => onUpdatePair(pair.key, { assessorDecision: e.target.value as Storage2PairEdit['assessorDecision'] })}
-                >
-                  <option value="accept">Accept</option>
-                  <option value="override-separate">Keep separate</option>
-                  <option value="override-compatible">SDS: compatible</option>
-                </select>
-              </div>
-            ))}
-            {chemicalPairs.length > 6 && (
-              <div className="text-xs text-zinc-500">... and {chemicalPairs.length - 6} more pairs</div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function CompatibilityBadge({ compatibility, original }: { compatibility: CameoCompatibility; original: CameoCompatibility }) {
-  const Icon = compatibility === 'Incompatible' ? XCircle : compatibility === 'Compatible' ? CheckCircle2 : ShieldAlert;
-  return (
-    <span className={clsx(
-      'inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold',
-      compatibility === 'Incompatible' && 'bg-red-100 text-red-800',
-      compatibility === 'Caution' && 'bg-amber-100 text-amber-800',
-      compatibility === 'Compatible' && 'bg-emerald-100 text-emerald-800',
-      compatibility === 'Unknown' && 'bg-zinc-100 text-zinc-700',
-    )}>
-      <Icon size={14} /> {compatibility}{original !== compatibility ? ` · was ${original}` : ''}
-    </span>
-  );
-}
-
-function toneForCompatibility(compatibility: CameoCompatibility) {
-  if (compatibility === 'Incompatible') return 'border-red-200 bg-red-50/45';
-  if (compatibility === 'Caution') return 'border-amber-200 bg-amber-50/45';
-  if (compatibility === 'Compatible') return 'border-emerald-200 bg-emerald-50/30';
-  return 'border-zinc-200 bg-zinc-50';
-}
-
-type CabinetId = 'flammables' | 'corrosiveAcids' | 'corrosiveBases' | 'oxidizers' | 'toxins' | 'shelving' | 'specialReview' | 'review';
-type ZoneId =
-  | 'organicSolventsAcids'
-  | 'volatilePoisonsChlorinated'
-  | 'nonOxidizingAcids'
-  | 'oxidizingAcids'
-  | 'solidBases'
-  | 'liquidBases'
-  | 'oxidizersOnly'
-  | 'dryPoisons'
-  | 'liquidPoisons'
-  | 'drySolids'
-  | 'specialReview'
-  | 'review';
-
-interface CabinetZoneDef {
-  id: ZoneId;
-  cabinetId: CabinetId;
-  cabinetTitle: string;
-  zoneTitle: string;
-  note: string;
-  className: string;
-  textClassName: string;
-}
-
-interface CabinetAssignment {
-  match: CameoMatch;
-  zone: CabinetZoneDef;
-  confidence: 'high' | 'medium' | 'review';
-  reasons: string[];
-  requirements: string[];
-  constraints: string[];
-}
-
-interface CabinetWarning {
-  key: string;
-  cabinetId: CabinetId;
-  zoneId?: ZoneId;
-  scope: 'same-zone' | 'same-cabinet';
-  pair: CameoPairFinding;
-  compatibility: CameoCompatibility;
-  rawCompatibility: CameoCompatibility;
-  message: string;
-  evidence: string[];
-}
-
-const ZONES: Record<ZoneId, CabinetZoneDef> = {
-  organicSolventsAcids: {
-    id: 'organicSolventsAcids',
-    cabinetId: 'flammables',
-    cabinetTitle: 'Flammables Cabinet',
-    zoneTitle: 'Organic solvents and organic acids',
-    note: 'Use for flammable organic solvents and flammable organic acids where SDS confirms this is appropriate.',
-    className: 'border-yellow-300 bg-yellow-100',
-    textClassName: 'text-yellow-950',
-  },
-  volatilePoisonsChlorinated: {
-    id: 'volatilePoisonsChlorinated',
-    cabinetId: 'flammables',
-    cabinetTitle: 'Flammables Cabinet',
-    zoneTitle: 'Volatile poisons and chlorinated solvents',
-    note: 'Requires secondary containment; keep from incompatible spill contact within the cabinet.',
-    className: 'border-sky-300 bg-sky-100',
-    textClassName: 'text-sky-950',
-  },
-  nonOxidizingAcids: {
-    id: 'nonOxidizingAcids',
-    cabinetId: 'corrosiveAcids',
-    cabinetTitle: 'Corrosives Cabinet',
-    zoneTitle: 'Non-oxidizing organic and mineral acids',
-    note: 'Keep acids separate from bases; acids and bases should not share a cabinet.',
-    className: 'border-violet-300 bg-violet-100',
-    textClassName: 'text-violet-950',
-  },
-  oxidizingAcids: {
-    id: 'oxidizingAcids',
-    cabinetId: 'corrosiveAcids',
-    cabinetTitle: 'Corrosives Cabinet',
-    zoneTitle: 'Oxidizing acids in double containment',
-    note: 'Double containment required; isolate from organic solvents/acids, bases and oxidizer cabinet contents.',
-    className: 'border-red-300 bg-red-100',
-    textClassName: 'text-red-950',
-  },
-  liquidBases: {
-    id: 'liquidBases',
-    cabinetId: 'corrosiveBases',
-    cabinetTitle: 'Corrosives Cabinet',
-    zoneTitle: 'Liquid bases',
-    note: 'Bases must be separate from acids; strong acids and bases should not be in the same cabinet.',
-    className: 'border-orange-300 bg-orange-100',
-    textClassName: 'text-orange-950',
-  },
-  solidBases: {
-    id: 'solidBases',
-    cabinetId: 'corrosiveBases',
-    cabinetTitle: 'Corrosives Cabinet',
-    zoneTitle: 'Solid bases',
-    note: 'Dry caustic bases such as hydroxide pellets/flakes; keep dry and separate from acids.',
-    className: 'border-orange-300 bg-orange-50',
-    textClassName: 'text-orange-950',
-  },
-  oxidizersOnly: {
-    id: 'oxidizersOnly',
-    cabinetId: 'oxidizers',
-    cabinetTitle: 'Oxidizers Cabinet',
-    zoneTitle: 'Oxidizers, excluding oxidizing acids or organic peroxides',
-    note: 'Temperature-dependent oxidizers or peroxide-formers need separation from all other materials in secondary containment.',
-    className: 'border-amber-300 bg-amber-100',
-    textClassName: 'text-amber-950',
-  },
-  dryPoisons: {
-    id: 'dryPoisons',
-    cabinetId: 'toxins',
-    cabinetTitle: 'Toxins Cabinet',
-    zoneTitle: 'Non-volatile poisons - dry',
-    note: 'Keep dry poisons separate from liquid poison spill paths.',
-    className: 'border-pink-300 bg-pink-100',
-    textClassName: 'text-pink-950',
-  },
-  liquidPoisons: {
-    id: 'liquidPoisons',
-    cabinetId: 'toxins',
-    cabinetTitle: 'Toxins Cabinet',
-    zoneTitle: 'Non-volatile poisons - liquid',
-    note: 'Store liquids below dry poisons and use compatible secondary containment.',
-    className: 'border-pink-300 bg-pink-100',
-    textClassName: 'text-pink-950',
-  },
-  drySolids: {
-    id: 'drySolids',
-    cabinetId: 'shelving',
-    cabinetTitle: 'Shelving',
-    zoneTitle: 'Dry solids',
-    note: 'Dry, compatible solids only; avoid shelves above/near incompatible liquids.',
-    className: 'border-emerald-300 bg-emerald-100',
-    textClassName: 'text-emerald-950',
-  },
-  specialReview: {
-    id: 'specialReview',
-    cabinetId: 'specialReview',
-    cabinetTitle: 'Special / Review SDS',
-    zoneTitle: 'Hard isolation / dedicated reactive storage',
-    note: 'Water-reactive, pyrophoric, explosive, polymerizable, organic peroxides, radioactive. Requires dedicated cabinets, gas cabinets, or explosives lockers per SDS.',
-    className: 'border-red-400 bg-red-100',
-    textClassName: 'text-red-950',
-  },
-  review: {
-    id: 'review',
-    cabinetId: 'review',
-    cabinetTitle: 'Review SDS',
-    zoneTitle: 'Unassigned / assessor review',
-    note: 'No confident cabinet assignment. Check SDS sections 7 and 10 and local storage rules.',
-    className: 'border-zinc-300 bg-zinc-100',
-    textClassName: 'text-zinc-800',
-  },
-};
-
-const CABINET_ORDER: CabinetId[] = ['specialReview', 'flammables', 'corrosiveAcids', 'corrosiveBases', 'oxidizers', 'toxins', 'shelving', 'review'];
 
 function CabinetSchemePanel({
   matches,
-  pairs,
+  assignmentEdits,
   notes,
   onNotes,
 }: {
   matches: CameoMatch[];
-  pairs: CameoPairFinding[];
+  assignmentEdits: Record<string, Storage2AssignmentEdit>;
   notes: string;
   onNotes: (value: string) => void;
 }) {
-  const assignments = useMemo(() => matches.map(assignCabinetZone), [matches]);
+  const assignments = useMemo(() => matches.map((match) => applyAssignmentEdit(classifyStorage20(match), assignmentEdits[match.chemical.id])), [matches, assignmentEdits]);
   const assignmentsByCabinet = useMemo(() => {
-    const byCabinet = new Map<CabinetId, CabinetAssignment[]>();
+    const byCabinet = new Map<Storage20CabinetId, Storage20Assignment[]>();
     for (const assignment of assignments) {
-      byCabinet.set(assignment.zone.cabinetId, [...(byCabinet.get(assignment.zone.cabinetId) ?? []), assignment]);
+      byCabinet.set(assignment.cabinetId, [...(byCabinet.get(assignment.cabinetId) ?? []), assignment]);
     }
     return byCabinet;
   }, [assignments]);
-  const warningsByCabinet = useMemo(() => buildCabinetWarnings(assignments, pairs), [assignments, pairs]);
-  const cabinetWarnings = useMemo(() => [...warningsByCabinet.values()].flat(), [warningsByCabinet]);
 
   return (
     <Panel
       title="Image-based cabinet layout"
-      subtitle="Primary placement follows the supplied cabinet scheme; CAMEO pair findings are used as spill-contact and secondary-containment warnings."
+      subtitle="Primary placement follows the supplied cabinet scheme and the confirmed storage group assignments."
       icon={<FlaskConical size={18} />}
+      collapsible
+      defaultOpen={false}
     >
       <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900">
-        <p className="font-semibold">CAMEO-driven cabinet assignment</p>
-        <p className="mt-1">Chemicals are assigned to cabinets based on CAMEO reactive-group membership using a priority order: Special/Review (hard isolation) → Oxidizers → inert/low-reactivity Dry Solids (shelving) → cabinet by hazard group (Acids, Bases, Toxins, Flammables). When possible, isolate each cabinet group separately. Acids and bases must not share a cabinet. Oxidizing acids require double containment within the corrosives cabinet.</p>
+        <p className="font-semibold">Storage group cabinet assignment</p>
+        <p className="mt-1">Chemicals are assigned using a priority order: Special/Review (hard isolation) → Oxidizers → inert/low-reactivity Dry Solids (shelving) → cabinet by hazard group (Acids, Bases, Toxins, Flammables). Acids and bases must not share a cabinet. Oxidizing acids require double containment within the corrosives cabinet.</p>
       </div>
 
       <div className="grid gap-3 xl:grid-cols-3">
         {CABINET_ORDER.map((cabinetId) => {
           const cabinetAssignments = assignmentsByCabinet.get(cabinetId) ?? [];
           if (cabinetAssignments.length === 0) return null;
-          const cabinetTitle = cabinetAssignments[0]?.zone.cabinetTitle ?? (cabinetId === 'review' ? 'Review SDS' : '');
+          const cabinetTitle = ZONES[cabinetAssignments[0]?.zoneId]?.cabinetTitle ?? (cabinetId === 'review' ? 'Review SDS' : '');
           return (
             <div key={cabinetId} data-testid="storage2-cabinet" className="rounded-lg border border-zinc-200 bg-white p-3">
               <div data-testid="storage2-cabinet-title" className="text-sm font-semibold text-zinc-900">{cabinetTitle}</div>
               <div className="mt-3 space-y-2">
                 {Object.values(ZONES)
                   .filter((zone) => zone.cabinetId === cabinetId)
-                  .map((zone) => ({ zone, zoneAssignments: cabinetAssignments.filter((assignment) => assignment.zone.id === zone.id) }))
+                  .map((zone) => ({ zone, zoneAssignments: cabinetAssignments.filter((assignment) => assignment.zoneId === zone.id) }))
                   .filter(({ zoneAssignments }) => zoneAssignments.length > 0)
                   .map(({ zone, zoneAssignments }) => (
                     <CabinetZone key={zone.id} zone={zone} assignments={zoneAssignments} />
@@ -808,28 +850,6 @@ function CabinetSchemePanel({
         })}
         {assignments.length === 0 && <EmptyMessage>Add chemicals in Process Steps to generate the cabinet layout.</EmptyMessage>}
       </div>
-      {cabinetWarnings.length > 0 && (
-        <details className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">
-          <summary className="cursor-pointer font-semibold">
-            {cabinetWarnings.length} CAMEO spill-contact warning{cabinetWarnings.length === 1 ? '' : 's'} for assigned cabinets
-          </summary>
-          <div className="mt-2 grid gap-2 lg:grid-cols-2">
-            {cabinetWarnings.slice(0, 12).map((warning) => (
-              <div key={warning.key} className="rounded-md border border-amber-200 bg-white/70 px-2.5 py-2 leading-snug">
-                <div className="font-semibold">{warning.message}</div>
-                <div className="mt-0.5 text-[11px] opacity-85">
-                  {warning.pair.left.chemical.name || warning.pair.left.cameo?.name || 'Chemical'} ↔ {warning.pair.right.chemical.name || warning.pair.right.cameo?.name || 'Chemical'}
-                  {warning.rawCompatibility !== warning.compatibility ? ` · CAMEO ${warning.rawCompatibility}, storage action ${warning.compatibility}` : ` · CAMEO ${warning.rawCompatibility}`}
-                </div>
-                {warning.evidence.length > 0 && <div className="mt-1 text-[11px] opacity-80">{warning.evidence.join('; ')}</div>}
-              </div>
-            ))}
-            {cabinetWarnings.length > 12 && (
-              <div className="rounded-md border border-amber-200 bg-white/70 px-2.5 py-2 font-medium">+{cabinetWarnings.length - 12} more warning{cabinetWarnings.length - 12 === 1 ? '' : 's'}</div>
-            )}
-          </div>
-        </details>
-      )}
       <label className="mt-3 block">
         <span className="text-xs font-semibold text-zinc-500">Storage 2.0 layout notes</span>
         <textarea
@@ -843,345 +863,44 @@ function CabinetSchemePanel({
   );
 }
 
-function CabinetZone({ zone, assignments }: { zone: CabinetZoneDef; assignments: CabinetAssignment[] }) {
+function CabinetZone({ zone, assignments }: { zone: CabinetZoneDef; assignments: Storage20Assignment[] }) {
   return (
     <div className={clsx('min-h-28 rounded-md border p-3', zone.className, zone.textClassName)}>
       <div className="text-xs font-semibold leading-tight">{zone.zoneTitle}</div>
       <div className="mt-1 text-[11px] leading-snug opacity-85">{zone.note}</div>
       <div className="mt-2 space-y-1">
-        {assignments.map((assignment) => (
-          <div key={assignment.match.chemical.id} className="rounded bg-white/70 px-2 py-1 text-xs text-zinc-900">
-            <div className="font-semibold">{assignment.match.chemical.name || assignment.match.chemical.cas || 'Unnamed chemical'}</div>
-            <div className="mt-0.5 flex flex-wrap gap-1">
-              <span className={clsx(
-                'rounded px-1 py-0.5 text-[10px] font-semibold',
-                assignment.confidence === 'high' && 'bg-emerald-100 text-emerald-800',
-                assignment.confidence === 'medium' && 'bg-amber-100 text-amber-800',
-                assignment.confidence === 'review' && 'bg-red-100 text-red-800',
-              )}>{assignment.confidence}</span>
-              {assignment.requirements.map((requirement) => (
-                <span key={requirement} className="rounded bg-zinc-100 px-1 py-0.5 text-[10px] text-zinc-700">{requirement}</span>
-              ))}
-            </div>
-            {assignment.constraints.length > 0 && (
-              <div className="mt-1 text-[10px] leading-snug text-red-700">
-                {assignment.constraints.slice(0, 2).join('; ')}{assignment.constraints.length > 2 ? '...' : ''}
-              </div>
-            )}
-          </div>
-        ))}
+        {assignments.map((assignment) => <CabinetChemicalCard key={assignment.match.chemical.id} assignment={assignment} />)}
         {assignments.length === 0 && <div className="rounded border border-dashed border-white/80 px-2 py-2 text-center text-[11px] opacity-70">No chemicals assigned</div>}
       </div>
     </div>
   );
 }
 
-function buildCabinetWarnings(assignments: CabinetAssignment[], pairs: CameoPairFinding[]) {
-  const assignmentByChemicalId = new Map(assignments.map((assignment) => [assignment.match.chemical.id, assignment]));
-  const warningsByCabinet = new Map<CabinetId, CabinetWarning[]>();
+function CabinetChemicalCard({ assignment }: { assignment: Storage20Assignment }) {
+  const notices = cabinetNotices(assignment);
 
-  for (const pair of pairs) {
-    const left = assignmentByChemicalId.get(pair.left.chemical.id);
-    const right = assignmentByChemicalId.get(pair.right.chemical.id);
-    if (!left || !right || left.zone.cabinetId !== right.zone.cabinetId) continue;
-
-    const compatibility = matrixCompatibility(pair);
-    if (compatibility === 'Compatible' || compatibility === 'Unknown') continue;
-
-    const sameZone = left.zone.id === right.zone.id;
-    if (!sameZone && compatibility !== 'Incompatible') continue;
-
-    const scope: CabinetWarning['scope'] = sameZone ? 'same-zone' : 'same-cabinet';
-    const warning: CabinetWarning = {
-      key: `${pair.key}:${left.zone.id}:${right.zone.id}`,
-      cabinetId: left.zone.cabinetId,
-      zoneId: sameZone ? left.zone.id : undefined,
-      scope,
-      pair,
-      compatibility,
-      rawCompatibility: pair.effectiveCompatibility,
-      message: sameZone
-        ? 'Same storage zone: add separation, secondary containment, or move one chemical.'
-        : 'Same cabinet: prevent spill contact with separate trays/secondary containment or relocate.',
-      evidence: warningEvidence(pair),
-    };
-
-    warningsByCabinet.set(warning.cabinetId, [...(warningsByCabinet.get(warning.cabinetId) ?? []), warning]);
-  }
-
-  for (const [cabinetId, warnings] of warningsByCabinet) {
-    warningsByCabinet.set(cabinetId, warnings.sort((left, right) => {
-      const leftScore = left.compatibility === 'Incompatible' ? 2 : 1;
-      const rightScore = right.compatibility === 'Incompatible' ? 2 : 1;
-      return rightScore - leftScore || left.scope.localeCompare(right.scope);
-    }));
-  }
-
-  return warningsByCabinet;
+  return (
+    <details className="group rounded bg-white/70 px-2 py-1 text-xs text-zinc-900">
+      <summary className="flex cursor-pointer list-none items-center gap-1.5 font-semibold outline-none focus:ring-2 focus:ring-accent-200 [&::-webkit-details-marker]:hidden">
+        <span className="mr-auto">{assignment.match.chemical.name || assignment.match.chemical.cas || 'Unnamed chemical'}</span>
+        <span className="text-[10px] font-normal text-zinc-500 group-open:hidden">Show</span>
+        <span className="hidden text-[10px] font-normal text-zinc-500 group-open:inline">Hide</span>
+      </summary>
+      {notices.length > 0 ? (
+        <div className="mt-2 flex flex-wrap gap-1 border-t border-zinc-100 pt-2">
+          {notices.map((notice) => (
+            <span key={notice} className="rounded bg-zinc-100 px-1 py-0.5 text-[10px] text-zinc-700">{notice}</span>
+          ))}
+        </div>
+      ) : (
+        <div className="mt-2 border-t border-zinc-100 pt-2 text-[10px] text-zinc-500">No additional storage notices.</div>
+      )}
+    </details>
+  );
 }
 
-function warningEvidence(pair: CameoPairFinding) {
-  return pair.groupFindings
-    .filter((finding) => finding.compatibility === 'Incompatible' || finding.compatibility === 'Caution')
-    .slice(0, 2)
-    .map((finding) => `${finding.leftGroup.name} / ${finding.rightGroup.name}: ${finding.compatibility}`);
-}
-
-function assignCabinetZone(match: CameoMatch): CabinetAssignment {
-  const classification = classifyStorage(match.chemical);
-  const groupIds = match.groups.map((g) => g.id);
-  const groupNames = match.groups.map((g) => g.name.toLowerCase());
-  const nameText = [match.chemical.name, match.cameo?.name].filter(Boolean).join(' ').toLowerCase();
-  const dotText = match.cameo?.dotLabels.join(' ').toLowerCase() ?? '';
-  const profileText = [match.cameo?.chemicalProfile, match.cameo?.airWaterReactions, match.cameo?.specialHazards].filter(Boolean).join(' ').toLowerCase();
-  const reasons: string[] = [];
-  const requirements: string[] = [];
-  const constraints = storageConstraints(match, { text: [nameText, dotText, profileText, groupNames.join(' ')].filter(Boolean).join(' ').toLowerCase(), nameText, dotText, profileText, groupNames });
-  let zone: CabinetZoneDef = ZONES.review;
-  let confidence: CabinetAssignment['confidence'] = match.cameo ? 'medium' : 'review';
-
-  const isSolid = match.chemical.form === 'solid' || match.chemical.form === 'powder';
-  const isDryBase = isSolid || looksLikeNeatDryBase(match);
-  const hasCameo = match.cameo !== null;
-
-  // ── Unmatched: no CAMEO data → requires SDS review ─────────────────
-  if (!hasCameo) {
-    zone = ZONES.specialReview;
-    confidence = 'review';
-    reasons.push('No CAMEO chemical match — manual SDS review is required before storage assignment.');
-    return {
-      match,
-      zone,
-      confidence,
-      reasons: unique(reasons),
-      requirements: unique(requirements),
-      constraints,
-    };
-  }
-
-  // Determine cabinets from CAMEO groups
-  const cabinets = new Set(groupIds.map((id) => CAMEO_GROUP_TO_CABINET[id]).filter(Boolean));
-
-  // ── Priority 1: Special / Review ───────────────────────────────────
-  if (cabinets.has('specialReview')) {
-    zone = ZONES.specialReview;
-    confidence = 'high';
-    reasons.push('CAMEO reactive group requires dedicated reactive storage or manual SDS review.');
-
-    if (groupIds.includes(30)) {
-      requirements.push('temperature-controlled storage');
-      requirements.push('explosion-proof fridge/freezer if needed');
-    }
-    if (groupIds.some((id) => [107, 109, 108, 21, 22, 35, 42, 51].includes(id))) {
-      requirements.push('keep dry');
-      requirements.push('air-tight sealed container');
-    }
-    if (groupIds.includes(102)) requirements.push('explosives locker');
-    if (groupIds.some((id) => [103, 76].includes(id))) requirements.push('inhibit or refrigerate per SDS');
-
-    return {
-      match,
-      zone,
-      confidence,
-      reasons: unique(reasons),
-      requirements: unique(requirements),
-      constraints,
-    };
-  }
-
-  // ── Priority 2: Oxidizers ──────────────────────────────────────────
-  if (cabinets.has('oxidizers')) {
-    zone = ZONES.oxidizersOnly;
-    confidence = hasCameo ? 'high' : 'medium';
-    requirements.push('secondary containment');
-    requirements.push('separate from organics and flammables');
-    reasons.push('CAMEO oxidizer reactive group — isolate from all organic/flammable materials.');
-
-    return {
-      match,
-      zone,
-      confidence,
-      reasons: unique(reasons),
-      requirements: unique(requirements),
-      constraints,
-    };
-  }
-
-  // ── Priority 3: inert/low-reactivity solids → Shelving ─────────────
-  if (isSolid && (cabinets.size === 0 || cabinets.has('shelving'))) {
-    zone = ZONES.drySolids;
-    confidence = hasCameo ? 'medium' : 'review';
-    reasons.push('Dry solid with no stronger CAMEO cabinet signal — suitable for shelving after SDS confirmation.');
-    requirements.push('keep dry');
-
-    return {
-      match,
-      zone,
-      confidence,
-      reasons: unique(reasons),
-      requirements: unique(requirements),
-      constraints,
-    };
-  }
-
-  // ── Priority 4: Liquids → cabinet by CAMEO group ───────────────────
-  // Sub-rule: Strong Oxidizing Acids (group 2) → double containment
-  if (groupIds.includes(2) || cabinets.has('corrosiveAcids')) {
-    const isOxidizingAcid = groupIds.includes(2);
-    zone = isOxidizingAcid ? ZONES.oxidizingAcids : ZONES.nonOxidizingAcids;
-    confidence = hasCameo ? 'high' : (classification.confidence === 'review' ? 'review' : 'medium');
-    if (isOxidizingAcid) {
-      requirements.push('double containment');
-      requirements.push('isolate from organic acids and bases');
-      reasons.push('Strong Oxidizing Acid (CAMEO group 2) — requires double containment within Corrosives cabinet.');
-    } else {
-      requirements.push('separate from bases');
-      reasons.push('CAMEO acid reactive group — assign to Corrosives — Acids cabinet.');
-    }
-
-    return {
-      match,
-      zone,
-      confidence,
-      reasons: unique(reasons),
-      requirements: unique(requirements),
-      constraints,
-    };
-  }
-
-  if (cabinets.has('corrosiveBases')) {
-    zone = isDryBase ? ZONES.solidBases : ZONES.liquidBases;
-    confidence = hasCameo ? 'high' : (classification.confidence === 'review' ? 'review' : 'medium');
-    requirements.push('separate from acids');
-    if (isDryBase) {
-      requirements.push('keep dry');
-      reasons.push('CAMEO base reactive group with dry/neat form signal — assign to Corrosives — Solid bases.');
-    } else {
-      reasons.push('CAMEO base reactive group — assign to Corrosives — Liquid bases.');
-    }
-
-    return {
-      match,
-      zone,
-      confidence,
-      reasons: unique(reasons),
-      requirements: unique(requirements),
-      constraints,
-    };
-  }
-
-  if (cabinets.has('toxins')) {
-    zone = ZONES.liquidPoisons;
-    confidence = hasCameo ? 'high' : 'medium';
-    requirements.push('liquid containment');
-    requirements.push('ventilated cabinet');
-    reasons.push('CAMEO toxin reactive group — assign to Toxins cabinet.');
-
-    return {
-      match,
-      zone,
-      confidence,
-      reasons: unique(reasons),
-      requirements: unique(requirements),
-      constraints,
-    };
-  }
-
-  if (cabinets.has('flammables')) {
-    zone = ZONES.organicSolventsAcids;
-    confidence = hasCameo ? 'high' : (classification.confidence === 'review' ? 'review' : 'medium');
-    reasons.push('CAMEO flammable organic reactive group — assign to Flammables cabinet.');
-
-    return {
-      match,
-      zone,
-      confidence,
-      reasons: unique(reasons),
-      requirements: unique(requirements),
-      constraints,
-    };
-  }
-
-  // ── Fallback: no CAMEO cabinet mapping ─────────────────────────────
-  // Use classifier heuristics for unmatched or ambiguous chemicals
-  if (!hasCameo) {
-    confidence = 'review';
-    reasons.push('No CAMEO match — falling back to classifier heuristics.');
-
-    if (classification.traits.waterReactive || classification.traits.pyrophoric) {
-      zone = ZONES.specialReview;
-      requirements.push('water-reactive/pyrophoric — manual SDS review required');
-    } else if (classification.traits.oxidising) {
-      zone = ZONES.oxidizersOnly;
-      requirements.push('secondary containment');
-    } else if (isSolid) {
-      zone = ZONES.drySolids;
-    } else if (classification.traits.acid) {
-      zone = ZONES.nonOxidizingAcids;
-      requirements.push('separate from bases');
-    } else if (classification.traits.base) {
-      zone = isDryBase ? ZONES.solidBases : ZONES.liquidBases;
-      requirements.push('separate from acids');
-      if (isDryBase) requirements.push('keep dry');
-    } else if (classification.traits.toxic) {
-      zone = ZONES.liquidPoisons;
-    } else if (classification.traits.flammable) {
-      zone = ZONES.organicSolventsAcids;
-    }
-  } else {
-    reasons.push('CAMEO groups do not map to a specific cabinet — falling back to review.');
-  }
-
-  if (constraints.length > 0) {
-    requirements.push(...constraints.slice(0, 4));
-    if (constraints.some((c) => /pyrophoric|self-heating|reactive metals\/hydrides|peroxide\/polymerization/i.test(c))) {
-      confidence = 'review';
-    }
-  }
-
-  return {
-    match,
-    zone,
-    confidence,
-    reasons: unique(reasons),
-    requirements: unique(requirements),
-    constraints,
-  };
-}
-
-function looksLikeNeatDryBase(match: CameoMatch) {
-  const chemicalText = [match.chemical.name, match.chemical.formNote].filter(Boolean).join(' ').toLowerCase();
-  const cameoText = match.cameo?.name.toLowerCase() ?? '';
-  const combined = `${chemicalText} ${cameoText}`;
-  if (!/(sodium hydroxide|potassium hydroxide|calcium hydroxide|lithium hydroxide|barium hydroxide|magnesium hydroxide)/.test(combined)) return false;
-  return !/(solution|aqueous|aq\.|\b\d+\s*%|\b\d+(\.\d+)?\s*m\b|\b\d+(\.\d+)?\s*mol)/.test(chemicalText);
-}
-
-function storageConstraints(match: CameoMatch, signals: { text: string; nameText: string; dotText: string; profileText: string; groupNames: string[] }) {
-  const constraints: string[] = [];
-  const absorbents = match.cameo?.incompatibleAbsorbents ?? [];
-  const hasGroup = (pattern: RegExp) => signals.groupNames.some((name) => pattern.test(name));
-
-  const specialHazards = match.cameo?.specialHazards.toLowerCase() ?? '';
-  if (specialHazards.includes('water-reactive')) constraints.push('water-reactive - keep dry/review');
-  if (specialHazards.includes('air-reactive')) constraints.push('air-reactive - sealed compatible container');
-  if (/pyrophoric|self-heating|spontaneously ignite/.test(signals.nameText) || match.chemical.hazardStatements.some((h) => ['H250', 'H251', 'H252', 'H260', 'H261'].includes(h.code))) constraints.push('pyrophoric/self-heating review');
-  if (/attacks glass|etch glass|silica|silicon compounds|silicides|concrete|quartz/.test(signals.profileText)) constraints.push('container compatibility: avoid glass/silica');
-  if (absorbents.length > 0) constraints.push(`incompatible absorbents: ${absorbents.slice(0, 3).join(', ')}${absorbents.length > 3 ? '...' : ''}`);
-  if (/corrosive/.test(signals.dotText) && /poison|toxic/.test(signals.dotText)) constraints.push('special corrosive poison review');
-  if (/cyanide/.test(signals.nameText) || hasGroup(/cyanides/)) constraints.push('hard separate from acids - HCN risk');
-  if (/(sulfide|sulphide)/.test(signals.nameText) || hasGroup(/sulfides/)) constraints.push('hard separate from acids - H2S risk');
-  if (/organic peroxide|peroxide-form|peroxidizable/.test(signals.nameText) || hasGroup(/peroxides/)) constraints.push('peroxide/polymerization review');
-  if (hasGroup(/polymerizable/)) constraints.push('polymerization/pressure review');
-  if (/sodium metal|potassium metal|lithium metal|metal hydride|hydride\b/.test(signals.nameText) || hasGroup(/hydrides|alkali metals/)) constraints.push('reactive metals/hydrides review');
-  if (/generate flammable hydrogen|hydrogen gas/i.test(signals.profileText) && /metal|hydride|hydrofluoric|hydrogen fluoride/.test(signals.nameText)) constraints.push('hydrogen generation risk');
-  if (/fluoride salts, soluble/.test(signals.groupNames.join(' ')) && /acid|hydrogen fluoride|hydrofluoric/.test(signals.text)) constraints.push('HF/fluoride special review');
-
-  return unique(constraints);
-}
-
-function unique(values: string[]) {
-  return [...new Set(values.filter(Boolean))];
+function cabinetNotices(assignment: Storage20Assignment) {
+  return [...new Set([...assignment.requirements, ...assignment.constraints])].slice(0, 5);
 }
 
 function EmptyMessage({ children }: { children: React.ReactNode }) {

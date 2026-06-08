@@ -44,6 +44,7 @@ const GROUP_E_HCODES = new Set([
   'H341',   // Suspected of causing genetic defects (Mut. Cat 2)
   'H350',   // May cause cancer (Carc. Cat 1A/1B)
   'H350I',  // May cause cancer by inhalation
+  'EU70',   // Toxic by eye contact
 ]);
 
 const GROUP_D_HCODES = new Set([
@@ -69,6 +70,7 @@ const GROUP_C_HCODES = new Set([
   'H335',   // May cause respiratory irritation
   'H370',   // Causes damage to organs (STOT SE Cat 1)
   'H373',   // May cause damage to organs (STOT RE Cat 2)
+  'EU71',   // Corrosive to the respiratory tract
 ]);
 
 const GROUP_B_HCODES = new Set([
@@ -78,12 +80,26 @@ const GROUP_B_HCODES = new Set([
   'H371',   // May cause damage to organs (STOT SE Cat 2)
 ]);
 
-// Group A is the implicit default — comprises H303, H304, H305, H313, H315,
-// H316, H319, H320, H333, H336 and any H-statement not listed in B/C/D/E.
+const GROUP_A_HCODES = new Set([
+  'H304',   // May be fatal if swallowed and enters airways
+  'H315',   // Causes skin irritation
+  'H319',   // Causes serious eye irritation
+  'H336',   // May cause dizziness or drowsiness
+  'EU66',   // Repeated exposure may cause skin dryness or cracking
+]);
+
+function normalizeCoshhHazardCode(code: string): string {
+  const compact = code.trim().toUpperCase().replace(/\s+/g, '');
+  const numeric = compact.match(/^\d{3}[A-Z]{0,3}$/);
+  if (numeric) return `H${compact}`;
+  const eu = compact.match(/^EUH?0?(\d{2})$/);
+  if (eu) return `EU${eu[1]}`;
+  return compact;
+}
 
 /** True if any H-code triggers automatic "seek specialist advice" (Approach 4). */
 function hazardGroupFor(hCodes: string[]): { group: HazardGroup; drivers: string[] } {
-  const codes = hCodes.map((c) => c.trim().toUpperCase().replace(/\s+/g, ''));
+  const codes = hCodes.map(normalizeCoshhHazardCode);
   const hit = (set: Set<string>) =>
     codes.filter((c) => set.has(c));
   const eDrv = hit(GROUP_E_HCODES);
@@ -94,7 +110,8 @@ function hazardGroupFor(hCodes: string[]): { group: HazardGroup; drivers: string
   if (cDrv.length) return { group: 'C', drivers: cDrv };
   const bDrv = hit(GROUP_B_HCODES);
   if (bDrv.length) return { group: 'B', drivers: bDrv };
-  return { group: 'A', drivers: [] };
+  const aDrv = hit(GROUP_A_HCODES);
+  return { group: 'A', drivers: aDrv };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

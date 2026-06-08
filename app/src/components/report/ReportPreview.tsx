@@ -2,47 +2,26 @@ import { Printer } from 'lucide-react';
 import { Assessment, GhsPictogram, RiskScore, riskRating, Substance } from '@/types/assessment';
 import { GhsIcon, GHS_LABELS } from '@/components/common/GhsPictograms';
 import { suggestControls, APPROACH_LABEL } from '@/services/coshhEssentials';
-import { classifyStorage, StorageGroupId } from '@/services/storageClassifier';
 import { ReportOptions } from '@/services/exporters/reportOptions';
-import { HAZARD_GROUP_HELP, EP_HELP } from '@/services/exporters/coshhSummary';
+import {
+  HAZARD_GROUP_HELP,
+  EP_HELP,
+  EP_EXPOSURE_TABLE,
+  EP_EXPOSURE_TABLE_EXPLANATION,
+} from '@/services/exporters/coshhSummary';
+import { resolveCameoMatch } from '@/services/cameoStorage';
+import {
+  classifyStorage20,
+  applyStorage20Edit,
+  storage20RequirementsText,
+  Storage20Assignment,
+  ZONES,
+  CABINET_ORDER,
+  Storage20CabinetId,
+  Storage20ZoneId,
+} from '@/services/storage20Classifier';
 
 const DASH = '—';
-
-const STORAGE_LABELS: Record<StorageGroupId, string> = {
-  '1': 'Flammable Cabinet',
-  '2a': 'Corrosives Cabinet (Acids)',
-  '2b': 'Organic Acids Cabinet',
-  '3': 'Corrosives Cabinet (Bases)',
-  '4': 'Oxidizers Cabinet',
-  '5a': 'Toxins Cabinet - inorganic',
-  '5b': 'Toxins Cabinet - organic',
-  '5c': 'Locked Poisons Cabinet',
-  '6': 'Reactive Materials Cabinet',
-};
-
-const STORAGE_GUIDANCE: Record<StorageGroupId, string> = {
-  '1': 'Keep away from heat, sparks, ignition sources and oxidizers.',
-  '2a': 'Store acids separately from bases, cyanides, sulphides and oxidizers.',
-  '2b': 'Store organic acids separately from bases and oxidizers unless the SDS confirms compatibility.',
-  '3': 'Store bases separately from acids and oxidizers.',
-  '4': 'Keep away from organic materials, flammables, acids and reducing agents.',
-  '5a': 'Store securely with restricted access and compatible secondary containment.',
-  '5b': 'Store securely with restricted access. Keep liquids below solids where practicable.',
-  '5c': 'Store in locked storage with access restricted to authorised users.',
-  '6': 'Keep dry, tightly closed, and away from water, acids and incompatible materials.',
-};
-
-const STORAGE_INCOMPATIBLES: Record<StorageGroupId, string> = {
-  '1': 'Oxidizers, strong acids/bases, inorganic toxins and reactive materials unless SDS confirms compatibility.',
-  '2a': 'Bases, cyanides, sulphides, flammables, organic acids and reactive materials unless SDS confirms compatibility.',
-  '2b': 'Bases, oxidizers, mineral acids, toxins and reactive materials unless SDS confirms compatibility.',
-  '3': 'Acids, flammables, organic toxins and reactive materials unless SDS confirms compatibility.',
-  '4': 'Flammables, organic materials, organic acids, organic toxins and reactive materials unless SDS confirms compatibility.',
-  '5a': 'Flammables, acids, organic acids, organic toxins and reactive materials unless SDS confirms compatibility.',
-  '5b': 'Acids, bases, oxidizers, inorganic toxins and reactive materials unless SDS confirms compatibility.',
-  '5c': 'Store separately and securely unless SDS/local poison controls confirm compatibility.',
-  '6': 'Water, acids, oxidizers and incompatible aqueous waste streams unless SDS confirms compatibility.',
-};
 
 function personsLine(a: Assessment) {
   const labels: Array<[keyof Assessment['overview']['personsAtRisk'], string]> = [
@@ -141,27 +120,34 @@ function TextBlock({ value }: { value: string }) {
   );
 }
 
-function storageAssignment(a: Assessment, chemical: Substance) {
-  const classification = classifyStorage(chemical);
-  const edit = a.additional.assignments?.[chemical.id];
-  const override = edit?.groupOverride;
-  const groupId = override && override !== 'general' && override !== 'review'
-    ? override
-    : classification.groupId;
-  return {
-    finalGroup: override === 'general'
-      ? 'General shelving / non-hazardous item'
-      : override === 'review' || !groupId
-        ? 'Review SDS sections 7 and 10'
-        : STORAGE_LABELS[groupId],
-    suggestedGroup: classification.groupId ? STORAGE_LABELS[classification.groupId] : 'Review required',
-    hazards: classification.primaryHazards.join(', ') || classification.hCodes.join(', ') || DASH,
-    guidance: edit?.guidance ?? (groupId ? STORAGE_GUIDANCE[groupId] : 'Check SDS sections 7 and 10 before assigning storage.'),
-    segregation: edit?.alert ?? (groupId ? STORAGE_INCOMPATIBLES[groupId] : 'Check SDS sections 7 and 10.'),
-    reason: override ? 'Assessor override. Verify against SDS sections 7 and 10.' : classification.reason,
-    confirmed: edit?.confirmed === true,
-  };
+function storage20For(a: Assessment, chemical: Substance): Storage20Assignment {
+  const match = resolveCameoMatch(chemical, a.storage2.matches[chemical.id]);
+  const automatic = classifyStorage20(match);
+  return applyStorage20Edit(automatic, a.storage2.assignmentOverrides?.[chemical.id]);
 }
+
+function storage20ZoneLabel(a: Assessment, chemical: Substance): string {
+  const match = resolveCameoMatch(chemical, a.storage2.matches[chemical.id]);
+  if (!match) return DASH;
+  const automatic = classifyStorage20(match);
+  const assignment = applyStorage20Edit(automatic, a.storage2.assignmentOverrides?.[chemical.id]);
+  return storage20RequirementsText(assignment);
+}
+
+const ZONE_COLORS: Record<Storage20ZoneId, string> = {
+  organicSolventsAcids: 'border-yellow-300 bg-yellow-100 text-yellow-950',
+  volatilePoisonsChlorinated: 'border-sky-300 bg-sky-100 text-sky-950',
+  nonOxidizingAcids: 'border-violet-300 bg-violet-100 text-violet-950',
+  oxidizingAcids: 'border-red-300 bg-red-100 text-red-950',
+  liquidBases: 'border-orange-300 bg-orange-100 text-orange-950',
+  solidBases: 'border-orange-300 bg-orange-50 text-orange-950',
+  oxidizersOnly: 'border-amber-300 bg-amber-100 text-amber-950',
+  dryPoisons: 'border-pink-300 bg-pink-100 text-pink-950',
+  liquidPoisons: 'border-pink-300 bg-pink-100 text-pink-950',
+  drySolids: 'border-emerald-300 bg-emerald-100 text-emerald-950',
+  specialReview: 'border-red-400 bg-red-100 text-red-950',
+  review: 'border-zinc-300 bg-zinc-100 text-zinc-800',
+};
 
 function riskText(score: RiskScore) {
   const rating = riskRating(score);
@@ -172,20 +158,53 @@ function stepGhs(step: Assessment['processSteps'][number]) {
   return [...new Set(step.chemicals.flatMap((chemical) => chemical.ghsPictograms))];
 }
 
-function storageTone(group: string) {
-  if (/flammable/i.test(group)) return 'report-storage-flammable';
-  if (/acid|base|corrosive/i.test(group)) return 'report-storage-corrosive';
-  if (/oxid/i.test(group)) return 'report-storage-oxidiser';
-  if (/toxin|poison/i.test(group)) return 'report-storage-toxic';
-  if (/reactive/i.test(group)) return 'report-storage-reactive';
-  return 'report-storage-review';
-}
 
-function StorageStatus({ confirmed }: { confirmed: boolean }) {
+
+function StorageCabinetPreview({ a, chemicals }: { a: Assessment; chemicals: Substance[] }) {
+  const assignments = chemicals.map((c) => storage20For(a, c));
+  const byCabinet = new Map<Storage20CabinetId, Storage20Assignment[]>();
+  for (const asgn of assignments) {
+    byCabinet.set(asgn.cabinetId, [...(byCabinet.get(asgn.cabinetId) ?? []), asgn]);
+  }
+  const populatedCabinets = CABINET_ORDER.filter((id) => (byCabinet.get(id)?.length ?? 0) > 0);
+  if (populatedCabinets.length === 0) {
+    return <p className="report-muted">No cabinet assignments generated. Add chemicals in Process Steps.</p>;
+  }
   return (
-    <span className={confirmed ? 'report-status-ok' : 'report-status-review'}>
-      {confirmed ? 'Reviewed' : 'Not reviewed'}
-    </span>
+    <div className="report-cabinet-grid">
+      {populatedCabinets.map((cabinetId) => {
+        const cabinetAssignments = byCabinet.get(cabinetId)!;
+        const zones = new Map<Storage20ZoneId, Storage20Assignment[]>();
+        for (const asgn of cabinetAssignments) {
+          zones.set(asgn.zoneId, [...(zones.get(asgn.zoneId) ?? []), asgn]);
+        }
+        const cabinetTitle = ZONES[cabinetAssignments[0]?.zoneId]?.cabinetTitle ?? (cabinetId === 'review' ? 'Review SDS' : '');
+        return (
+          <div key={cabinetId} className="report-cabinet-card">
+            <div className="report-cabinet-head">{cabinetTitle}</div>
+            <div className="report-cabinet-body">
+              {[...zones.entries()].map(([zoneId, zoneAssignments]) => {
+                const zone = ZONES[zoneId];
+                if (!zone) return null;
+                return (
+                  <div key={zoneId} className={`report-cabinet-zone ${ZONE_COLORS[zoneId]}`}>
+                    <div className="report-cabinet-zone-title">{zone.zoneTitle}</div>
+                    <div className="report-cabinet-zone-note">{zone.note}</div>
+                    <div className="report-cabinet-chemicals">
+                      {zoneAssignments.map((asgn) => (
+                        <div key={asgn.match.chemical.id} className="report-cabinet-chemical">
+                          {asgn.match.chemical.name || asgn.match.chemical.cas || 'Unnamed'}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -283,7 +302,7 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
           <header className="report-cover">
             <div>
               <div className="report-eyebrow">COSHH RISK ASSESSMENT</div>
-              <h1>{assessment.overview.activityTitle || 'Untitled assessment'}</h1>
+              <h1>{assessment.overview.activityOutline || 'Untitled assessment'}</h1>
               <div className="report-business">{assessment.overview.businessUnit || 'Business unit not set'}</div>
             </div>
             <div className="report-meta-strip">
@@ -314,7 +333,7 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
                 )}
                 {options.overview.activityOutline && (
                   <div className="report-kv report-kv-wide">
-                    <div className="report-kv-label">Activity Outline</div>
+                    <div className="report-kv-label">RA Title</div>
                     <div className="report-kv-value">{assessment.overview.activityOutline || DASH}</div>
                   </div>
                 )}
@@ -352,6 +371,12 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
                     ))}
                   </tbody>
                 </table>
+                <GhsLegend chemicals={chemicals} />
+                {options.process.chemicalDetails && chemicalDetails.length > 0 && (
+                  <div className="report-note">
+                    See <a href="#appendix-a" className="underline hover:text-blue-700">Appendix A — Chemical Detail</a> for full hazard statements, WELs, and exposure information per chemical.
+                  </div>
+                )}
               </div>
             </section>
           )}
@@ -429,37 +454,7 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
             <section className="report-block">
               <SectionTab n={sectionNo++} title="Storage" />
               <div className="report-panel">
-                <div className="report-note">Per-chemical storage assignments from the Storage page. Confirm each row against SDS sections 7 and 10 and local storage rules.</div>
-                <GhsLegend chemicals={chemicals} />
-                {chemicals.length > 0 && (
-                  <table className="report-table report-table-dense report-storage-table">
-                    <thead>
-                      <tr>
-                        <th>Chemical</th>
-                        <th>Final storage group</th>
-                        <th>Suggested group</th>
-                        <th>GHS</th>
-                        <th>Segregation alert</th>
-                        <th>Reviewed</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {chemicals.map((chemical) => {
-                        const storage = storageAssignment(assessment, chemical);
-                        return (
-                          <tr key={chemical.id}>
-                            <td><strong>{chemical.name || DASH}</strong><div>CAS {chemical.cas || DASH}</div></td>
-                            <td><span className={`report-storage-pill ${storageTone(storage.finalGroup)}`}>{storage.finalGroup}</span></td>
-                            <td>{storage.suggestedGroup}</td>
-                            <td><GhsIcons ids={chemical.ghsPictograms} /></td>
-                            <td>{storage.segregation}</td>
-                            <td><StorageStatus confirmed={storage.confirmed} /></td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                )}
+                {chemicals.length > 0 && <StorageCabinetPreview a={assessment} chemicals={chemicals} />}
               </div>
             </section>
           )}
@@ -505,7 +500,7 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
         </section>
 
         {options.process.include && options.process.chemicalDetails && chemicalDetails.length > 0 && (
-          <section className="report-page">
+          <section className="report-page" id="appendix-a">
             <SectionTab n="A1" title="Appendix A — Chemical Detail" />
             <table className="report-table report-table-dense">
               <thead>
@@ -515,6 +510,7 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
                   <th>Form / qty</th>
                   <th>Hazard statements</th>
                   <th>WEL</th>
+                  <th>Storage 2.0</th>
                   <th>Exposure</th>
                   {options.process.ghsPictograms && <th>GHS</th>}
                 </tr>
@@ -531,6 +527,7 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
                       <div><strong>STEL:</strong> {chemical.welSummary.stel}</div>
                       <div><strong>Source:</strong> {chemical.welSummary.source}</div>
                     </td>
+                    <td>{storage20ZoneLabel(assessment, chemical)}</td>
                     <td>{chemical.exposureDuration || DASH}<div>{chemical.exposureFrequency || DASH}</div><div>{routes(chemical)}</div></td>
                     {options.process.ghsPictograms && <td><GhsIcons ids={chemical.ghsPictograms} /></td>}
                   </tr>
@@ -546,6 +543,7 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
             <div className="report-note report-note-top">
               COSHH Essentials is an HSE control-banding screen. CAT presents it as substance-level screening: it estimates a control approach for each substance from health hazard group, quantity scale, and volatility or dustiness. It is not a legal approval by itself: a competent assessor must confirm the output against SDS information, exposure route, quantity, duration, WELs and local conditions.
             </div>
+            <div className="report-table-heading">Guidance: COSHH Essentials reference tables</div>
             <table className="report-table report-table-compact report-mb">
               <tbody>
                 <tr className={approachClass(1)}><th>Approach 1</th><td>General ventilation and good practice may be sufficient only when confirmed by a competent assessor for the actual task.</td></tr>
@@ -572,7 +570,27 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
                 </tbody>
               </table>
             </div>
-            <div className="report-table-heading">Substance-level COSHH Essentials screening recommendations</div>
+            <div className="report-table-heading">Predicted exposure ranges by EP band and control approach</div>
+            <div className="report-note report-mb">
+              {EP_EXPOSURE_TABLE_EXPLANATION}
+            </div>
+            {EP_EXPOSURE_TABLE.map((section) => (
+              <table key={section.title} className="report-table report-table-compact report-mb">
+                <thead>
+                  <tr><th colSpan={4}>{section.title}</th></tr>
+                  <tr><th>EP band</th><th>Control approach 1</th><th>Control approach 2</th><th>Control approach 3</th></tr>
+                </thead>
+                <tbody>
+                  {section.rows.map(([ep, a1, a2, a3]) => (
+                    <tr key={ep}><th>{ep}</th><td>{a1}</td><td>{a2}</td><td>{a3}</td></tr>
+                  ))}
+                </tbody>
+              </table>
+            ))}
+            <div className="report-table-heading">Recommendations: substance-level screening output</div>
+            <div className="report-note report-mb">
+              The table below is CAT's substance-level COSHH Essentials screening result for this assessment. The highest approach across the substances drives the suggested control approach, but the assessor must still confirm suitable task-specific controls.
+            </div>
             <table className="report-table report-table-dense">
               <thead><tr><th>Substance</th><th>Group</th><th>H-codes</th><th>Scale</th><th>Band</th><th>EP</th><th>Approach</th></tr></thead>
               <tbody>

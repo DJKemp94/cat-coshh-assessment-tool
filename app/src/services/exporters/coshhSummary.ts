@@ -9,11 +9,11 @@ export const COSHH_INTRO = [
 ];
 
 export const HAZARD_GROUP_HELP: [string, string][] = [
-  ['A', 'Lower health hazard band: H304, H315, H319, H336 and similar lower-toxicity effects.'],
+  ['A', 'Lower health hazard band: H304, H315, H319, H336, EU66 and similar lower-toxicity effects.'],
   ['B', 'Harmful / STOT category 2 band: H302, H312, H332, H371.'],
-  ['C', 'Toxic, corrosive, serious eye damage, sensitising skin, respiratory irritation or STOT category 1/2: H301, H311, H314, H317, H318, H331, H335, H370, H373.'],
+  ['C', 'Toxic, corrosive, serious eye damage, sensitising skin, respiratory irritation or STOT category 1/2: H301, H311, H314, H317, H318, H331, H335, H370, H373, EU71.'],
   ['D', 'Fatal acute toxicity, suspected carcinogen / reproductive toxicant, lactation hazard or repeated-exposure organ damage: H300, H310, H330, H351, H360, H361, H362, H372.'],
-  ['E', 'Respiratory sensitiser, mutagen or carcinogen category 1 / suspected mutagen: H334, H340, H341, H350. Specialist advice is required (Approach 4).'],
+  ['E', 'Respiratory sensitiser, mutagen, carcinogen category 1 / suspected mutagen or toxic by eye contact: H334, H340, H341, H350, EU70. Specialist advice is required (Approach 4).'],
 ];
 
 export const EP_HELP: [string, string][] = [
@@ -29,3 +29,27 @@ export const APPROACH_HELP: [string, string][] = [
   ['3', 'Containment or enclosure where small breaches may occur.'],
   ['4', 'Specialist advice required: the banding screen alone is not sufficient.'],
 ];
+
+export const EP_EXPOSURE_TABLE_EXPLANATION =
+  'This reference table shows the predicted airborne exposure ranges associated with each exposure predictor (EP) band and control approach. It helps explain why COSHH Essentials may move from general ventilation to engineering control or containment as the expected dust or vapour exposure increases. It is background guidance only: CAT still bases the recommendation for each substance on hazard group, quantity scale and volatility or dustiness, and the assessor must confirm the final controls against the task and SDS.';
+
+export const EP_EXPOSURE_TABLE = [
+  {
+    title: 'Predicted exposures for dust in air (mg/m3)',
+    rows: [
+      ['EP1 Solid', '0.01 to 0.1', '0.001 to 0.01', '<0.001'],
+      ['EP2 Solid', '0.1 to 1', '0.01 to 0.1', '0.001 to 0.01'],
+      ['EP3 Solid', '1 to 10', '0.1 to 1', '0.01 to 0.1'],
+      ['EP4 Solid', '>10', '1 to 10', '0.1 to 1'],
+    ],
+  },
+  {
+    title: 'Predicted exposures for vapour in air (ppm)',
+    rows: [
+      ['EP1 Liquid', '<5', '<0.5', '<0.05'],
+      ['EP2 Liquid', '5 to 50', '0.5 to 5', '0.05 to 0.5'],
+      ['EP3 Liquid', '50 to 500', '5 to 50', '0.5 to 5'],
+      ['EP4 Liquid', '>500', '5 to 500', '0.5 to 5'],
+    ],
+  },
+] as const;

@@ -3,14 +3,28 @@ import {
   WidthType, TextRun, AlignmentType, BorderStyle, ImageRun,
   ShadingType, HeightRule, PageBreak, Footer, PageNumber,
 } from 'docx';
-import { Assessment, riskRating, PersonsAtRisk, GhsPictogram } from '@/types/assessment';
+import { Assessment, riskRating, PersonsAtRisk, GhsPictogram, Substance } from '@/types/assessment';
 import { exportFileName } from './_filename';
 import { loadPictograms, RasterisedPictogram } from './ghsImages';
 import {
   suggestControls, OverallSuggestion, SubstanceAnalysis,
 } from '@/services/coshhEssentials';
-import { COSHH_INTRO, HAZARD_GROUP_HELP, EP_HELP, APPROACH_HELP } from './coshhSummary';
+import {
+  COSHH_INTRO,
+  HAZARD_GROUP_HELP,
+  EP_HELP,
+  APPROACH_HELP,
+  EP_EXPOSURE_TABLE,
+  EP_EXPOSURE_TABLE_EXPLANATION,
+} from './coshhSummary';
 import { fullReportOptions, ReportOptions } from './reportOptions';
+import { resolveCameoMatch } from '@/services/cameoStorage';
+import {
+  classifyStorage20,
+  applyStorage20Edit,
+  storage20RequirementsText,
+  STORAGE20_ZONE_LABELS,
+} from '@/services/storage20Classifier';
 
 // Modern palette
 const TEAL = '0d9488';
@@ -32,6 +46,16 @@ const formatStepControls = (step: { controls?: { engineering?: string[]; ppe?: s
   ['PPE', formatStepControlList(step.controls?.ppe)],
   ['Other step controls', step.controls?.other?.trim() || DASH],
 ] as [string, string][];
+
+function uniqueChemicals(a: Assessment): Substance[] {
+  const seen = new Set<string>();
+  return a.processSteps.flatMap((step) => step.chemicals).filter((chemical) => {
+    const key = (chemical.cas?.trim() || chemical.name).toLowerCase().trim();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
 
 const txt = (
   s: string,
@@ -138,6 +162,17 @@ const kvTable = (rows: [string, string][]) =>
     ),
   });
 
+const head = (s: string) =>
+  new TableCell({
+    shading: { type: ShadingType.CLEAR, color: 'auto', fill: TEAL },
+    margins: { top: 80, bottom: 80, left: 100, right: 100 },
+    children: [
+      new Paragraph({
+        children: [new TextRun({ text: s, bold: true, color: WHITE, size: 18, font: FONT })],
+      }),
+    ],
+  });
+
 const personsLine = (per: PersonsAtRisk): string => {
   const map: [keyof PersonsAtRisk, string][] = [
     ['staff', 'Staff'], ['students', 'Students'], ['thirdParty', 'Third Party'],
@@ -177,7 +212,7 @@ const titleBlock = (a: Assessment): (Paragraph | Table)[] => {
       spacing: { after: 60 },
       children: [
         new TextRun({
-          text: a.overview.activityTitle || 'Untitled assessment',
+          text: a.overview.activityOutline || 'Untitled assessment',
           bold: true,
           color: INK,
           size: 48,
@@ -420,6 +455,55 @@ const referenceTable = (title: string, rows: [string, string][]): (Paragraph | T
   ];
 };
 
+const epExposureTable = (): (Paragraph | Table)[] => [
+  para('Predicted exposure ranges by EP band and control approach', { bold: true, color: TEAL_DARK, size: 20, spaceBefore: 40, spaceAfter: 60 }),
+  para(EP_EXPOSURE_TABLE_EXPLANATION, { color: MUTED, size: 18, spaceAfter: 80 }),
+  ...EP_EXPOSURE_TABLE.flatMap((section) => [
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: {
+        top: { style: BorderStyle.SINGLE, size: 4, color: LINE },
+        bottom: { style: BorderStyle.SINGLE, size: 4, color: LINE },
+        left: { style: BorderStyle.SINGLE, size: 4, color: LINE },
+        right: { style: BorderStyle.SINGLE, size: 4, color: LINE },
+        insideHorizontal: { style: BorderStyle.SINGLE, size: 4, color: LINE },
+        insideVertical: { style: BorderStyle.SINGLE, size: 4, color: LINE },
+      },
+      rows: [
+        new TableRow({
+          tableHeader: true,
+          children: [
+            new TableCell({
+              columnSpan: 4,
+              shading: { type: ShadingType.CLEAR, color: 'auto', fill: TEAL },
+              margins: { top: 80, bottom: 80, left: 120, right: 120 },
+              children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: section.title, bold: true, color: WHITE, size: 18, font: FONT })] })],
+            }),
+          ],
+        }),
+        new TableRow({
+          tableHeader: true,
+          children: [
+            cell('EP band', { bold: true, width: 25, fill: ZEBRA }),
+            cell('Control approach 1', { bold: true, width: 25, fill: ZEBRA }),
+            cell('Control approach 2', { bold: true, width: 25, fill: ZEBRA }),
+            cell('Control approach 3', { bold: true, width: 25, fill: ZEBRA }),
+          ],
+        }),
+        ...section.rows.map((row, i) => new TableRow({
+          children: [
+            cell(row[0], { bold: true, color: TEAL_DARK, fill: i % 2 === 1 ? ZEBRA : undefined }),
+            cell(row[1], { fill: i % 2 === 1 ? ZEBRA : undefined }),
+            cell(row[2], { fill: i % 2 === 1 ? ZEBRA : undefined }),
+            cell(row[3], { fill: i % 2 === 1 ? ZEBRA : undefined }),
+          ],
+        })),
+      ],
+    }),
+    blank(80),
+  ]),
+];
+
 export async function exportDocx(a: Assessment, options: ReportOptions = fullReportOptions()): Promise<void> {
   const children: (Paragraph | Table)[] = [];
 
@@ -467,7 +551,7 @@ export async function exportDocx(a: Assessment, options: ReportOptions = fullRep
     children.push(blank(120));
   }
   if (options.overview.activityOutline) {
-    children.push(para('Activity Outline', { bold: true, color: MUTED, size: 18 }));
+    children.push(para('RA Title', { bold: true, color: MUTED, size: 18 }));
     children.push(para(a.overview.activityOutline || DASH, { size: 20 }));
   }
   }
@@ -573,7 +657,8 @@ export async function exportDocx(a: Assessment, options: ReportOptions = fullRep
     }
     children.push(para(`Reference: ${coshh.gSheetRef}.`, { color: MUTED, size: 18, spaceAfter: 160 }));
 
-    children.push(para('Per-substance breakdown', { bold: true, color: TEAL_DARK, size: 20, spaceBefore: 60, spaceAfter: 60 }));
+    children.push(para('Recommendations: substance-level screening output', { bold: true, color: TEAL_DARK, size: 20, spaceBefore: 60, spaceAfter: 60 }));
+    children.push(para('The table below is CAT\'s substance-level COSHH Essentials screening result for this assessment. The highest approach across the substances drives the suggested control approach, but the assessor must still confirm suitable task-specific controls.', { color: MUTED, size: 18, spaceAfter: 80 }));
     children.push(coshhBreakdownTable(coshh.analyses, coshh.approach));
     children.push(para('* assumed value used because input was missing or unparseable.',
       { italics: true, color: MUTED, size: 14, spaceBefore: 60, spaceAfter: 160 }));
@@ -592,10 +677,11 @@ export async function exportDocx(a: Assessment, options: ReportOptions = fullRep
   }
 
   if (options.controls.coshhLegend) {
-    children.push(para('Reference legend', { bold: true, color: TEAL_DARK, size: 20, spaceBefore: 80, spaceAfter: 60 }));
+    children.push(para('Guidance: COSHH Essentials reference tables', { bold: true, color: TEAL_DARK, size: 20, spaceBefore: 80, spaceAfter: 60 }));
     children.push(...referenceTable('Hazard group', HAZARD_GROUP_HELP.map(([k, v]) => [`Group ${k}`, v])));
     children.push(...referenceTable('Exposure predictor (EP) band', EP_HELP));
     children.push(...referenceTable('Control approach', APPROACH_HELP.map(([k, v]) => [`Approach ${k}`, v])));
+    children.push(...epExposureTable());
 
     children.push(subHeading('GHS pictogram legend'));
     children.push(...pictogramStrip(legendPictos));
@@ -615,13 +701,53 @@ export async function exportDocx(a: Assessment, options: ReportOptions = fullRep
     ]));
   }
 
-  // ── 06 Additional Requirements ───────────────────────
+  // ── 06 Storage 2.0 ────────────────────────────────────
   if (options.storage.include) {
     children.push(sectionBanner(sectionNo++, 'Storage'));
-    children.push(kvTable([
-      ['Storage', a.additional.storage],
-      ['Incompatible substances', a.additional.incompatibles],
-    ]));
+    const storageChemicals = uniqueChemicals(a);
+    if (storageChemicals.length > 0) {
+      const rows = storageChemicals.map((chemical, i) => {
+        const match = resolveCameoMatch(chemical, a.storage2.matches[chemical.id]);
+        const automatic = classifyStorage20(match);
+        const assignment = applyStorage20Edit(automatic, a.storage2.assignmentOverrides?.[chemical.id]);
+        const fill = i % 2 === 1 ? ZEBRA : undefined;
+        return new TableRow({
+          children: [
+            cell(`${chemical.name || DASH}${chemical.cas ? `\nCAS ${chemical.cas}` : ''}`, { bold: true, widthDxa: 1600, fill }),
+            cell(chemical.ghsPictograms.join(', ') || DASH, { widthDxa: 1200, fill }),
+            cell(chemical.hazardStatements.map((h) => h.code).join(', ') || DASH, { widthDxa: 1200, fill }),
+            cell(STORAGE20_ZONE_LABELS[assignment.zoneId], { widthDxa: 2200, fill }),
+            cell(storage20RequirementsText(assignment), { widthDxa: 2400, fill }),
+          ],
+        });
+      });
+      children.push(new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        borders: {
+          top: { style: BorderStyle.SINGLE, size: 4, color: LINE },
+          bottom: { style: BorderStyle.SINGLE, size: 4, color: LINE },
+          left: { style: BorderStyle.NONE, size: 0, color: 'auto' },
+          right: { style: BorderStyle.NONE, size: 0, color: 'auto' },
+          insideHorizontal: { style: BorderStyle.SINGLE, size: 4, color: LINE },
+          insideVertical: { style: BorderStyle.NONE, size: 0, color: 'auto' },
+        },
+        rows: [
+          new TableRow({
+            tableHeader: true,
+            children: [
+              head('Chemical'),
+              head('GHS'),
+              head('H-codes'),
+              head('Storage Group Assignment'),
+              head('Requirements'),
+            ],
+          }),
+          ...rows,
+        ],
+      }));
+    } else {
+      children.push(para('No chemicals recorded in process steps.', { italics: true, color: MUTED }));
+    }
   }
 
   if (options.emergency.include) {

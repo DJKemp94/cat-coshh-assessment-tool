@@ -35,6 +35,9 @@ export function migrateAssessment(raw: unknown): Assessment {
       pairOverrides: typeof ((rawAssessment.storage2 || {}) as Record<string, unknown>).pairOverrides === 'object' && ((rawAssessment.storage2 || {}) as Record<string, unknown>).pairOverrides !== null
         ? ((rawAssessment.storage2 || {}) as Record<string, unknown>).pairOverrides
         : {},
+      assignmentOverrides: typeof ((rawAssessment.storage2 || {}) as Record<string, unknown>).assignmentOverrides === 'object' && ((rawAssessment.storage2 || {}) as Record<string, unknown>).assignmentOverrides !== null
+        ? ((rawAssessment.storage2 || {}) as Record<string, unknown>).assignmentOverrides
+        : {},
     };
     if (Array.isArray(rawAssessment.processSteps)) {
       rawAssessment.processSteps = rawAssessment.processSteps.map((step) => ({

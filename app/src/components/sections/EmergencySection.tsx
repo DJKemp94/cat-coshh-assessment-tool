@@ -7,7 +7,7 @@ import clsx from 'clsx';
 import { useAssessment } from '@/store/assessment';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { PageIntro } from '@/components/common/PageIntro';
-import { appendUnique, ChipSuggestion } from '@/components/common/SuggestionChips';
+import { appendUniqueBullet, ChipSuggestion } from '@/components/common/SuggestionChips';
 import { SuggestionDisclaimer } from '@/components/common/SuggestionDisclaimer';
 import { SuggestionField } from '@/components/common/SuggestionField';
 import { suggestRequirements, RequirementField } from '@/services/suggestRequirements';
@@ -113,7 +113,7 @@ export function EmergencySection() {
         value={value}
         required={required}
         suggestions={fieldSuggestions ?? (suggestionField ? suggestions[suggestionField] ?? [] : [])}
-        onAppend={(s) => update({ [key]: appendUnique(value, s) } as Partial<typeof a>)}
+        onAppend={(s) => update({ [key]: appendUniqueBullet(value, s) } as Partial<typeof a>)}
         onChange={(v) => update({ [key]: v } as Partial<typeof a>)}
         placeholder={placeholder}
       />

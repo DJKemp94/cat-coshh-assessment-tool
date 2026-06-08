@@ -96,24 +96,26 @@ const assessment = {
 
   const layout = page.locator('text=Image-based cabinet layout').locator('xpath=ancestor::div[contains(@class,"rounded-lg")][1]');
   await layout.screenshot({ path: 'output/playwright/storage20-layout-warnings.png' });
+  const layoutText = await layout.innerText();
 
   const cabinetTitles = await page.locator('[data-testid="storage2-cabinet-title"]').allTextContents();
   const summary = {
     cabinetTitles,
-    warnings: await page.locator('text=/Same storage zone|Same cabinet/').count(),
+    spillWarnings: await page.locator('text=/spill-contact warning|Same storage zone|Same cabinet/').count(),
+    matrix: await page.locator('text=Compatibility matrix (by storage group)').count(),
     toxinsCabinet: cabinetTitles.filter((title) => title === 'Toxins Cabinet').length,
     shelvingCabinet: cabinetTitles.filter((title) => title === 'Shelving').length,
     specialReviewCabinet: cabinetTitles.filter((title) => title === 'Special / Review SDS').length,
-    solidBasesZone: await page.locator('text=Solid bases').count(),
-    liquidBasesZone: await page.locator('text=Liquid bases').count(),
-    salicylicInCorrosives: await page.locator('text=Salicylic acid').count(),
+    solidBasesZone: /Solid bases/.test(layoutText),
+    liquidBasesZone: /Liquid bases/.test(layoutText),
+    salicylicInCorrosives: /Salicylic acid/.test(layoutText),
     errors,
   };
 
   console.log(JSON.stringify(summary, null, 2));
   await browser.close();
 
-  if (errors.length > 0 || summary.warnings < 1 || summary.toxinsCabinet !== 0 || summary.shelvingCabinet !== 0 || summary.specialReviewCabinet !== 0 || summary.solidBasesZone < 1 || summary.liquidBasesZone !== 0 || summary.salicylicInCorrosives < 1) {
+  if (errors.length > 0 || summary.spillWarnings !== 0 || summary.matrix !== 1 || summary.toxinsCabinet !== 0 || summary.shelvingCabinet !== 0 || summary.specialReviewCabinet !== 0 || !summary.solidBasesZone || summary.liquidBasesZone || !summary.salicylicInCorrosives) {
     process.exit(1);
   }
 })();

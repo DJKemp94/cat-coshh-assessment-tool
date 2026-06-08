@@ -233,11 +233,17 @@ function parseHCodes(strings: string[]): HCode[] {
   const set = new Map<string, string>();
   // Tolerates the ECHA convention "H370 **:" (asterisks denote route-specific
   // classification) and the notifier-percentage format "H225 (99.9%):".
-  const re = /(H\d{3}[A-Za-z]{0,3})\s*\*{0,3}\s*(?:\([^)]*\)\s*)?[:\s\-—]+([^;\n[]+)/g;
+  const re = /((?:H\d{3}[A-Za-z]{0,3})|(?:EUH?\d{2,3}))\s*\*{0,3}\s*(?:\([^)]*\)\s*)?[:\s\-—]+([^;\n[]+)/g;
   strings.forEach((s) => {
     let m: RegExpExecArray | null;
     while ((m = re.exec(s)) !== null) {
       const code = m[1].toUpperCase();
+      if (/^EUH?\d{2,3}$/.test(code)) {
+        const eu = code.match(/^EUH?0?(\d{2})$/);
+        const normalisedEu = eu ? `EU${eu[1]}` : code.replace(/^EUH/, 'EU');
+        if (!set.has(normalisedEu)) set.set(normalisedEu, m[2].trim());
+        continue;
+      }
       // Preserve original case for the suffix letters (H360FD, H350i).
       const normalised = code.replace(/^H(\d{3})([A-Z]*)$/, (_, n, suf: string) =>
         `H${n}${suf.length === 1 ? suf.toLowerCase() : suf}`,

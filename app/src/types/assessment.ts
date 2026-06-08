@@ -184,9 +184,16 @@ export interface Storage2PairEdit {
   updatedAt?: string;
 }
 
+export interface Storage2AssignmentEdit {
+  zoneOverride?: string;
+  requirements?: string;
+  updatedAt?: string;
+}
+
 export interface Storage2Requirements {
   matches: Record<UUID, Storage2MatchEdit>;
   pairOverrides: Record<string, Storage2PairEdit>;
+  assignmentOverrides: Record<UUID, Storage2AssignmentEdit>;
   layoutNotes: string;
 }
 
@@ -320,6 +327,7 @@ export const emptyStorage = (): StorageRequirements => ({
 export const emptyStorage2 = (): Storage2Requirements => ({
   matches: {},
   pairOverrides: {},
+  assignmentOverrides: {},
   layoutNotes: '',
 });
 
