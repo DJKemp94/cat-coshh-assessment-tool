@@ -1,33 +1,31 @@
 /**
- * Random-sample test for Storage 2.0 classifier.
- * Picks 50 random CAMEO chemicals, runs them through the full classifier,
- * and reports zone/cabinet/confidence/source distributions plus logical
- * consistency checks.
+ * Exploratory random audit for the Storage classifier.
+ *
+ * This complements the deterministic 100-chemical regression suite. It samples
+ * different CAMEO records on each run and applies priority-aware consistency
+ * checks so multi-hazard chemicals are not flagged just because a lower-priority
+ * group was overridden by oxidizer/special/corrosive handling.
  */
 import { mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { build } from 'esbuild';
 
-/* ── 1. Bundle all the services we need ─────────────────────────────── */
 const outdir = join(tmpdir(), 'cat-storage20-random-test');
-const outfile = join(outdir, 'bundle.mjs');
+const cameoOutfile = join(outdir, 'cameo-storage.mjs');
+const classifierOutfile = join(outdir, 'storage20-classifier.mjs');
 await mkdir(outdir, { recursive: true });
 
 await build({
-  entryPoints: [
-    join(import.meta.dirname, '..', 'src', 'services', 'cameoStorage.ts'),
-  ],
+  entryPoints: [join(import.meta.dirname, '..', 'src', 'services', 'cameoStorage.ts')],
   bundle: true,
   platform: 'node',
   format: 'esm',
-  outfile,
+  outfile: cameoOutfile,
   tsconfig: join(import.meta.dirname, '..', 'tsconfig.json'),
   logLevel: 'error',
 });
 
-/* ── 2. Also build the classifiers separately ───────────────────────── */
-const classifierOutfile = join(outdir, 'classifier.mjs');
 await build({
   entryPoints: [join(import.meta.dirname, '..', 'src', 'services', 'storage20Classifier.ts')],
   bundle: true,
@@ -38,191 +36,143 @@ await build({
   logLevel: 'error',
 });
 
-const { cameoChemicals, cameoReactiveGroups, resolveCameoMatch, cameoMeta } = await import(`file://${outfile}?t=${Date.now()}`);
-const { classifyStorage20 } = await import(`file://${classifierOutfile}?t=${Date.now()}`);
+const { cameoChemicals, cameoReactiveGroups, resolveCameoMatch, cameoMeta } = await import(`file://${cameoOutfile}?t=${Date.now()}`);
+const { classifyStorage20, ZONES, CABINET_ORDER } = await import(`file://${classifierOutfile}?t=${Date.now()}`);
 
-/* ── 3. Helper: build a Substance from CAMEO data ───────────────────── */
-function substanceFromCameo(cameoChem, index) {
+const SAMPLE_SIZE = 100;
+
+function inferForm(cameoChemical) {
+  const text = [cameoChemical.name, ...(cameoChemical.dotLabels ?? [])].join(' ').toLowerCase();
+  if (/\b(solutions?|aqueous)\b/.test(text)) return 'liquid';
+  if (/\b(grenades?|powder|solid|dry|wetted|granular|crystals?|pellets?|fume)\b/.test(text)) return 'solid';
+  if (/\b(non[-\s]?flammable gas|gas mixture|compressed|liquefied gas)\b/.test(text)) return 'gas';
+  return 'liquid';
+}
+
+function substanceFromCameo(cameoChemical, index) {
   return {
-    id: `test-${index}`,
-    pubchemCid: undefined,
-    name: cameoChem.name,
-    cas: cameoChem.cas[0] ?? '',
-    hazardStatements: [],  // CAMEO chemicals don't carry GHS H-codes
+    id: `random-${index}`,
+    name: cameoChemical.name,
+    cas: cameoChemical.cas[0] ?? '',
+    hazardStatements: [],
     ghsPictograms: [],
     wel: {},
     quantity: '',
-    form: 'liquid',
+    form: inferForm(cameoChemical),
     exposureDuration: '',
     exposureFrequency: '',
     exposureRoutes: { inhalation: false, skin: false, ingestion: false, eye: false },
-    molecularFormula: cameoChem.formulas?.[0] ?? '',
-    canonicalSmiles: undefined,
-    connectivitySmiles: undefined,
-    isomericSmiles: undefined,
-    inchi: undefined,
-    iupacName: undefined,
-    pubchemTitle: undefined,
+    molecularFormula: cameoChemical.formulas?.[0] ?? '',
   };
 }
 
-/* ── 4. Pick 50 random chemicals with some data ─────────────────────── */
-const candidates = cameoChemicals.filter((c) => {
-  // Must have at least one reactive group
-  return c.id > 0;
-});
-
-// Weighted random: prefer chemicals with NFPA data and reactive groups for better test signal
-const weighted = candidates.filter((c) => c.nfpa.flammability != null || c.nfpa.health != null || c.specialHazards);
-const fallback = candidates.filter((c) => !weighted.includes(c));
-
-function pickRandom(arr, n) {
-  const shuffled = [...arr].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, n);
+function pickRandom(items, count) {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, count);
 }
 
-const sampleSize = 50;
-const fromWeighted = pickRandom(weighted, Math.min(sampleSize, weighted.length));
-const remaining = sampleSize - fromWeighted.length;
-const fromFallback = remaining > 0 ? pickRandom(fallback, remaining) : [];
-const sample = [...fromWeighted, ...fromFallback];
+function expectedZonesFor(match) {
+  const groupIds = match.groups.map((group) => group.id);
+  const has = (ids) => groupIds.some((id) => ids.includes(id));
+  const labelText = [
+    ...(match.cameo?.dotLabels ?? []),
+    match.cameo?.specialHazards,
+  ].filter(Boolean).join(' ').toLowerCase();
+  const chemicalText = [
+    match.chemical.name,
+    match.chemical.formNote,
+    match.cameo?.name,
+  ].filter(Boolean).join(' ').toLowerCase();
+  const hasFlammableLabel = /\bflammable|combustible\b/.test(labelText) && !/\bnon[-\s]?flammable\b/.test(labelText);
+  const isSolid = ['solid', 'powder'].includes(match.chemical.form);
+  const hasCompressedStorageEvidence = /\b(compressed gas|gas under pressure|gas cylinder|cylinder|liquefied gas|refrigerated liquid|cryogenic)\b/.test(chemicalText);
 
-console.log(`\n=== Storage 2.0 Random-Sample Test (${sample.length} chemicals) ===\n`);
+  if (hasCompressedStorageEvidence) return { zones: ['compressedGases', 'oxidizersOnly', 'volatilePoisonsChlorinated', 'specialReview'], reason: 'compressed/pressure package evidence' };
+  if (has([107, 109, 108, 102, 103, 76, 21, 22, 35, 42, 51, 400, 30, 110, 106, 45, 105, 99])) return { zones: ['specialReview'], reason: 'hard-isolation reactive group' };
+  if (has([2])) return { zones: ['oxidizingAcids'], reason: 'strong oxidizing acid group' };
+  if (has([44, 104, 49, 27, 69])) return { zones: ['oxidizersOnly', 'oxidizingAcids'], reason: 'oxidizer group priority' };
+  if (/\bacid\b/.test(chemicalText)) return { zones: ['nonOxidizingAcids', 'oxidizingAcids', 'organicSolventsAcids'], reason: 'acid name/signal' };
+  if (has([1, 2, 3, 37, 38, 40, 55, 59, 60, 71])) return { zones: ['nonOxidizingAcids', 'oxidizingAcids', 'organicSolventsAcids'], reason: 'acid group' };
+  if (has([7, 10, 61, 68, 73])) return { zones: ['solidBases', 'liquidBases'], reason: 'base group' };
+  if (has([6, 8, 9, 11, 12, 17, 18, 20, 25, 26, 31, 32, 33, 48, 72, 75])) {
+    return { zones: isSolid ? ['dryPoisons', 'organicSolventsAcids'] : ['liquidPoisons', 'volatilePoisonsChlorinated', 'organicSolventsAcids'], reason: 'toxic group' };
+  }
+  if (hasFlammableLabel) return { zones: ['organicSolventsAcids', 'drySolids', 'specialReview'], reason: 'flammable transport/storage label' };
+  if (has([4, 5, 13, 14, 16, 19, 28, 29, 34, 47, 58, 63, 64, 65, 66, 70, 101, 111])) {
+    return { zones: isSolid ? ['drySolids', 'organicSolventsAcids'] : ['organicSolventsAcids', 'generalStorage', 'volatilePoisonsChlorinated'], reason: 'flammable/organic family' };
+  }
+  if (isSolid) return { zones: ['drySolids'], reason: 'low-trigger solid' };
+  return { zones: ['generalStorage', 'review'], reason: 'low-trigger liquid' };
+}
+
+const candidates = cameoChemicals.filter((chemical) => chemical.id > 0);
+const weighted = candidates.filter((chemical) => chemical.nfpa.flammability != null || chemical.nfpa.health != null || chemical.specialHazards || chemical.dotLabels.length > 0);
+const fallback = candidates.filter((chemical) => !weighted.includes(chemical));
+const sample = [
+  ...pickRandom(weighted, Math.min(SAMPLE_SIZE, weighted.length)),
+  ...pickRandom(fallback, Math.max(0, SAMPLE_SIZE - weighted.length)),
+].slice(0, SAMPLE_SIZE);
+
+const results = sample.map((cameoChemical, index) => {
+  const match = resolveCameoMatch(substanceFromCameo(cameoChemical, index));
+  return { cameoChemical, match, assignment: classifyStorage20(match) };
+});
+
+const counts = (values) => values.reduce((map, value) => map.set(value, (map.get(value) ?? 0) + 1), new Map());
+const zoneCounts = counts(results.map(({ assignment }) => assignment.zoneId));
+const cabinetCounts = counts(results.map(({ assignment }) => assignment.cabinetId));
+const sourceCounts = counts(results.map(({ assignment }) => assignment.source));
+const confidenceCounts = counts(results.map(({ assignment }) => assignment.confidence));
+
+console.log(`\n=== Storage Random Audit (${results.length} chemicals) ===`);
 console.log(`CAMEO database: ${cameoChemicals.length} chemicals, ${cameoReactiveGroups.length} reactive groups`);
+console.log(`CAMEO metadata: ${cameoMeta.version ?? 'unknown'} (${cameoMeta.importDate ?? 'unknown import date'})`);
 
-/* ── 5. Run the classifier on each ──────────────────────────────────── */
-const results = sample.map((cameoChem, i) => {
-  const substance = substanceFromCameo(cameoChem, i);
-  const match = resolveCameoMatch(substance);
-  const assignment = classifyStorage20(match);
-  return { cameoChem, match, assignment };
-});
-
-/* ── 6. Aggregate and report ────────────────────────────────────────── */
-const zoneCounts = {};
-const cabinetCounts = {};
-const confidenceCounts = {};
-const sourceCounts = {};
-const categoryCounts = {};
-
-for (const { assignment } of results) {
-  zoneCounts[assignment.zoneId] = (zoneCounts[assignment.zoneId] || 0) + 1;
-  cabinetCounts[assignment.cabinetId] = (cabinetCounts[assignment.cabinetId] || 0) + 1;
-  confidenceCounts[assignment.confidence] = (confidenceCounts[assignment.confidence] || 0) + 1;
-  sourceCounts[assignment.source] = (sourceCounts[assignment.source] || 0) + 1;
-  categoryCounts[assignment.category] = (categoryCounts[assignment.category] || 0) + 1;
-}
-
-console.log(`\n── Zone distribution ──`);
-for (const [zone, count] of Object.entries(zoneCounts).sort((a, b) => b[1] - a[1])) {
-  console.log(`  ${zone}: ${count}`);
-}
-
-console.log(`\n── Cabinet distribution ──`);
-for (const [cabinet, count] of Object.entries(cabinetCounts).sort((a, b) => b[1] - a[1])) {
-  console.log(`  ${cabinet}: ${count}`);
-}
-
-console.log(`\n── Confidence distribution ──`);
-for (const [level, count] of Object.entries(confidenceCounts).sort((a, b) => b[1] - a[1])) {
-  console.log(`  ${level}: ${count}`);
-}
-
-console.log(`\n── Source distribution ──`);
-for (const [source, count] of Object.entries(sourceCounts).sort((a, b) => b[1] - a[1])) {
-  console.log(`  ${source}: ${count}`);
-}
-
-/* ── 7. Logical consistency checks ──────────────────────────────────── */
-console.log(`\n── Logical consistency checks ──`);
-
-let issues = 0;
-let consistencyOk = 0;
-
-for (const { cameoChem, match, assignment } of results) {
-  const groupIds = match.groups.map((g) => g.id);
-  const isAcidGroup = groupIds.some((id) => [1, 2, 3, 37, 38, 40, 55, 59, 60, 71].includes(id));
-  const isBaseGroup = groupIds.some((id) => [7, 10, 39, 61, 68, 73].includes(id));
-  const isOxidizerGroup = groupIds.some((id) => [44, 104, 49, 27, 69].includes(id));
-  const isWaterReactiveGroup = groupIds.some((id) => [107, 21, 22, 35, 42, 51, 108].includes(id));
-  const isPyrophoricGroup = groupIds.some((id) => [109].includes(id));
-  const isFlammableOrganicGroup = groupIds.some((id) => [4, 5, 13, 14, 16, 19, 28, 29, 34, 47, 58, 63, 64, 65, 66, 70, 101, 111].includes(id));
-  const isToxinGroup = groupIds.some((id) => [6, 8, 9, 11, 12, 17, 18, 20, 25, 26, 31, 32, 33, 48, 72, 75].includes(id));
-  const isSpecialGroup = groupIds.some((id) => [107, 109, 108, 102, 103, 76, 21, 22, 35, 42, 51, 400, 30, 110, 106, 45, 50, 105, 99].includes(id));
-
-  let rowIssues = [];
-
-  // Check: water-reactive group → specialReview zone
-  if (isWaterReactiveGroup && assignment.zoneId !== 'specialReview') {
-    rowIssues.push(`Water-reactive group(s) but assigned to ${assignment.zoneId}`);
-  }
-
-  // Check: oxidizer group → oxidizer zone
-  if (isOxidizerGroup && !['oxidizersOnly', 'oxidizingAcids'].includes(assignment.zoneId) && assignment.zoneId !== 'specialReview') {
-    rowIssues.push(`Oxidizer group(s) but assigned to ${assignment.zoneId}`);
-  }
-
-  // Check: acid group → acid zone
-  if (isAcidGroup && !['nonOxidizingAcids', 'oxidizingAcids', 'organicSolventsAcids'].includes(assignment.zoneId) && assignment.zoneId !== 'specialReview') {
-    rowIssues.push(`Acid group(s) but assigned to ${assignment.zoneId}`);
-  }
-
-  // Check: base group → base zone
-  if (isBaseGroup && !['solidBases', 'liquidBases'].includes(assignment.zoneId) && assignment.zoneId !== 'specialReview') {
-    rowIssues.push(`Base group(s) but assigned to ${assignment.zoneId}`);
-  }
-
-  // Check: flammable organic group → organicSolventsAcids or specialReview
-  if (isFlammableOrganicGroup && !['organicSolventsAcids', 'specialReview', 'organicAcids', 'nonOxidizingAcids'].includes(assignment.zoneId)) {
-    rowIssues.push(`Flammable organic group(s) but assigned to ${assignment.zoneId}`);
-  }
-
-  // Check: special group → specialReview
-  if (isSpecialGroup && assignment.zoneId !== 'specialReview') {
-    rowIssues.push(`Special reactive group(s) assigned to ${assignment.zoneId} (not specialReview)`);
-  }
-
-  // Check: review zone should have match confidence review
-  if (assignment.zoneId === 'review' && assignment.confidence !== 'review') {
-    rowIssues.push(`review zone but confidence=${assignment.confidence}`);
-  }
-
-  if (rowIssues.length > 0) {
-    issues++;
-    console.log(`  ⚠  [${cameoChem.name}] (groups: ${groupIds.join(', ')})`);
-    for (const issue of rowIssues) {
-      console.log(`       ${issue}`);
-    }
-    console.log(`       → assigned to: ${assignment.zoneId} (cabinet: ${assignment.cabinetId}, conf: ${assignment.confidence})`);
-  } else {
-    consistencyOk++;
+for (const [title, map] of [
+  ['Zone distribution', zoneCounts],
+  ['Cabinet distribution', cabinetCounts],
+  ['Source distribution', sourceCounts],
+  ['Confidence distribution', confidenceCounts],
+]) {
+  console.log(`\n── ${title} ──`);
+  for (const [key, value] of [...map.entries()].sort((a, b) => b[1] - a[1])) {
+    console.log(`  ${key}: ${value}`);
   }
 }
 
-console.log(`\nConsistency: ${consistencyOk}/${sample.length} checks passed, ${issues} with issues`);
-
-/* ── 8. Detailed breakdown ──────────────────────────────────────────── */
-console.log(`\n── Detailed results ──`);
-const ZONE_LABELS = {
-  organicSolventsAcids: 'OrgSolvents+Acids',
-  volatilePoisonsChlorinated: 'VolatilePoisons',
-  nonOxidizingAcids: 'NonOxidizingAcids',
-  oxidizingAcids: 'OxidizingAcids',
-  solidBases: 'SolidBases',
-  liquidBases: 'LiquidBases',
-  oxidizersOnly: 'Oxidizers',
-  dryPoisons: 'DryPoisons',
-  liquidPoisons: 'LiquidPoisons',
-  drySolids: 'DrySolids',
-  specialReview: 'SpecialReview',
-  review: 'Review',
-};
-
-for (const { cameoChem, match, assignment } of results) {
-  const groups = match.groups.map((g) => g.id).join(',') || 'none';
-  const cameoName = match.cameo?.name ?? '—';
-  console.log(`  ${cameoChem.name.padEnd(50)} → ${(ZONE_LABELS[assignment.zoneId] ?? assignment.zoneId).padEnd(20)} [${assignment.confidence.padEnd(6)}] src=${assignment.source.padEnd(10)} groups=${groups}`);
+const issues = [];
+for (const { cameoChemical, match, assignment } of results) {
+  const expected = expectedZonesFor(match);
+  const zone = ZONES[assignment.zoneId];
+  const rowIssues = [];
+  if (!zone) rowIssues.push(`unknown zone ${assignment.zoneId}`);
+  if (zone && zone.cabinetId !== assignment.cabinetId) rowIssues.push(`zone ${assignment.zoneId} maps to ${zone.cabinetId}, cabinet was ${assignment.cabinetId}`);
+  if (!CABINET_ORDER.includes(assignment.cabinetId)) rowIssues.push(`cabinet ${assignment.cabinetId} missing from CABINET_ORDER`);
+  if (!assignment.reasons.length) rowIssues.push('missing assignment reason text');
+  if (!expected.zones.includes(assignment.zoneId)) rowIssues.push(`expected one of ${expected.zones.join(', ')} for ${expected.reason}, got ${assignment.zoneId}`);
+  if (rowIssues.length > 0) issues.push({ cameoChemical, match, assignment, rowIssues });
 }
 
-/* ── 9. Cleanup ─────────────────────────────────────────────────────── */
+console.log('\n── Priority-aware consistency checks ──');
+if (issues.length === 0) {
+  console.log(`  All ${results.length} sampled chemicals passed consistency checks.`);
+} else {
+  for (const { cameoChemical, match, assignment, rowIssues } of issues) {
+    const groups = match.groups.map((group) => group.id).join(', ') || 'none';
+    console.log(`  ⚠ [${cameoChemical.name}] groups=${groups}`);
+    for (const issue of rowIssues) console.log(`      ${issue}`);
+    console.log(`      assigned: ${assignment.zoneId} / ${assignment.cabinetId}`);
+  }
+}
+
+console.log('\n── Detailed results ──');
+for (const { cameoChemical, match, assignment } of results) {
+  const groups = match.groups.map((group) => group.id).join(',') || 'none';
+  console.log(`  ${cameoChemical.name.padEnd(58)} → ${assignment.zoneId.padEnd(28)} ${assignment.cabinetId.padEnd(16)} groups=${groups}`);
+}
+
 await rm(outdir, { recursive: true, force: true });

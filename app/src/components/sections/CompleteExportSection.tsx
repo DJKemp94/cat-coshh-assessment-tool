@@ -14,7 +14,7 @@ const ORDERED_SECTIONS: CoreSectionId[] = [
   'substances',
   'taskHazards',
   'controls',
-  'additional',
+  'storage',
   'emergency',
   'briefing',
 ];
@@ -24,7 +24,7 @@ const SECTION_LABELS: Record<CoreSectionId, string> = {
   substances: 'Process Steps',
   taskHazards: 'Non-Chemical Hazards',
   controls: 'Controls',
-  additional: 'Storage',
+  storage: 'Storage',
   emergency: 'Emergency Response and Waste',
   briefing: 'Briefing & Sign-off',
 };

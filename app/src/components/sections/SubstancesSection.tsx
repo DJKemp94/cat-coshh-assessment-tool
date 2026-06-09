@@ -503,10 +503,15 @@ function ProcessStepCard({
           stel: r.wel.stel ?? 'n/a',
           source: r.wel.source ?? 'Manual',
         },
-        form: r.form ?? 'liquid',
+        form: r.pubchemPhysicalForm ?? r.form ?? 'liquid',
         sdsUrl: r.sdsUrl,
         sdsSource: r.sdsSource,
         boilingPointC: r.boilingPointC,
+        flashPointC: r.flashPointC,
+        vapourPressureKPa: r.vapourPressureKPa,
+        pubchemPhysicalForm: r.pubchemPhysicalForm,
+        pubchemPhysicalDescription: r.pubchemPhysicalDescription,
+        pubchemNfpa: r.pubchemNfpa,
         molecularFormula: r.molecularFormula,
         canonicalSmiles: r.canonicalSmiles,
         connectivitySmiles: r.connectivitySmiles,
@@ -992,7 +997,7 @@ function ChemicalRow({
       const isDifferentChemical = c.pubchemCid !== undefined && r.cid !== c.pubchemCid;
       // When switching to a different compound, clear stale fields from the
       // previous chemical rather than carrying them over.
-      const form = r.form ?? (isDifferentChemical ? 'liquid' : c.form);
+      const form = c.form;
       const bp = r.boilingPointC ?? (isDifferentChemical ? undefined : c.boilingPointC);
       // On a fresh lookup, set volatility from BP for liquids — user can still
       // override afterwards. This keeps the dropdown in sync with the BP shown.
@@ -1017,6 +1022,11 @@ function ChemicalRow({
         sdsUrl: r.sdsUrl ?? (isDifferentChemical ? undefined : c.sdsUrl),
         sdsSource: r.sdsSource ?? (isDifferentChemical ? undefined : c.sdsSource),
         boilingPointC: bp,
+        flashPointC: r.flashPointC ?? (isDifferentChemical ? undefined : c.flashPointC),
+        vapourPressureKPa: r.vapourPressureKPa ?? (isDifferentChemical ? undefined : c.vapourPressureKPa),
+        pubchemPhysicalForm: r.pubchemPhysicalForm ?? (isDifferentChemical ? undefined : c.pubchemPhysicalForm),
+        pubchemPhysicalDescription: r.pubchemPhysicalDescription ?? (isDifferentChemical ? undefined : c.pubchemPhysicalDescription),
+        pubchemNfpa: r.pubchemNfpa ?? (isDifferentChemical ? undefined : c.pubchemNfpa),
         molecularFormula: r.molecularFormula ?? (isDifferentChemical ? undefined : c.molecularFormula),
         canonicalSmiles: r.canonicalSmiles ?? (isDifferentChemical ? undefined : c.canonicalSmiles),
         connectivitySmiles: r.connectivitySmiles ?? (isDifferentChemical ? undefined : c.connectivitySmiles),

@@ -7,8 +7,10 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
+    "test": "npm run test:storage",
+    "test:storage": "node scripts/test-storage20-regression.mjs",
+    "test:storage:random": "node scripts/test-storage20-random.mjs",
     "typecheck": "tsc --noEmit",
-    "test:storage": "node scripts/test-storage-classifier.mjs",
     "extract-eh40": "node scripts/parse-eh40.mjs",
     "extract-cameo": "node scripts/extract-cameo.mjs"
   },
@@ -17,19 +19,17 @@
     "docx": "^9.0.0",
     "lucide-react": "^0.460.0",
     "pako": "^2.1.0",
-    "pdf-lib": "^1.17.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zustand": "^5.0.1"
   },
   "devDependencies": {
     "@types/pako": "^2.0.3",
-
-    "pdfjs-dist": "^4.7.76",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.3",
     "autoprefixer": "^10.4.20",
+    "pdfjs-dist": "^4.7.76",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.15",
     "typescript": "^5.6.3",

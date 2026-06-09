@@ -11,7 +11,7 @@ import { appendUniqueBullet, ChipSuggestion } from '@/components/common/Suggesti
 import { SuggestionDisclaimer } from '@/components/common/SuggestionDisclaimer';
 import { SuggestionField } from '@/components/common/SuggestionField';
 import { suggestRequirements, RequirementField } from '@/services/suggestRequirements';
-import { classifyStorage } from '@/services/storageClassifier';
+import { classifyStorageSignals } from '@/services/storageSignals';
 import { Substance } from '@/types/assessment';
 
 const BASE_FIRST_AID_CONSIDERATIONS = [
@@ -373,7 +373,7 @@ function buildWastePrompts(chemicals: Substance[]) {
 
   const profiles = chemicals.map((chemical) => ({
     chemical,
-    classification: classifyStorage(chemical),
+    classification: classifyStorageSignals(chemical),
     text: chemicalSearchText(chemical),
   }));
   const has = (predicate: (profile: typeof profiles[number]) => boolean) =>

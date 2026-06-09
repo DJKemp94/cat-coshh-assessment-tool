@@ -22,6 +22,7 @@ import { resolveCameoMatch } from '@/services/cameoStorage';
 import {
   classifyStorage20,
   applyStorage20Edit,
+  storage20EvidenceText,
   storage20RequirementsText,
   STORAGE20_ZONE_LABELS,
 } from '@/services/storage20Classifier';
@@ -701,7 +702,7 @@ export async function exportDocx(a: Assessment, options: ReportOptions = fullRep
     ]));
   }
 
-  // ── 06 Storage 2.0 ────────────────────────────────────
+  // ── 06 Storage ────────────────────────────────────────
   if (options.storage.include) {
     children.push(sectionBanner(sectionNo++, 'Storage'));
     const storageChemicals = uniqueChemicals(a);
@@ -718,6 +719,7 @@ export async function exportDocx(a: Assessment, options: ReportOptions = fullRep
             cell(chemical.hazardStatements.map((h) => h.code).join(', ') || DASH, { widthDxa: 1200, fill }),
             cell(STORAGE20_ZONE_LABELS[assignment.zoneId], { widthDxa: 2200, fill }),
             cell(storage20RequirementsText(assignment), { widthDxa: 2400, fill }),
+            cell(storage20EvidenceText(assignment), { widthDxa: 2600, fill }),
           ],
         });
       });
@@ -740,6 +742,7 @@ export async function exportDocx(a: Assessment, options: ReportOptions = fullRep
               head('H-codes'),
               head('Storage Group Assignment'),
               head('Requirements'),
+              head('Evidence'),
             ],
           }),
           ...rows,

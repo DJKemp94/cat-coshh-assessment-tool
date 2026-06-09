@@ -13,6 +13,7 @@ import { resolveCameoMatch } from '@/services/cameoStorage';
 import {
   classifyStorage20,
   applyStorage20Edit,
+  storage20EvidenceText,
   storage20RequirementsText,
   Storage20Assignment,
   ZONES,
@@ -126,14 +127,6 @@ function storage20For(a: Assessment, chemical: Substance): Storage20Assignment {
   return applyStorage20Edit(automatic, a.storage2.assignmentOverrides?.[chemical.id]);
 }
 
-function storage20ZoneLabel(a: Assessment, chemical: Substance): string {
-  const match = resolveCameoMatch(chemical, a.storage2.matches[chemical.id]);
-  if (!match) return DASH;
-  const automatic = classifyStorage20(match);
-  const assignment = applyStorage20Edit(automatic, a.storage2.assignmentOverrides?.[chemical.id]);
-  return storage20RequirementsText(assignment);
-}
-
 const ZONE_COLORS: Record<Storage20ZoneId, string> = {
   organicSolventsAcids: 'border-yellow-300 bg-yellow-100 text-yellow-950',
   volatilePoisonsChlorinated: 'border-sky-300 bg-sky-100 text-sky-950',
@@ -144,7 +137,9 @@ const ZONE_COLORS: Record<Storage20ZoneId, string> = {
   oxidizersOnly: 'border-amber-300 bg-amber-100 text-amber-950',
   dryPoisons: 'border-pink-300 bg-pink-100 text-pink-950',
   liquidPoisons: 'border-pink-300 bg-pink-100 text-pink-950',
+  compressedGases: 'border-cyan-300 bg-cyan-100 text-cyan-950',
   drySolids: 'border-emerald-300 bg-emerald-100 text-emerald-950',
+  generalStorage: 'border-emerald-200 bg-emerald-50 text-emerald-900',
   specialReview: 'border-red-400 bg-red-100 text-red-950',
   review: 'border-zinc-300 bg-zinc-100 text-zinc-800',
 };
@@ -510,7 +505,7 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
                   <th>Form / qty</th>
                   <th>Hazard statements</th>
                   <th>WEL</th>
-                  <th>Storage 2.0</th>
+                  <th>Storage</th>
                   <th>Exposure</th>
                   {options.process.ghsPictograms && <th>GHS</th>}
                 </tr>
@@ -527,7 +522,18 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
                       <div><strong>STEL:</strong> {chemical.welSummary.stel}</div>
                       <div><strong>Source:</strong> {chemical.welSummary.source}</div>
                     </td>
-                    <td>{storage20ZoneLabel(assessment, chemical)}</td>
+                    <td>
+                      {(() => {
+                        const assignment = storage20For(assessment, chemical);
+                        return (
+                          <>
+                            <strong>{ZONES[assignment.zoneId]?.zoneTitle ?? assignment.zoneId}</strong>
+                            <div>{storage20RequirementsText(assignment)}</div>
+                            <div className="report-muted">{storage20EvidenceText(assignment)}</div>
+                          </>
+                        );
+                      })()}
+                    </td>
                     <td>{chemical.exposureDuration || DASH}<div>{chemical.exposureFrequency || DASH}</div><div>{routes(chemical)}</div></td>
                     {options.process.ghsPictograms && <td><GhsIcons ids={chemical.ghsPictograms} /></td>}
                   </tr>

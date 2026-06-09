@@ -4,7 +4,6 @@ import {
   AlertTriangle,
   FlaskConical,
   ShieldCheck,
-  PackageOpen,
   Database,
   Siren,
   Users,
@@ -29,14 +28,13 @@ const NAV: NavItem[] = [
   { id: 'substances', label: 'Process Steps', Icon: FlaskConical },
   { id: 'taskHazards', label: 'Non-Chemical Hazards', Icon: AlertTriangle },
   { id: 'controls', label: 'Controls', Icon: ShieldCheck },
-  { id: 'additional', label: 'Storage', Icon: PackageOpen },
-  { id: 'storage2', label: 'Storage 2.0', Icon: Database },
+  { id: 'storage', label: 'Storage', Icon: Database },
   { id: 'emergency', label: 'Emergency Response and Waste', Icon: Siren },
   { id: 'briefing', label: 'Briefing & Sign-off', Icon: Users },
   { id: 'completeExport', label: 'Complete & Export', Icon: Download },
 ];
 
-const CORE_NAV = NAV.filter((n): n is NavItem & { id: CoreSectionId } => n.id !== 'completeExport' && n.id !== 'storage2');
+const CORE_NAV = NAV.filter((n): n is NavItem & { id: CoreSectionId } => n.id !== 'completeExport');
 
 export function Sidebar() {
   const active = useAssessment((s) => s.activeSection);
@@ -54,7 +52,7 @@ export function Sidebar() {
     if (testingMode || item.id === 'overview') return true;
     if (item.id === 'completeExport') return allCoreComplete;
     const coreIndex = CORE_NAV.findIndex((coreItem) => coreItem.id === item.id);
-    if (coreIndex < 0) return allCoreComplete || isSectionComplete(assessment, 'additional');
+    if (coreIndex < 0) return allCoreComplete;
     return coreCompletion.slice(0, coreIndex).every(Boolean);
   });
 
@@ -82,9 +80,7 @@ export function Sidebar() {
           const isActive = id === active;
           const done = id === 'completeExport'
             ? allCoreComplete
-            : id === 'storage2'
-              ? true
-              : isSectionComplete(assessment, id as CoreSectionId);
+            : isSectionComplete(assessment, id as CoreSectionId);
           const isUnlocked = unlocked[i];
           return (
             <button

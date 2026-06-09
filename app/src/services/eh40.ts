@@ -1,6 +1,6 @@
 import raw from '@/data/eh40.json';
 
-export interface Eh40Entry {
+interface Eh40Entry {
   name: string;
   cas?: string;
   twa?: string;     // canonical display string e.g. "500 ppm (1210 mg/m³)"
@@ -53,9 +53,3 @@ export function lookupEh40(opts: { cas?: string; name?: string }): Eh40Entry | u
   }
   return undefined;
 }
-
-export const eh40Meta = {
-  source: data.source,
-  version: data.version,
-  count: data.entries.length,
-};

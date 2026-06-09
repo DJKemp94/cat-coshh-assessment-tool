@@ -77,7 +77,7 @@ function rasterise(url: string): Promise<{ bytes: Uint8Array; width: number; hei
   });
 }
 
-export function loadPictogram(id: GhsPictogram): Promise<RasterisedPictogram> {
+function loadPictogram(id: GhsPictogram): Promise<RasterisedPictogram> {
   let p = cache.get(id);
   if (!p) {
     p = rasterise(GHS_URLS[id]).then(({ bytes, width, height }) => ({

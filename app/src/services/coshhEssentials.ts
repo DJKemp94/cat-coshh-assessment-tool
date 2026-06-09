@@ -25,10 +25,10 @@
 
 import { CoshhBand, Substance, SubstanceForm } from '@/types/assessment';
 
-export type HazardGroup = 'A' | 'B' | 'C' | 'D' | 'E';
+type HazardGroup = 'A' | 'B' | 'C' | 'D' | 'E';
 export type Approach = 1 | 2 | 3 | 4;
 export type Scale = 'small' | 'medium' | 'large';
-export type ExposurePredictor = 'EP1' | 'EP2' | 'EP3' | 'EP4';
+type ExposurePredictor = 'EP1' | 'EP2' | 'EP3' | 'EP4';
 type CoshhPhysicalKind = 'solid' | 'liquid';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -311,7 +311,7 @@ export interface OverallSuggestion {
   warnings: string[];
 }
 
-export function analyseSubstance(c: Substance): SubstanceAnalysis {
+function analyseSubstance(c: Substance): SubstanceAnalysis {
   const codes = c.hazardStatements.map((h) => h.code);
   const { group, drivers } = hazardGroupFor(codes);
   const parsedQuantity = parseQuantity(c.quantity);
@@ -367,7 +367,7 @@ export function APPROACH_LABEL(a: Approach): string {
   }
 }
 
-export function G_SHEET_REF(a: Approach): string {
+function G_SHEET_REF(a: Approach): string {
   switch (a) {
     case 1: return 'HSE Generic Guidance Sheet G100 series — general ventilation';
     case 2: return 'HSE Generic Guidance Sheet G200 series — engineering / LEV';

@@ -11,7 +11,6 @@ import {
   BriefingEntry,
   Overview,
   ControlMeasures,
-  StorageRequirements,
   Storage2Requirements,
   EmergencyRequirements,
   ProcessStep,
@@ -29,8 +28,7 @@ export type SectionId =
   | 'taskHazards'
   | 'substances'
   | 'controls'
-  | 'additional'
-  | 'storage2'
+  | 'storage'
   | 'emergency'
   | 'briefing'
   | 'completeExport'
@@ -52,7 +50,6 @@ interface AssessmentState {
 
   updateOverview: (patch: Partial<Overview>) => void;
   updateControls: (patch: Partial<ControlMeasures>) => void;
-  updateStorage: (patch: Partial<StorageRequirements>) => void;
   updateStorage2: (patch: Partial<Storage2Requirements>) => void;
   updateEmergency: (patch: Partial<EmergencyRequirements>) => void;
 
@@ -214,8 +211,6 @@ export const useAssessment = create<AssessmentState>((set, get) => {
       }),
     updateControls: (patch) =>
       apply((a) => ({ ...a, controls: { ...a.controls, ...patch } })),
-    updateStorage: (patch) =>
-      apply((a) => ({ ...a, additional: { ...a.additional, ...patch } })),
     updateStorage2: (patch) =>
       apply((a) => ({ ...a, storage2: { ...a.storage2, ...patch } })),
     updateEmergency: (patch) =>

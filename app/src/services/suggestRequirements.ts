@@ -1,15 +1,12 @@
 import { Assessment, Substance, GhsPictogram } from '@/types/assessment';
-import { classifyStorage, StorageSuggestionGroup } from '@/services/storageClassifier';
 
 export type RequirementField =
-  | 'storage'
-  | 'incompatibles'
   | 'emergencySpills'
   | 'emergencyFirstAid'
   | 'emergencyFire'
   | 'wasteHandling';
 
-export interface Suggestion {
+interface Suggestion {
   text: string;
   hint: string;
 }
@@ -24,7 +21,6 @@ interface Rule {
 // H-code shorthand groups used below.
 const EXPLOSIVE = ['H200','H201','H202','H203','H204','H205','H240','H241'];
 const FLAMMABLE = ['H220','H221','H222','H223','H224','H225','H226','H228','H242'];
-const FLAMMABLE_GAS = ['H220','H221'];
 const PRESSURISED = ['H229','H280','H281'];
 const PYROPHORIC = ['H250','H251','H252','H230','H231'];
 const WATER_REACTIVE = ['H260','H261'];
@@ -46,12 +42,6 @@ const ASPIRATION = ['H304'];
 const CMR = ['H340','H341','H350','H351','H360','H361'];
 const TARGET_ORGAN = ['H370','H371','H372','H373'];
 const AQUATIC = ['H400','H410','H411','H412','H413'];
-
-const STORAGE: Rule[] = [];
-
-const INCOMPATIBLES: Rule[] = [
-  { hCodes: EXPLOSIVE, trigger: 'explosive', text: 'Segregate explosives or self-reactives from incompatible materials, heat, friction, impact and ignition sources as specified by the SDS.' },
-];
 
 const SPILLS: Rule[] = [
   { hCodes: EXPLOSIVE, trigger: 'explosive', text: 'Evacuate and call specialist response for explosive or self-reactive spills. Do not sweep, absorb or disturb unless the SDS and local emergency plan confirm it is safe.' },
@@ -104,8 +94,6 @@ const WASTE: Rule[] = [
 ];
 
 const RULESETS: Record<RequirementField, Rule[]> = {
-  storage: STORAGE,
-  incompatibles: INCOMPATIBLES,
   emergencySpills: SPILLS,
   emergencyFirstAid: FIRST_AID,
   emergencyFire: FIRE,
@@ -115,13 +103,6 @@ const RULESETS: Record<RequirementField, Rule[]> = {
 interface ChemicalSignal {
   hCodes: Set<string>;
   pictograms: Set<GhsPictogram>;
-}
-
-interface ChemicalProfile extends ChemicalSignal {
-  id: string;
-  name: string;
-  search: string;
-  groups: Set<StorageSuggestionGroup>;
 }
 
 const collectSignals = (chems: Substance[]): { all: ChemicalSignal; byChem: Map<string, ChemicalSignal> } => {
@@ -141,359 +122,6 @@ const ruleMatchesSignal = (r: Rule, sig: ChemicalSignal): boolean => {
   if (r.pictograms && r.pictograms.some((p) => sig.pictograms.has(p))) return true;
   return false;
 };
-
-function profileFor(c: Substance): ChemicalProfile {
-  const classification = classifyStorage(c);
-  const hCodes = new Set(classification.hCodes);
-  const pictograms = new Set(c.ghsPictograms);
-  const name = c.name || c.cas || 'Unnamed substance';
-  const search = `${c.name} ${c.cas ?? ''}`.toLowerCase();
-  const groups = new Set<StorageSuggestionGroup>(classification.suggestionGroups);
-
-  return { id: c.id, name, search, hCodes, pictograms, groups };
-}
-
-const names = (profiles: ChemicalProfile[]) =>
-  profiles.map((p) => p.name).filter(Boolean).slice(0, 4).join(', ');
-
-function groupMembers(profiles: ChemicalProfile[], group: StorageSuggestionGroup) {
-  return profiles.filter((p) => p.groups.has(group));
-}
-
-function profileHasAny(p: ChemicalProfile, hCodes: string[]) {
-  return hCodes.some((h) => p.hCodes.has(h));
-}
-
-function pushStorageSuggestion(
-  out: Suggestion[],
-  seen: Set<string>,
-  profiles: ChemicalProfile[],
-  text: string,
-  hint: string,
-) {
-  if (profiles.length === 0) return;
-  if (seen.has(text)) return;
-  seen.add(text);
-  out.push({ text, hint });
-}
-
-function selectedStorageSuggestions(chems: Substance[]): Suggestion[] {
-  const profiles = chems.filter((c) => c.name.trim() || c.cas?.trim()).map(profileFor);
-  const out: Suggestion[] = [];
-  const seen = new Set<string>();
-  const fbmh = (group: string) => `Based on FBMH chemical storage table ${group}; check SDS sections 7 and 10.`;
-
-  const explosive = profiles.filter((p) => profileHasAny(p, EXPLOSIVE));
-  pushStorageSuggestion(
-    out,
-    seen,
-    explosive,
-    `Store explosives or self-reactives (${names(explosive)}) in approved storage, in minimum quantities, protected from heat, friction, shock and incompatible materials.`,
-    'Triggered by explosive/self-reactive H-codes.',
-  );
-
-  const flammableGas = profiles.filter((p) => profileHasAny(p, FLAMMABLE_GAS));
-  pushStorageSuggestion(
-    out,
-    seen,
-    flammableGas,
-    `Store flammable gases (${names(flammableGas)}) upright, secured, ventilated and segregated from oxidising gases and ignition sources.`,
-    'Triggered by H220/H221 flammable gas classification.',
-  );
-
-  const pressurised = profiles.filter((p) => profileHasAny(p, PRESSURISED) || p.pictograms.has('compressed-gas'));
-  pushStorageSuggestion(
-    out,
-    seen,
-    pressurised,
-    `Store pressurised gas containers (${names(pressurised)}) upright, secured, ventilated and protected from heat or physical damage.`,
-    'Triggered by compressed-gas pictogram or H229/H280/H281.',
-  );
-
-  const group1 = groupMembers(profiles, 'group1Flammable');
-  pushStorageSuggestion(
-    out,
-    seen,
-    group1,
-    `Store flammables and combustibles (${names(group1)}) in approved flammable storage, away from ignition sources, oxidisers and incompatible chemicals. Keep only the working quantity at the point of use.`,
-    fbmh('Group 1: flammables and combustibles'),
-  );
-
-  const group2 = groupMembers(profiles, 'group2VolatilePoison');
-  pushStorageSuggestion(
-    out,
-    seen,
-    group2,
-    `Store volatile poisons or halogenated solvents (${names(group2)}) separately in compatible, ventilated storage where practicable. Segregate from bases, oxidisers and reactive materials.`,
-    fbmh('Group 2: volatile poisons, halogenated/chlorinated solvents'),
-  );
-
-  const group3 = groupMembers(profiles, 'group3OxidisingAcid');
-  pushStorageSuggestion(
-    out,
-    seen,
-    group3,
-    `Store oxidising inorganic acids (${names(group3)}) in compatible corrosives storage with secondary containment. Segregate from organic materials, flammables, bases and other incompatible storage groups.`,
-    fbmh('Group 3: oxidising inorganic acids'),
-  );
-
-  const group4 = groupMembers(profiles, 'group4NonOxidisingAcid');
-  pushStorageSuggestion(
-    out,
-    seen,
-    group4,
-    `Store non-oxidising organic or mineral acids (${names(group4)}) in compatible corrosives storage with secondary containment. Segregate from bases and incompatible chemicals.`,
-    fbmh('Group 4: non-oxidising organic and mineral acids'),
-  );
-
-  const group5 = groupMembers(profiles, 'group5LiquidBase');
-  pushStorageSuggestion(
-    out,
-    seen,
-    group5,
-    `Store liquid bases (${names(group5)}) in compatible corrosives storage with secondary containment. Segregate from acids, halogenated solvents and incompatible chemicals.`,
-    fbmh('Group 5: liquid bases'),
-  );
-
-  const group5Solid = groupMembers(profiles, 'group5SolidBase');
-  pushStorageSuggestion(
-    out,
-    seen,
-    group5Solid,
-    `Store solid bases/alkalis (${names(group5Solid)}) in compatible corrosives storage, dry and protected from contact with acids, halogenated solvents and liquid spills.`,
-    fbmh('Group 5: solid bases / alkalis; segregate from acids and incompatible liquids'),
-  );
-
-  const group6 = groupMembers(profiles, 'group6OxidiserPeroxide');
-  pushStorageSuggestion(
-    out,
-    seen,
-    group6,
-    `Store oxidisers or organic peroxides (${names(group6)}) isolated from other storage groups, using compatible secondary containment and minimum practicable quantities.`,
-    fbmh('Group 6: oxidizers / organic peroxides; compatible storage groups: none'),
-  );
-
-  const group7 = groupMembers(profiles, 'group7Poison');
-  pushStorageSuggestion(
-    out,
-    seen,
-    group7,
-    `Store non-volatile poisons or toxins (${names(group7)}) in secure, clearly labelled compatible storage with secondary containment. Keep liquids below solids where practicable.`,
-    fbmh('Group 7: non-volatile liquid and dry poisons'),
-  );
-
-  const group9 = groupMembers(profiles, 'group9DrySolid');
-  pushStorageSuggestion(
-    out,
-    seen,
-    group9,
-    `Store dry solids or powders (${names(group9)}) in stable, labelled storage, protected from moisture, contamination and contact with liquid spills.`,
-    fbmh('Group 9: dry solids'),
-  );
-
-  const waterReactive = groupMembers(profiles, 'waterReactive');
-  pushStorageSuggestion(
-    out,
-    seen,
-    waterReactive,
-    `Store water-reactive substances (${names(waterReactive)}) dry, sealed and physically segregated from water, aqueous materials and incompatible chemicals.`,
-    'Triggered by H260/H261 water-reactive classification; check SDS sections 7 and 10.',
-  );
-
-  const pyrophoric = groupMembers(profiles, 'pyrophoric');
-  pushStorageSuggestion(
-    out,
-    seen,
-    pyrophoric,
-    `Store pyrophoric or self-heating substances (${names(pyrophoric)}) exactly as specified by the SDS, segregated from air, water, oxidisers and ignition sources.`,
-    'Triggered by pyrophoric/self-heating/self-reactive H-codes; check SDS sections 7 and 10.',
-  );
-
-  const aquatic = profiles.filter((p) => profileHasAny(p, AQUATIC) || p.pictograms.has('environmental'));
-  pushStorageSuggestion(
-    out,
-    seen,
-    aquatic,
-    `Store aquatic or environmental hazards (${names(aquatic)}) in suitable secondary containment to prevent release to drains, soil or watercourses.`,
-    'Triggered by aquatic/environmental H-codes or environmental pictogram.',
-  );
-
-  return out;
-}
-
-function pushPairSuggestion(
-  out: Suggestion[],
-  seen: Set<string>,
-  a: ChemicalProfile[],
-  b: ChemicalProfile[],
-  text: string,
-  hint: string,
-) {
-  if (a.length === 0 || b.length === 0) return;
-  const aIds = new Set(a.map((p) => p.id));
-  if (b.every((p) => aIds.has(p.id))) return;
-  if (seen.has(text)) return;
-  seen.add(text);
-  out.push({ text, hint });
-}
-
-function selectedIncompatibilitySuggestions(chems: Substance[]): Suggestion[] {
-  const profiles = chems.filter((c) => c.name.trim() || c.cas?.trim()).map(profileFor);
-  const out: Suggestion[] = [];
-  const seen = new Set<string>();
-
-  const group1 = groupMembers(profiles, 'group1Flammable');
-  const group2 = groupMembers(profiles, 'group2VolatilePoison');
-  const group3 = groupMembers(profiles, 'group3OxidisingAcid');
-  const group4 = groupMembers(profiles, 'group4NonOxidisingAcid');
-  const group5 = groupMembers(profiles, 'group5LiquidBase');
-  const group5Solid = groupMembers(profiles, 'group5SolidBase');
-  const group6 = groupMembers(profiles, 'group6OxidiserPeroxide');
-  const group7 = groupMembers(profiles, 'group7Poison');
-  const group9 = groupMembers(profiles, 'group9DrySolid');
-  const waterReactive = groupMembers(profiles, 'waterReactive');
-  const pyrophoric = groupMembers(profiles, 'pyrophoric');
-
-  const fbmh = (groups: string) => `FBMH chemical storage table: ${groups}. Check SDS sections 7 and 10.`;
-
-  pushPairSuggestion(out, seen, group1, group3,
-    `Segregate flammables/combustibles (${names(group1)}) from oxidising inorganic acids (${names(group3)}).`,
-    fbmh('Group 1 must be isolated from oxidising acids; Group 3 must be isolated from flammables and organic solvents'),
-  );
-  pushPairSuggestion(out, seen, group1, group5,
-    `Segregate flammables/combustibles (${names(group1)}) from liquid bases (${names(group5)}).`,
-    fbmh('Group 1 must be isolated from bases'),
-  );
-  pushPairSuggestion(out, seen, group1, group5Solid,
-    `Segregate flammables/combustibles (${names(group1)}) from solid bases/alkalis (${names(group5Solid)}).`,
-    fbmh('Group 1 must be isolated from bases'),
-  );
-  pushPairSuggestion(out, seen, group1, group6,
-    `Segregate flammables/combustibles (${names(group1)}) from oxidisers/organic peroxides (${names(group6)}).`,
-    fbmh('Group 1 must be isolated from oxidizers; Group 6 is isolated from all other storage groups'),
-  );
-  pushPairSuggestion(out, seen, group1, waterReactive,
-    `Segregate flammables/combustibles (${names(group1)}) from water-reactive substances (${names(waterReactive)}).`,
-    fbmh('Group 1 must be isolated from water-reactive substances'),
-  );
-  pushPairSuggestion(out, seen, group1, group7,
-    `Do not store flammables/combustibles (${names(group1)}) with poison/toxin storage (${names(group7)}) unless SDS compatibility confirms this is acceptable.`,
-    fbmh('Group 1 must be isolated from inorganic poisons'),
-  );
-
-  pushPairSuggestion(out, seen, group2, group3,
-    `Segregate volatile poisons/halogenated solvents (${names(group2)}) from oxidising inorganic acids (${names(group3)}).`,
-    fbmh('Group 2 must be isolated from oxidising acids'),
-  );
-  pushPairSuggestion(out, seen, group2, group4,
-    `Segregate volatile poisons/halogenated solvents (${names(group2)}) from organic/mineral acids (${names(group4)}).`,
-    fbmh('Group 2 must be isolated from inorganic and organic acids'),
-  );
-  pushPairSuggestion(out, seen, group2, group5,
-    `Segregate volatile poisons/halogenated solvents (${names(group2)}) from liquid bases (${names(group5)}).`,
-    fbmh('Group 2 must be isolated from strong bases; Group 5 must be isolated from halogenated solvents'),
-  );
-  pushPairSuggestion(out, seen, group2, group5Solid,
-    `Segregate volatile poisons/halogenated solvents (${names(group2)}) from solid bases/alkalis (${names(group5Solid)}).`,
-    fbmh('Group 2 must be isolated from strong bases; Group 5 must be isolated from halogenated solvents'),
-  );
-  pushPairSuggestion(out, seen, group2, group6,
-    `Segregate volatile poisons/halogenated solvents (${names(group2)}) from oxidisers/organic peroxides (${names(group6)}).`,
-    fbmh('Group 2 must be isolated from oxidizers; Group 6 is isolated from all other storage groups'),
-  );
-
-  pushPairSuggestion(out, seen, group3, group4,
-    `Store oxidising inorganic acids (${names(group3)}) separately from non-oxidising organic/mineral acids (${names(group4)}).`,
-    fbmh('Group 3 oxidising acids are highly reactive and must be isolated from organic acids'),
-  );
-  pushPairSuggestion(out, seen, group3, group5,
-    `Store oxidising inorganic acids (${names(group3)}) separately from liquid bases (${names(group5)}).`,
-    fbmh('Group 3 must be isolated from bases'),
-  );
-  pushPairSuggestion(out, seen, group3, group5Solid,
-    `Store oxidising inorganic acids (${names(group3)}) separately from solid bases/alkalis (${names(group5Solid)}).`,
-    fbmh('Group 3 must be isolated from bases'),
-  );
-  pushPairSuggestion(out, seen, group3, group7,
-    `Segregate oxidising inorganic acids (${names(group3)}) from poison/toxin storage (${names(group7)}).`,
-    fbmh('Group 3 must be isolated from organic poisons'),
-  );
-
-  pushPairSuggestion(out, seen, group4, group5,
-    `Store non-oxidising organic/mineral acids (${names(group4)}) separately from liquid bases (${names(group5)}).`,
-    fbmh('Group 4 must be isolated from bases'),
-  );
-  pushPairSuggestion(out, seen, group4, group5Solid,
-    `Store non-oxidising organic/mineral acids (${names(group4)}) separately from solid bases/alkalis (${names(group5Solid)}).`,
-    fbmh('Group 4 must be isolated from bases'),
-  );
-  pushPairSuggestion(out, seen, group4, group6,
-    `Segregate non-oxidising organic/mineral acids (${names(group4)}) from oxidisers/organic peroxides (${names(group6)}).`,
-    fbmh('Group 4 must be isolated from oxidizing agents; Group 6 is isolated from all other storage groups'),
-  );
-  pushPairSuggestion(out, seen, group4, group7,
-    `Segregate non-oxidising organic/mineral acids (${names(group4)}) from poison/toxin storage (${names(group7)}).`,
-    fbmh('Group 4 must be isolated from organic or inorganic poisons'),
-  );
-
-  pushPairSuggestion(out, seen, group5, group6,
-    `Segregate liquid bases (${names(group5)}) from oxidisers/organic peroxides (${names(group6)}).`,
-    fbmh('Group 5 must be isolated from oxidizing substances; Group 6 is isolated from all other storage groups'),
-  );
-  pushPairSuggestion(out, seen, group5Solid, group6,
-    `Segregate solid bases/alkalis (${names(group5Solid)}) from oxidisers/organic peroxides (${names(group6)}).`,
-    fbmh('Group 5 must be isolated from oxidizing substances; Group 6 is isolated from all other storage groups'),
-  );
-
-  if (group6.length && profiles.length > group6.length && !seen.has('group6Isolate')) {
-    seen.add('group6Isolate');
-    out.push({
-      text: `Oxidisers/organic peroxides (${names(group6)}) should be isolated from all other storage groups, using separate secondary containment if stored near other chemicals.`,
-      hint: fbmh('Group 6 has no compatible storage groups'),
-    });
-  }
-
-  pushPairSuggestion(out, seen, waterReactive, profiles.filter((p) => !p.groups.has('waterReactive')),
-    `Keep water-reactive substances (${names(waterReactive)}) dry and segregated from aqueous solutions, acids, bases and alcohols.`,
-    fbmh('Group 1/2/3 guidance isolates water-reactive substances; SDS sections 7 and 10 should be checked'),
-  );
-
-  if (pyrophoric.length && !seen.has('pyrophoric')) {
-    seen.add('pyrophoric');
-    out.push({
-      text: `Keep pyrophoric/self-heating substances (${names(pyrophoric)}) away from air, water, oxidisers and ignition sources.`,
-      hint: 'Triggered by pyrophoric/self-heating/self-reactive H-codes; check SDS sections 7 and 10.',
-    });
-  }
-
-  if (group9.length && profiles.some((p) => !p.groups.has('group9DrySolid')) && !seen.has('group9Liquids')) {
-    seen.add('group9Liquids');
-    out.push({
-      text: `Keep dry solids/powders (${names(group9)}) above liquids and protect them from contact with liquid spills.`,
-      hint: fbmh('Group 9 dry solids: prevent contact and potential reaction with liquids'),
-    });
-  }
-
-  pushPairSuggestion(
-    out,
-    seen,
-    [...group3, ...group4],
-    groupMembers(profiles, 'cyanide'),
-    'Keep cyanides away from acids: acid contact can liberate highly toxic hydrogen cyanide gas.',
-    fbmh('Group 7 note: liquid contact with cyanide-containing poisons can release poisonous gas'),
-  );
-
-  pushPairSuggestion(
-    out,
-    seen,
-    [...group3, ...group4],
-    groupMembers(profiles, 'sulfide'),
-    'Keep sulphides/sulfides away from acids: acid contact can liberate toxic hydrogen sulphide gas.',
-    fbmh('Group 7 note: liquid contact with sulphide-containing poisons can release poisonous gas'),
-  );
-
-  return out;
-}
 
 export function suggestRequirements(a: Assessment): Record<RequirementField, Suggestion[]> {
   const chems = a.processSteps.flatMap((s) => s.chemicals);
@@ -517,15 +145,6 @@ export function suggestRequirements(a: Assessment): Record<RequirementField, Sug
       });
     }
     result[field] = matched;
-  }
-  result.storage = selectedStorageSuggestions(chems);
-  const pairwise = selectedIncompatibilitySuggestions(chems);
-  if (pairwise.length > 0) {
-    const seen = new Set(result.incompatibles.map((s) => s.text));
-    result.incompatibles = [
-      ...pairwise.filter((s) => !seen.has(s.text)),
-      ...result.incompatibles,
-    ];
   }
   return result;
 }

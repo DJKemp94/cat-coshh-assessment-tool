@@ -4,10 +4,10 @@ import { lookupEh40 } from '@/services/eh40';
 const REST = 'https://pubchem.ncbi.nlm.nih.gov/rest/pug';
 const VIEW = 'https://pubchem.ncbi.nlm.nih.gov/rest/pug_view';
 const AUTOCOMPLETE = 'https://pubchem.ncbi.nlm.nih.gov/rest/autocomplete/compound';
-const CACHE_PREFIX = 'cat.pubchem.v5.';
+const CACHE_PREFIX = 'cat.pubchem.v6.';
 const CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 90; // 90 days
 
-export interface PubChemResult {
+interface PubChemResult {
   cid: number;
   cas?: string;
   name: string;
@@ -20,6 +20,16 @@ export interface PubChemResult {
   sdsSource?: string;
   /** Median boiling point in °C across reported sources, or undefined if unparseable. */
   boilingPointC?: number;
+  flashPointC?: number;
+  vapourPressureKPa?: number;
+  pubchemPhysicalForm?: SubstanceForm;
+  pubchemPhysicalDescription?: string;
+  pubchemNfpa?: {
+    health?: number;
+    flammability?: number;
+    reactivity?: number;
+    special?: string;
+  };
   /** Molecular formula (e.g. "C2H6O"). Used to determine organic vs inorganic. */
   molecularFormula?: string;
   canonicalSmiles?: string;
@@ -152,6 +162,16 @@ function walk(root: ViewNode, heading: string): ViewNode[] {
   const out: ViewNode[] = [];
   const visit = (n: ViewNode) => {
     if (n.TOCHeading === heading) out.push(n);
+    n.Section?.forEach(visit);
+  };
+  visit(root);
+  return out;
+}
+
+function walkMatching(root: ViewNode, heading: RegExp): ViewNode[] {
+  const out: ViewNode[] = [];
+  const visit = (n: ViewNode) => {
+    if (n.TOCHeading && heading.test(n.TOCHeading)) out.push(n);
     n.Section?.forEach(visit);
   };
   visit(root);
@@ -318,6 +338,101 @@ function parseBoilingPointC(strings: string[]): number | undefined {
   return Math.round(median * 10) / 10;
 }
 
+function median(values: number[]): number | undefined {
+  if (values.length === 0) return undefined;
+  values.sort((a, b) => a - b);
+  const mid = Math.floor(values.length / 2);
+  const value = values.length % 2 ? values[mid] : (values[mid - 1] + values[mid]) / 2;
+  return Math.round(value * 10) / 10;
+}
+
+function parseTemperatureC(strings: string[], minC: number, maxC: number): number | undefined {
+  const values: number[] = [];
+  const rangeRe = /([-+]?\d+(?:\.\d+)?)\s*(?:to|-|–|—)\s*([-+]?\d+(?:\.\d+)?)\s*°?\s*([CF])\b/i;
+  const pointRe = /([-+]?\d+(?:\.\d+)?)\s*°?\s*([CF])\b/i;
+  for (const raw of strings) {
+    if (/decompos|sublim|N\/A|not applicable/i.test(raw)) continue;
+    const r = rangeRe.exec(raw);
+    let valueC: number | null = null;
+    if (r) {
+      const lo = parseFloat(r[1]);
+      const hi = parseFloat(r[2]);
+      const mid = (lo + hi) / 2;
+      valueC = r[3].toUpperCase() === 'F' ? (mid - 32) * (5 / 9) : mid;
+    } else {
+      const p = pointRe.exec(raw);
+      if (p) {
+        const v = parseFloat(p[1]);
+        valueC = p[2].toUpperCase() === 'F' ? (v - 32) * (5 / 9) : v;
+      }
+    }
+    if (valueC !== null && Number.isFinite(valueC) && valueC >= minC && valueC <= maxC) {
+      values.push(valueC);
+    }
+  }
+  return median(values);
+}
+
+function parseFlashPointC(strings: string[]): number | undefined {
+  return parseTemperatureC(strings, -100, 400);
+}
+
+function parseVapourPressureKPa(strings: string[]): number | undefined {
+  const values: number[] = [];
+  const pressureRe = /([-+]?\d+(?:\.\d+)?)\s*(mm\s*hg|mmhg|torr|kpa|pa|atm|bar|mbar|psi)\b/gi;
+  for (const raw of strings) {
+    if (/N\/A|not applicable|decompos/i.test(raw)) continue;
+    let m: RegExpExecArray | null;
+    while ((m = pressureRe.exec(raw)) !== null) {
+      const value = parseFloat(m[1]);
+      const unit = m[2].toLowerCase().replace(/\s+/g, '');
+      let kPa: number | null = null;
+      if (unit === 'kpa') kPa = value;
+      else if (unit === 'pa') kPa = value / 1000;
+      else if (unit === 'mmhg' || unit === 'torr') kPa = value * 0.133322;
+      else if (unit === 'atm') kPa = value * 101.325;
+      else if (unit === 'bar') kPa = value * 100;
+      else if (unit === 'mbar') kPa = value * 0.1;
+      else if (unit === 'psi') kPa = value * 6.89476;
+      if (kPa !== null && Number.isFinite(kPa) && kPa >= 0 && kPa < 10000) values.push(kPa);
+    }
+  }
+  const value = median(values);
+  return value === undefined ? undefined : Math.round(value * 1000) / 1000;
+}
+
+function parsePhysicalDescription(strings: string[]): string | undefined {
+  const cleaned = strings
+    .map((s) => s.replace(/\s+/g, ' ').trim())
+    .filter((s) => s.length > 0 && s.length <= 500);
+  return cleaned[0];
+}
+
+function parseNfpa(strings: string[]): PubChemResult['pubchemNfpa'] | undefined {
+  const joined = strings.join(' \n ');
+  if (!/nfpa|fire diamond|health|flammability|reactivity|instability/i.test(joined)) return undefined;
+  const valueFor = (patterns: RegExp[]) => {
+    for (const pattern of patterns) {
+      const match = pattern.exec(joined);
+      if (match) {
+        const value = Number(match[1]);
+        if (Number.isInteger(value) && value >= 0 && value <= 4) return value;
+      }
+    }
+    return undefined;
+  };
+  const special = joined.match(/\b(?:special|specific hazard)\b[^A-Za-z0-9]{0,8}([A-Za-z0-9\-/ ]{1,24})/i)?.[1]?.trim();
+  const nfpa = {
+    health: valueFor([/\bhealth\b[^0-9]{0,20}([0-4])\b/i, /\bblue\b[^0-9]{0,20}([0-4])\b/i]),
+    flammability: valueFor([/\bflammability\b[^0-9]{0,20}([0-4])\b/i, /\bred\b[^0-9]{0,20}([0-4])\b/i]),
+    reactivity: valueFor([/\b(?:reactivity|instability)\b[^0-9]{0,20}([0-4])\b/i, /\byellow\b[^0-9]{0,20}([0-4])\b/i]),
+    special,
+  };
+  return nfpa.health !== undefined || nfpa.flammability !== undefined || nfpa.reactivity !== undefined || nfpa.special
+    ? nfpa
+    : undefined;
+}
+
 function parseForm(strings: string[]): { form?: SubstanceForm; note?: string } {
   // PubChem lists multiple supplier-variant descriptions per substance
   // (e.g. methanol has a "Liquid; Dry Powder, Liquid; Pellets" entry from
@@ -453,7 +568,13 @@ export async function lookupChemical(
   const expNodes = record ? walk(record, 'Exposure Limits') : [];
   const physNodes = record ? walk(record, 'Physical Description') : [];
   const bpNodes = record ? walk(record, 'Boiling Point') : [];
+  const flashNodes = record ? walk(record, 'Flash Point') : [];
+  const vapourNodes = record ? walkMatching(record, /^vapou?r pressure$/i) : [];
+  const nfpaNodes = record ? walkMatching(record, /^(nfpa|fire diamond)|nfpa/i) : [];
   const boilingPointC = parseBoilingPointC(bpNodes.flatMap((n) => infoStrings(n)));
+  const flashPointC = parseFlashPointC(flashNodes.flatMap((n) => infoStrings(n)));
+  const vapourPressureKPa = parseVapourPressureKPa(vapourNodes.flatMap((n) => infoStrings(n)));
+  const pubchemNfpa = parseNfpa(nfpaNodes.flatMap((n) => infoStrings(n)));
 
   // The single "GHS Classification" node contains ~30 sibling Information
   // entries: a primary block (Pictogram → Signal → GHS Hazard Statements …)
@@ -494,6 +615,7 @@ export async function lookupChemical(
 
   const physStrings = physNodes.flatMap((n) => infoStrings(n));
   const formInfo = parseForm(physStrings);
+  const pubchemPhysicalDescription = parsePhysicalDescription(physStrings);
 
   const name = normalizeChemicalName(
     (await fetchPreferredName(cid)) ?? (typeof query === 'string' ? query : `CID ${cid}`)
@@ -523,6 +645,11 @@ export async function lookupChemical(
     sdsUrl: sds.url,
     sdsSource: sds.source,
     boilingPointC,
+    flashPointC,
+    vapourPressureKPa,
+    pubchemPhysicalForm: formInfo.form,
+    pubchemPhysicalDescription,
+    pubchemNfpa,
     molecularFormula: properties.MolecularFormula,
     canonicalSmiles: properties.CanonicalSMILES,
     connectivitySmiles: properties.ConnectivitySMILES,
@@ -538,7 +665,7 @@ export async function lookupChemical(
   return result;
 }
 
-export async function autocompleteNames(
+async function autocompleteNames(
   prefix: string,
   limit = 10,
   signal?: AbortSignal,
@@ -558,15 +685,6 @@ async function cidForAutocompleteName(name: string, signal?: AbortSignal): Promi
   if (!r.ok) return undefined;
   const j = (await r.json()) as { IdentifierList?: { CID?: number[] } };
   return j.IdentifierList?.CID?.[0];
-}
-
-export async function resolvePubChemName(
-  query: string,
-  signal?: AbortSignal,
-): Promise<PubChemAutocompleteSuggestion | null> {
-  const cid = await cidForAutocompleteName(query, signal);
-  if (!cid) return null;
-  return { name: normalizeChemicalName(query), cid };
 }
 
 export async function autocompleteChemicals(

@@ -5,18 +5,18 @@ import { migrateAssessment } from '@/services/migrate';
 
 const HEADER = `CATDRAFT/v${SCHEMA_VERSION}`;
 
-export function encodeDraft(a: Assessment): string {
+function encodeDraft(a: Assessment): string {
   const json = JSON.stringify(a);
   const compressed = compressString(json);
   return `${HEADER}\n${base45Encode(compressed)}`;
 }
 
-export function decodeDraft(text: string): Assessment {
-  const trimmed = text.trim();
-  const newline = trimmed.indexOf('\n');
+function decodeDraft(text: string): Assessment {
+  const draft = text.replace(/^\uFEFF/, '');
+  const newline = draft.indexOf('\n');
   if (newline === -1) throw new Error('Invalid .catdraft (no header line)');
-  const header = trimmed.slice(0, newline).trim();
-  const payload = trimmed.slice(newline + 1).replace(/\s+/g, '');
+  const header = draft.slice(0, newline).trim();
+  const payload = draft.slice(newline + 1).replace(/[\r\n]/g, '');
   if (!header.startsWith('CATDRAFT/v')) throw new Error('Not a CAT draft file');
   const version = Number(header.replace('CATDRAFT/v', ''));
   if (!Number.isFinite(version)) throw new Error('Unrecognised draft version');

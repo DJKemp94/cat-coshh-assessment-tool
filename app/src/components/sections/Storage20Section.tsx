@@ -25,10 +25,13 @@ import {
   CabinetZoneDef,
   ZONES,
   CABINET_ORDER,
+  storage20ConfidenceLabel,
+  storage20EvidenceText,
+  storage20SourceLabel,
 } from '@/services/storage20Classifier';
 import { Storage2AssignmentEdit, Storage2MatchEdit, Substance } from '@/types/assessment';
 
-export function Storage20Section() {
+export function StorageSection() {
   const assessment = useAssessment((s) => s.assessment);
   const storage2 = useAssessment((s) => s.assessment.storage2);
   const updateStorage2 = useAssessment((s) => s.updateStorage2);
@@ -69,7 +72,7 @@ export function Storage20Section() {
   return (
     <section>
       <SectionHeader
-        title="Storage 2.0"
+        title="Storage"
         subtitle={
           chemicals.length > 0
           ? `Storage recommendations for ${chemicals.length} chemical${chemicals.length === 1 ? '' : 's'} from Process Steps.`
@@ -384,9 +387,12 @@ function ClassificationMatchRow({
           ))}
         </select>
         <div className="mt-1 flex flex-wrap gap-1">
-          <InfoBadge label={`Confidence: ${confidenceLabel(assignment.confidence)}`} title="Confidence reflects how strong the automatic classification evidence is." tone={assignment.confidence} />
+          <InfoBadge label={`Confidence: ${storage20ConfidenceLabel(assignment.confidence)}`} title="Confidence reflects how strong the automatic classification evidence is." tone={assignment.confidence} />
           <AssignmentInfo assignment={assignment} />
           {edit?.zoneOverride && <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">User override</span>}
+        </div>
+        <div className="mt-1 line-clamp-3 text-[10px] leading-relaxed text-zinc-500">
+          {storage20EvidenceText(assignment)}
         </div>
       </td>
       <td className="px-2 py-3">
@@ -411,7 +417,9 @@ const STORAGE20_ZONE_OPTIONS = [
   { id: 'oxidizersOnly', label: 'Oxidizers, excluding oxidizing acids or organic peroxides' },
   { id: 'dryPoisons', label: 'Non-volatile poisons - dry' },
   { id: 'liquidPoisons', label: 'Non-volatile poisons - liquid' },
+  { id: 'compressedGases', label: 'Compressed gases' },
   { id: 'drySolids', label: 'Dry solids' },
+  { id: 'generalStorage', label: 'General low-hazard storage' },
   { id: 'specialReview', label: 'Hard isolation / dedicated reactive storage' },
   { id: 'review', label: 'Unassigned / assessor review' },
 ] satisfies Array<{ id: Storage20ZoneId; label: string }>;
@@ -446,7 +454,9 @@ function categoryForZone(zoneId: Storage20ZoneId): Storage20Category {
   if (zoneId === 'volatilePoisonsChlorinated') return 'volatilePoison';
   if (zoneId === 'dryPoisons') return 'inorganicPoison';
   if (zoneId === 'liquidPoisons') return 'organicPoison';
+  if (zoneId === 'compressedGases') return 'compressedGas';
   if (zoneId === 'drySolids') return 'drySolid';
+  if (zoneId === 'generalStorage') return 'generalStorage';
   return 'review';
 }
 
@@ -456,20 +466,6 @@ function splitRequirements(value: string) {
 
 function requirementTextForAssignment(assignment: Storage20Assignment) {
   return [...assignment.requirements, ...assignment.constraints].slice(0, 4).join('; ') || 'Check SDS sections 7 and 10';
-}
-
-function confidenceLabel(value: Storage20Assignment['confidence']) {
-  if (value === 'high') return 'High';
-  if (value === 'medium') return 'Medium';
-  return 'Review';
-}
-
-function sourceLabel(value: Storage20Assignment['source']) {
-  if (value === 'combined') return 'GHS + reference data';
-  if (value === 'ghs') return 'GHS fallback';
-  if (value === 'pubchem') return 'PubChem fallback';
-  if (value === 'cameo') return 'Reference database';
-  return 'User/SDS review';
 }
 
 function InfoBadge({ label, title, tone }: { label: string; title: string; tone?: Storage20Assignment['confidence'] }) {
@@ -494,16 +490,16 @@ function AssignmentInfo({ assignment }: { assignment: Storage20Assignment }) {
     <details className="group relative inline-block">
       <summary
         className="flex h-5 w-5 cursor-pointer list-none items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-600 transition hover:border-accent-300 hover:text-accent-700 focus:outline-none focus:ring-2 focus:ring-accent-100 [&::-webkit-details-marker]:hidden"
-        aria-label={`Assignment source: ${sourceLabel(assignment.source)}`}
+        aria-label={`Assignment source: ${storage20SourceLabel(assignment.source)}`}
         title="Show assignment source"
       >
         <Info size={12} />
       </summary>
       <div className="absolute right-0 z-20 mt-1 w-72 rounded-lg border border-zinc-200 bg-white p-3 text-[11px] leading-relaxed text-zinc-700 shadow-lg">
         <div className="font-semibold text-zinc-900">Assignment source</div>
-        <div className="mt-1">{sourceLabel(assignment.source)}</div>
+        <div className="mt-1">{storage20SourceLabel(assignment.source)}</div>
         <div className="mt-2 font-semibold text-zinc-900">Reason</div>
-        <div className="mt-1">{assignment.reasons.join(' ') || 'No automatic reason recorded.'}</div>
+        <div className="mt-1">{storage20EvidenceText(assignment) || 'No automatic reason recorded.'}</div>
       </div>
     </details>
   );
@@ -851,7 +847,7 @@ function CabinetSchemePanel({
         {assignments.length === 0 && <EmptyMessage>Add chemicals in Process Steps to generate the cabinet layout.</EmptyMessage>}
       </div>
       <label className="mt-3 block">
-        <span className="text-xs font-semibold text-zinc-500">Storage 2.0 layout notes</span>
+        <span className="text-xs font-semibold text-zinc-500">Storage layout notes</span>
         <textarea
           className="mt-1 min-h-24 w-full resize-y rounded-md border border-zinc-200 bg-white p-2 text-sm leading-relaxed outline-none focus:border-accent-300 focus:ring-2 focus:ring-accent-100"
           value={notes}
@@ -893,7 +889,7 @@ function CabinetChemicalCard({ assignment }: { assignment: Storage20Assignment }
           ))}
         </div>
       ) : (
-        <div className="mt-2 border-t border-zinc-100 pt-2 text-[10px] text-zinc-500">No additional storage notices.</div>
+        <div className="mt-2 border-t border-zinc-100 pt-2 text-[10px] text-zinc-500">No extra storage notices.</div>
       )}
     </details>
   );

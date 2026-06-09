@@ -1,7 +1,7 @@
 const APP_VERSION = '0.2.0';
 export const SCHEMA_VERSION = 3 as const;
 
-export type UUID = string;
+type UUID = string;
 
 export type RiskLevel = 1 | 2 | 3 | 4 | 5;
 export interface RiskScore {
@@ -115,6 +115,19 @@ export interface Substance {
   dustiness?: CoshhBand;
   /** Boiling point in °C from PubChem (median of reported values). Informational + drives auto volatility band. */
   boilingPointC?: number;
+  /** Flash point in °C from PubChem. Used as supporting flammable-storage evidence. */
+  flashPointC?: number;
+  /** Vapour pressure in kPa from PubChem. Used as supporting volatility/ventilation evidence. */
+  vapourPressureKPa?: number;
+  /** PubChem-derived physical state. The assessor-entered `form` remains authoritative. */
+  pubchemPhysicalForm?: SubstanceForm;
+  pubchemPhysicalDescription?: string;
+  pubchemNfpa?: {
+    health?: number;
+    flammability?: number;
+    reactivity?: number;
+    special?: string;
+  };
   /** Structural fields from PubChem used for storage classification. */
   molecularFormula?: string;
   canonicalSmiles?: string;
@@ -139,36 +152,6 @@ export interface ControlMeasures {
   administrative: string;
   airMonitoring: string;
   healthSurveillance: string;
-}
-
-export interface StorageRequirements {
-  cheminventoryLogged: boolean;
-  sdsVersion: string;
-  sdsDate: string;
-  storage: string;
-  incompatibles: string;
-  assignments: Record<UUID, StorageAssignmentEdit>;
-}
-
-export type StorageAssignmentGroup =
-  | '1'
-  | '2a'
-  | '2b'
-  | '3'
-  | '4'
-  | '5a'
-  | '5b'
-  | '5c'
-  | '6'
-  | 'general'
-  | 'review';
-
-export interface StorageAssignmentEdit {
-  groupOverride?: StorageAssignmentGroup;
-  guidance?: string;
-  alert?: string;
-  confirmed?: boolean;
-  updatedAt?: string;
 }
 
 export interface Storage2MatchEdit {
@@ -239,7 +222,6 @@ export interface Assessment {
   taskHazardsConfirmedNone?: boolean;
   processSteps: ProcessStep[];
   controls: ControlMeasures;
-  additional: StorageRequirements;
   storage2: Storage2Requirements;
   emergency: EmergencyRequirements;
   briefing: BriefingEntry[];
@@ -286,7 +268,7 @@ const plusYearsISO = (years: number): string => {
   return isoDate(d);
 };
 
-export const emptyOverview = (): Overview => ({
+const emptyOverview = (): Overview => ({
   businessUnit: '',
   riskAssessmentRef: '',
   sopRef: '',
@@ -306,22 +288,13 @@ export const emptyOverview = (): Overview => ({
   },
 });
 
-export const emptyControls = (): ControlMeasures => ({
+const emptyControls = (): ControlMeasures => ({
   elimination: '',
   substitution: '',
   reduction: '',
   administrative: '',
   airMonitoring: '',
   healthSurveillance: '',
-});
-
-export const emptyStorage = (): StorageRequirements => ({
-  cheminventoryLogged: false,
-  sdsVersion: '',
-  sdsDate: '',
-  storage: '',
-  incompatibles: '',
-  assignments: {},
 });
 
 export const emptyStorage2 = (): Storage2Requirements => ({
@@ -380,7 +353,6 @@ export const newAssessment = (): Assessment => {
     taskHazards: [],
     processSteps: [],
     controls: emptyControls(),
-    additional: emptyStorage(),
     storage2: emptyStorage2(),
     emergency: emptyEmergency(),
     briefing: [],

@@ -6,13 +6,13 @@ import reactivityJson from '@/data/cameo/reactivity.json';
 import { Storage2MatchEdit, Storage2PairEdit, Substance } from '@/types/assessment';
 
 export type CameoCompatibility = 'Incompatible' | 'Caution' | 'Compatible' | 'Unknown';
-export type CameoMatchConfidence = 'exact-cas' | 'exact-name' | 'synonym' | 'manual' | 'unmatched';
+type CameoMatchConfidence = 'exact-cas' | 'exact-name' | 'synonym' | 'manual' | 'unmatched';
 
 /**
  * Cabinet destination determined by CAMEO reactive group membership.
  * specialReview = hard isolation, dedicated reactive storage / manual SDS review.
  */
-export type CabinetId = 'specialReview' | 'oxidizers' | 'flammables' | 'corrosiveAcids' | 'corrosiveBases' | 'toxins' | 'shelving';
+type CabinetId = 'specialReview' | 'oxidizers' | 'flammables' | 'corrosiveAcids' | 'corrosiveBases' | 'toxins' | 'shelving';
 
 /**
  * Maps every CAMEO reactive group ID to its recommended cabinet destination.
@@ -115,20 +115,7 @@ export const CAMEO_GROUP_TO_CABINET: Record<number, CabinetId> = {
   100: 'shelving',  // Water and Aqueous Solutions
 };
 
-/**
- * Returns the cabinet destination for a CAMEO match based solely on its
- * reactive-group membership.  The caller must still apply the priority
- * ordering (specialReview > oxidizer > solid‑check > liquid cabinet).
- */
-export function cabinetForCameoGroups(groupIds: number[]): CabinetId | null {
-  for (const gid of groupIds) {
-    const cabinet = CAMEO_GROUP_TO_CABINET[gid];
-    if (cabinet) return cabinet;
-  }
-  return null;
-}
-
-export interface CameoChemical {
+interface CameoChemical {
   id: number;
   name: string;
   cas: string[];
@@ -147,7 +134,7 @@ export interface CameoChemical {
   };
 }
 
-export interface CameoReactiveGroup {
+interface CameoReactiveGroup {
   id: number;
   name: string;
   special: boolean;
@@ -171,15 +158,6 @@ interface CameoReactivity {
   gasProducts: string[];
   hazardsDocumentation: string;
   hazards: Array<{ name: string; phrases: string[] }>;
-}
-
-export interface CameoGroupFinding {
-  leftGroup: CameoReactiveGroup;
-  rightGroup: CameoReactiveGroup;
-  compatibility: CameoCompatibility;
-  gasProducts: string[];
-  hazards: string[];
-  hazardsDocumentation: string;
 }
 
 export interface CameoMatch {
@@ -257,7 +235,7 @@ for (const row of reactivity) {
   reactivityIndex.set(pairKeyForGroups(row.groupA, row.groupB), row);
 }
 
-export function normalizeName(value?: string) {
+function normalizeName(value?: string) {
   return String(value || '')
     .toLowerCase()
     .replace(/&/g, ' and ')
@@ -266,25 +244,12 @@ export function normalizeName(value?: string) {
     .trim();
 }
 
-export function normalizeCas(value?: string) {
+function normalizeCas(value?: string) {
   return String(value || '').replace(/[^0-9]/g, '');
 }
 
-export function storage2PairKey(leftChemicalId: string, rightChemicalId: string) {
+function storage2PairKey(leftChemicalId: string, rightChemicalId: string) {
   return [leftChemicalId, rightChemicalId].sort().join('::');
-}
-
-export function lookupGroupPairReactivity(leftGroupId: number, rightGroupId: number): CameoGroupFinding | null {
-  const finding = reactivityIndex.get(pairKeyForGroups(leftGroupId, rightGroupId));
-  if (!finding) return null;
-  return {
-    leftGroup: byGroupId.get(leftGroupId)!,
-    rightGroup: byGroupId.get(rightGroupId)!,
-    compatibility: finding.compatibility,
-    gasProducts: finding.gasProducts ?? [],
-    hazards: finding.hazards.flatMap((h) => [h.name, ...h.phrases]).filter(Boolean) ?? [],
-    hazardsDocumentation: finding.hazardsDocumentation ?? '',
-  };
 }
 
 function pairKeyForGroups(leftGroupId: number, rightGroupId: number) {

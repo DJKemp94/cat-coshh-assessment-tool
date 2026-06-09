@@ -5,7 +5,7 @@ export type CoreSectionId =
   | 'substances'
   | 'taskHazards'
   | 'controls'
-  | 'additional'
+  | 'storage'
   | 'emergency'
   | 'briefing';
 
@@ -89,7 +89,7 @@ export function sectionMissingItems(a: Assessment, id: CoreSectionId): string[] 
       if (!c.healthSurveillance.trim()) missing.push('health surveillance');
       return missing;
     }
-    case 'additional': {
+    case 'storage': {
       const seen = new Set<string>();
       const chemicals = a.processSteps
         .flatMap((step) => step.chemicals)
@@ -101,8 +101,8 @@ export function sectionMissingItems(a: Assessment, id: CoreSectionId): string[] 
       });
       if (chemicals.length === 0) return ['chemical storage confirmations'];
       const missing: string[] = [];
-      const unconfirmed = chemicals.filter((chemical) => a.additional.assignments?.[chemical.id]?.confirmed !== true);
-      if (unconfirmed.length > 0) missing.push('confirm each chemical storage assignment');
+      const unconfirmed = chemicals.filter((chemical) => a.storage2.matches?.[chemical.id]?.confirmed !== true);
+      if (unconfirmed.length > 0) missing.push('confirm each chemical storage recommendation');
       return missing;
     }
     case 'emergency': {

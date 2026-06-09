@@ -1,5 +1,5 @@
 import {
-  Assessment, ProcessStep, SCHEMA_VERSION, uuid, emptyStorage, emptyStorage2, emptyEmergency, emptyStepControls,
+  Assessment, ProcessStep, SCHEMA_VERSION, uuid, emptyStorage2, emptyEmergency, emptyStepControls,
 } from '@/types/assessment';
 
 /**
@@ -12,20 +12,7 @@ export function migrateAssessment(raw: unknown): Assessment {
   const v = typeof obj.schemaVersion === 'number' ? obj.schemaVersion : 1;
 
   if (v === SCHEMA_VERSION) {
-    // Defensive: earlier v3 migration used "storage" instead of "additional".
-    // Normalise to the canonical shape so old localStorage data doesn't break.
     const rawAssessment = raw as Record<string, unknown>;
-    if ('storage' in rawAssessment && !('additional' in rawAssessment)) {
-      rawAssessment.additional = rawAssessment.storage;
-      delete rawAssessment.storage;
-    }
-    rawAssessment.additional = {
-      ...emptyStorage(),
-      ...((rawAssessment.additional || {}) as Record<string, unknown>),
-      assignments: typeof ((rawAssessment.additional || {}) as Record<string, unknown>).assignments === 'object' && ((rawAssessment.additional || {}) as Record<string, unknown>).assignments !== null
-        ? ((rawAssessment.additional || {}) as Record<string, unknown>).assignments
-        : {},
-    };
     rawAssessment.storage2 = {
       ...emptyStorage2(),
       ...((rawAssessment.storage2 || {}) as Record<string, unknown>),
@@ -51,6 +38,8 @@ export function migrateAssessment(raw: unknown): Assessment {
         },
       }));
     }
+    delete rawAssessment.additional;
+    delete rawAssessment.storage;
     return rawAssessment as unknown as Assessment;
   }
 
@@ -81,17 +70,8 @@ export function migrateAssessment(raw: unknown): Assessment {
   }
 
   if (currentV === 2) {
-    // v2 → v3: split `additional` into `storage` and `emergency`
+    // v2 -> v3: keep old emergency text and drop retired legacy storage data.
     const oldAdditional = (current.additional || {}) as Record<string, unknown>;
-    const storage = {
-      ...emptyStorage(),
-      cheminventoryLogged: Boolean(oldAdditional.cheminventoryLogged),
-      sdsVersion: typeof oldAdditional.sdsVersion === 'string' ? oldAdditional.sdsVersion : '',
-      sdsDate: typeof oldAdditional.sdsDate === 'string' ? oldAdditional.sdsDate : '',
-      storage: typeof oldAdditional.storage === 'string' ? oldAdditional.storage : '',
-      incompatibles: typeof oldAdditional.incompatibles === 'string' ? oldAdditional.incompatibles : '',
-      assignments: {},
-    };
     const emergency = {
       ...emptyEmergency(),
       emergencySpills: typeof oldAdditional.emergencySpills === 'string' ? oldAdditional.emergencySpills : '',
@@ -104,10 +84,10 @@ export function migrateAssessment(raw: unknown): Assessment {
     const v3 = {
       ...current,
       schemaVersion: SCHEMA_VERSION,
-      additional: storage,
       storage2: emptyStorage2(),
       emergency,
     } as Record<string, unknown>;
+    delete v3.additional;
     current = v3;
     currentV = 3;
   }

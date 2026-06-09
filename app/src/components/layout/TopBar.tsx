@@ -33,10 +33,14 @@ export function TopBar({ onOpenSettings, onOpenHelp }: Props) {
   const handleImport = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const input = e.currentTarget;
     run('Import', async () => {
-      const imported = await importCatdraftFile(file);
-      replace(imported);
-      e.target.value = '';
+      try {
+        const imported = await importCatdraftFile(file);
+        replace(imported);
+      } finally {
+        input.value = '';
+      }
     });
   };
 
