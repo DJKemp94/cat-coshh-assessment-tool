@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Extract Table 1 of HSE EH40/2005 into JSON for the CAT app.
+ * Extract Table 1 of HSE EH40/2005 into JSON for the LabCAT app.
  *
  * USAGE
  *   npm run extract-eh40 -- /path/to/EH40.pdf

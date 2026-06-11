@@ -70,7 +70,8 @@ const BASE_WASTE_SUGGESTIONS: ChipSuggestion[] = [
   { text: 'Review the SDS before confirming the waste route, segregation requirements, compatible container and any special disposal precautions for each waste stream.' },
   { text: 'Collect each waste stream in a clean, intact, leak-tight container that the SDS and local procedure confirm is compatible with the waste.' },
   { text: 'Keep waste containers closed except when adding waste, store liquid waste in secondary containment, and do not fill liquid waste containers above about three-quarters full.' },
-  { text: 'Label each waste container with the contents, major components, concentration or solvent/water content where relevant, hazards, date and responsible person or laboratory. Retain useful original hazard information where the original container is reused, or deface obsolete labels where a container is repurposed.' },
+  { text: 'Label each waste container with the contents, major components, concentration or solvent/water content where relevant, hazards, date and responsible person or laboratory.' },
+  { text: 'Where a container is reused, retain useful original hazard information; where it is repurposed for a different waste, deface obsolete labels before filling.' },
 ];
 
 export function EmergencySection() {
@@ -334,10 +335,10 @@ function buildEmergencyPrompts(
   suggestions: Record<RequirementField, ChipSuggestion[]>,
 ) {
   const chemicalPrompt = chemicalNamesPrompt(chemicals);
-  const firstAidPrompts = buildFirstAidPrompts(chemicals);
+  const firstAidPrompts = buildFirstAidPrompts(chemicals, suggestions.emergencyFirstAid);
   const spillPrompts = buildSpillPrompts(chemicals, suggestions.emergencySpills);
   const firePrompts = buildFirePrompts(chemicals, suggestions.emergencyFire);
-  const wastePrompts = buildWastePrompts(chemicals);
+  const wastePrompts = buildWastePrompts(chemicals, suggestions.wasteHandling);
   return {
     firstAid: {
       considerations: firstAidPrompts.considerations,
@@ -363,7 +364,7 @@ function buildEmergencyPrompts(
   };
 }
 
-function buildWastePrompts(chemicals: Substance[]) {
+function buildWastePrompts(chemicals: Substance[], hazardSuggestions: ChipSuggestion[] = []) {
   if (chemicals.length === 0) {
     return {
       considerations: BASE_WASTE_CONSIDERATIONS,
@@ -406,7 +407,7 @@ function buildWastePrompts(chemicals: Substance[]) {
     'Confirm compatible collection containers, labels, fill limits, secondary containment and collection route for each stream.',
   ].filter(Boolean) as string[];
 
-  const suggestions: ChipSuggestion[] = [...BASE_WASTE_SUGGESTIONS];
+  const suggestions: ChipSuggestion[] = [];
   const add = (condition: boolean, text: string) => {
     if (condition) suggestions.push({ text });
   };
@@ -450,7 +451,7 @@ function buildWastePrompts(chemicals: Substance[]) {
 
   return {
     considerations,
-    suggestions: mergeSuggestions(suggestions).slice(0, 8),
+    suggestions: mergeSuggestions(suggestions, hazardSuggestions, BASE_WASTE_SUGGESTIONS).slice(0, 10),
   };
 }
 
@@ -468,10 +469,10 @@ function chemicalSearchText(chemical: Substance) {
   ].filter(Boolean).join(' ').toLowerCase();
 }
 
-function mergeSuggestions(primary: ChipSuggestion[] = [], fallback: ChipSuggestion[] = []) {
+function mergeSuggestions(...lists: ChipSuggestion[][]) {
   const seen = new Set<string>();
   const out: ChipSuggestion[] = [];
-  for (const suggestion of [...primary, ...fallback]) {
+  for (const suggestion of lists.flat()) {
     const key = suggestion.text.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
@@ -480,7 +481,7 @@ function mergeSuggestions(primary: ChipSuggestion[] = [], fallback: ChipSuggesti
   return out;
 }
 
-function buildFirstAidPrompts(chemicals: Substance[]) {
+function buildFirstAidPrompts(chemicals: Substance[], hazardSuggestions: ChipSuggestion[] = []) {
   const exceptions = firstAidExceptions(chemicals);
   const considerations = [
     ...BASE_FIRST_AID_CONSIDERATIONS,
@@ -488,8 +489,9 @@ function buildFirstAidPrompts(chemicals: Substance[]) {
   ];
   const suggestions = mergeSuggestions(
     exceptions.map((exception) => ({ text: exception.suggestion })),
+    hazardSuggestions,
     BASE_FIRST_AID_SUGGESTIONS,
-  ).slice(0, 6);
+  ).slice(0, 8);
   return { considerations, suggestions };
 }
 
@@ -548,9 +550,10 @@ function buildSpillPrompts(chemicals: Substance[], hazardSuggestions: ChipSugges
     ...spillEscalationPrompts(chemicals),
   ];
   const suggestions = mergeSuggestions(
-    spillResponseStandardSuggestions(chemicals, hazardSuggestions),
+    spillResponseStandardSuggestions(chemicals),
+    hazardSuggestions,
     BASE_SPILL_SUGGESTIONS,
-  ).slice(0, 5);
+  ).slice(0, 8);
   return { considerations, suggestions };
 }
 
@@ -562,8 +565,8 @@ function spillEscalationPrompts(chemicals: Substance[]) {
   ];
 }
 
-function spillResponseStandardSuggestions(chemicals: Substance[], hazardSuggestions: ChipSuggestion[]) {
-  if (chemicals.length === 0) return hazardSuggestions.slice(0, 1);
+function spillResponseStandardSuggestions(chemicals: Substance[]): ChipSuggestion[] {
+  if (chemicals.length === 0) return [];
   return [
     {
       text: `For chemicals used in this task (${spillChemicalList(chemicals)}), local response is limited to small, contained spills only. Follow SDS Section 6 and the local spill plan for the detailed procedure.`,
@@ -586,9 +589,10 @@ function buildFirePrompts(chemicals: Substance[], hazardSuggestions: ChipSuggest
     ...fireEscalationPrompts(chemicals),
   ];
   const suggestions = mergeSuggestions(
-    fireResponseStandardSuggestions(chemicals, hazardSuggestions),
+    fireResponseStandardSuggestions(chemicals),
+    hazardSuggestions,
     BASE_FIRE_SUGGESTIONS,
-  ).slice(0, 5);
+  ).slice(0, 8);
   return { considerations, suggestions };
 }
 
@@ -600,8 +604,8 @@ function fireEscalationPrompts(chemicals: Substance[]) {
   ];
 }
 
-function fireResponseStandardSuggestions(chemicals: Substance[], hazardSuggestions: ChipSuggestion[]) {
-  if (chemicals.length === 0) return hazardSuggestions.slice(0, 1);
+function fireResponseStandardSuggestions(chemicals: Substance[]): ChipSuggestion[] {
+  if (chemicals.length === 0) return [];
   return [
     {
       text: `For chemicals used in this task (${spillChemicalList(chemicals)}), follow SDS Section 5 and the local fire/emergency plan for suitable extinguishing media, special hazards and firefighter precautions.`,

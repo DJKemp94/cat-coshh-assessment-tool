@@ -4,7 +4,7 @@
  */
 
 export const COSHH_INTRO = [
-  'COSHH Essentials is the HSE control-banding screening tool published in HSG193. It identifies a suggested control approach for each substance from the combination of (a) the chemical hazard group derived from CLP H-statements, (b) the scale at which the substance is used, and (c) the volatility band for liquids or the dustiness band for solids. The highest approach across all substances is a screening output for assessor review, not automatic approval of controls.',
+  'COSHH Essentials is the HSE control-banding screening tool published in HSG193. It identifies a suggested control approach for each substance from the combination of (a) the chemical hazard group derived from CLP H-statements, (b) the scale at which the substance is used, and (c) the volatility band for liquids or the dustiness band for solids. LabCAT highlights the highest approach present as a screening output for assessor review, not automatic approval of controls.',
   'It is a screening tool only. A competent assessor must verify the screening output against the SDS, task, exposure route, quantity, duration, WELs and local conditions, and may impose stricter controls. The scheme does not cover asbestos, lead, pesticides, radioactive materials or biological agents, and does not address physical hazards such as fire, explosion or reactivity.',
 ];
 
@@ -31,7 +31,7 @@ export const APPROACH_HELP: [string, string][] = [
 ];
 
 export const EP_EXPOSURE_TABLE_EXPLANATION =
-  'This reference table shows the predicted airborne exposure ranges associated with each exposure predictor (EP) band and control approach. It helps explain why COSHH Essentials may move from general ventilation to engineering control or containment as the expected dust or vapour exposure increases. It is background guidance only: CAT still bases the recommendation for each substance on hazard group, quantity scale and volatility or dustiness, and the assessor must confirm the final controls against the task and SDS.';
+  'This reference table shows the predicted airborne exposure ranges associated with each exposure predictor (EP) band and control approach. It helps explain why COSHH Essentials may move from general ventilation to engineering control or containment as the expected dust or vapour exposure increases. It is background guidance only: LabCAT still bases the recommendation for each substance on hazard group, quantity scale and volatility or dustiness, and the assessor must confirm the final controls against the task and SDS.';
 
 export const EP_EXPOSURE_TABLE = [
   {

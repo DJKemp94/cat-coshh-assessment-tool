@@ -68,8 +68,8 @@ const UNITS_BY_FORM: Record<SubstanceForm, readonly string[]> = {
   other:   ['g', 'mL', 'L', 'kg'],
 };
 
-function defaultUnit(form: SubstanceForm): string {
-  return UNITS_BY_FORM[form][0];
+function defaultUnit(form: SubstanceForm | ''): string {
+  return form ? UNITS_BY_FORM[form][0] : '';
 }
 
 function splitQuantity(raw: string): { value: string; unit: string } {
@@ -135,6 +135,17 @@ function expandedChemicalPhrases(text: string, matches: ExtractMatch[]): string[
 function displayChemicalPhrase(phrase: string): string {
   const trimmed = phrase.trim().replace(/\s+/g, ' ');
   return trimmed ? trimmed[0].toUpperCase() + trimmed.slice(1) : trimmed;
+}
+
+function isUnavailableExposureLimit(value: string | undefined): boolean {
+  const normalized = value?.trim().toLowerCase().replace(/[.\s/]+/g, '') ?? '';
+  return !normalized || normalized === 'na' || normalized === '-' || normalized === '—';
+}
+
+function collapsedWelSummary(wel: Substance['wel']): { label: 'WEL' | 'STEL'; value: string } | null {
+  if (!isUnavailableExposureLimit(wel.twa)) return { label: 'WEL', value: wel.twa!.trim() };
+  if (!isUnavailableExposureLimit(wel.stel)) return { label: 'STEL', value: wel.stel!.trim() };
+  return null;
 }
 
 function splitOtherControls(value: string): string[] {
@@ -341,13 +352,16 @@ function ProcessStepCard({
   useEffect(() => {
     let targetStepId: string | null = null;
     try {
-      targetStepId = sessionStorage.getItem('cat.focusProcessStep');
+      targetStepId =
+        sessionStorage.getItem('labcat.focusProcessStep') ??
+        sessionStorage.getItem('cat.focusProcessStep');
     } catch {
       return;
     }
     if (targetStepId !== step.id) return;
 
     try {
+      sessionStorage.removeItem('labcat.focusProcessStep');
       sessionStorage.removeItem('cat.focusProcessStep');
     } catch {
       // Non-critical: the navigation still works without clearing storage.
@@ -401,6 +415,7 @@ function ProcessStepCard({
   const missingItemCount = processStepMissingItems(step).length;
   const lastChemicalIncomplete =
     step.chemicals.length > 0 && isChemicalIncomplete(step.chemicals[step.chemicals.length - 1]);
+  const addChemicalTitle = lastChemicalIncomplete ? 'Complete the last chemical first' : 'Add a chemical to this step';
   const isStepComplete =
     isProcessStepReady(step) && step.chemicals.length > 0 && incompleteCount === 0;
   const aggregatedPictograms = useMemo(() => {
@@ -503,12 +518,13 @@ function ProcessStepCard({
           stel: r.wel.stel ?? 'n/a',
           source: r.wel.source ?? 'Manual',
         },
-        form: r.pubchemPhysicalForm ?? r.form ?? 'liquid',
+        form: r.pubchemPhysicalForm ?? r.form ?? '',
         sdsUrl: r.sdsUrl,
         sdsSource: r.sdsSource,
         boilingPointC: r.boilingPointC,
         flashPointC: r.flashPointC,
         vapourPressureKPa: r.vapourPressureKPa,
+        phValue: r.phValue,
         pubchemPhysicalForm: r.pubchemPhysicalForm,
         pubchemPhysicalDescription: r.pubchemPhysicalDescription,
         pubchemNfpa: r.pubchemNfpa,
@@ -734,10 +750,10 @@ function ProcessStepCard({
               </button>
             )}
             <button
-              className="btn-ghost text-xs px-2 py-1 text-accent-700 hover:bg-accent-50 disabled:opacity-40"
+              className="btn-primary text-xs !px-3 !py-1.5 shadow-soft disabled:opacity-40"
               onClick={() => addChemical(step.id)}
               disabled={lastChemicalIncomplete}
-              title={lastChemicalIncomplete ? 'Complete the last chemical first' : undefined}
+              title={addChemicalTitle}
             >
               <Plus size={12} /> Add chemical
             </button>
@@ -805,6 +821,17 @@ function ProcessStepCard({
             ))}
           </div>
         )}
+        <div className="mt-3 flex justify-end border-t border-zinc-100 pt-3">
+          <button
+            type="button"
+            className="btn-primary text-xs !px-3 !py-1.5 shadow-soft disabled:opacity-40"
+            onClick={() => addChemical(step.id)}
+            disabled={lastChemicalIncomplete}
+            title={addChemicalTitle}
+          >
+            <Plus size={12} /> Add chemical
+          </button>
+        </div>
       </div>
 
       <div className="border-t border-zinc-200 bg-white px-4 py-4">
@@ -985,19 +1012,40 @@ function ChemicalRow({
   const incomplete = isChemicalIncomplete(c);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [matchWarning, setMatchWarning] = useState<string | null>(null);
 
   const onChange = (patch: Partial<Substance>) => update(stepId, c.id, patch);
+  const welSummary = collapsedWelSummary(c.wel);
 
   const lookup = async (force = false, override?: string | number) => {
     const query = typeof override === 'number' ? override : (override ?? (c.name || (c.cas ?? ''))).trim();
     if (!query) { setError('Enter a chemical name or CAS number first.'); return; }
-    setBusy(true); setError(null);
+    setBusy(true); setError(null); setMatchWarning(null);
     try {
       const r = await lookupChemical(query, { force });
+      // PubChem's name endpoint matches loosely: a typo can resolve to an
+      // unrelated compound. Warn when the result doesn't resemble the query.
+      if (typeof query === 'string' && !/^\d{2,7}-\d{2}-\d$/.test(query)) {
+        const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '');
+        const q = norm(query);
+        const candidates = [r.name, r.title, r.iupacName].filter(Boolean) as string[];
+        const matches = candidates.some((cand) => {
+          const n = norm(cand);
+          return n.includes(q) || (q.length >= 3 && q.includes(n));
+        });
+        if (!matches) {
+          setMatchWarning(
+            `PubChem matched "${r.name}" for "${query}" — check this is the substance you meant.`,
+          );
+        }
+      }
       const isDifferentChemical = c.pubchemCid !== undefined && r.cid !== c.pubchemCid;
       // When switching to a different compound, clear stale fields from the
-      // previous chemical rather than carrying them over.
-      const form = c.form;
+      // previous chemical rather than carrying them over. An assessor-chosen
+      // state stays authoritative; otherwise adopt the PubChem-reported one.
+      const form = isDifferentChemical
+        ? (r.pubchemPhysicalForm ?? '')
+        : c.form || (r.pubchemPhysicalForm ?? '');
       const bp = r.boilingPointC ?? (isDifferentChemical ? undefined : c.boilingPointC);
       // On a fresh lookup, set volatility from BP for liquids — user can still
       // override afterwards. This keeps the dropdown in sync with the BP shown.
@@ -1024,6 +1072,7 @@ function ChemicalRow({
         boilingPointC: bp,
         flashPointC: r.flashPointC ?? (isDifferentChemical ? undefined : c.flashPointC),
         vapourPressureKPa: r.vapourPressureKPa ?? (isDifferentChemical ? undefined : c.vapourPressureKPa),
+        phValue: r.phValue ?? (isDifferentChemical ? undefined : c.phValue),
         pubchemPhysicalForm: r.pubchemPhysicalForm ?? (isDifferentChemical ? undefined : c.pubchemPhysicalForm),
         pubchemPhysicalDescription: r.pubchemPhysicalDescription ?? (isDifferentChemical ? undefined : c.pubchemPhysicalDescription),
         pubchemNfpa: r.pubchemNfpa ?? (isDifferentChemical ? undefined : c.pubchemNfpa),
@@ -1040,7 +1089,12 @@ function ChemicalRow({
         pubchemFetchedAt: r.fetchedAt,
       });
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Lookup failed');
+      const msg = e instanceof Error ? e.message : '';
+      setError(
+        /failed to fetch|networkerror|load failed/i.test(msg)
+          ? 'PubChem could not be reached — check your connection or enter the details manually.'
+          : msg || 'Lookup failed',
+      );
     } finally {
       setBusy(false);
     }
@@ -1114,15 +1168,15 @@ function ChemicalRow({
           )}
         </div>
         <div className="hidden min-w-0 xl:block">
-          {c.wel.twa ? (
+          {welSummary ? (
             <span
               className="pill max-w-full truncate"
               title={c.wel.source ? `Source: ${c.wel.source}` : undefined}
             >
-              WEL {c.wel.twa}
+              {welSummary.label} {welSummary.value}
             </span>
           ) : (
-            <span className="text-xs text-zinc-300">—</span>
+            <span className="text-xs text-zinc-400">N/A</span>
           )}
         </div>
         <div className="hidden xl:block">
@@ -1151,10 +1205,12 @@ function ChemicalRow({
           {c.hazardStatements.length > 0 && (
             <span className="pill">{c.hazardStatements.length} H</span>
           )}
-          {c.wel.twa && (
+          {welSummary ? (
             <span className="pill" title={c.wel.source ? `Source: ${c.wel.source}` : undefined}>
-              WEL {c.wel.twa}
+              {welSummary.label} {welSummary.value}
             </span>
+          ) : (
+            <span className="text-xs text-zinc-400">N/A</span>
           )}
           {c.sdsUrl && (
             <a
@@ -1188,6 +1244,7 @@ function ChemicalRow({
           (!c.pubchemFetchedAt && c.hazardStatements.length === 0 && c.ghsPictograms.length === 0);
         const miss = {
           name: !c.name.trim(),
+          form: !c.form,
           cas: !c.cas?.trim(),
           quantity: !splitQuantity(c.quantity).value,
           wel: !c.wel.twa?.trim() && !c.wel.stel?.trim(),
@@ -1198,6 +1255,11 @@ function ChemicalRow({
         return (
         <div className="border-t border-zinc-100 px-4 py-3 bg-white">
           {error && <div className="text-xs text-red-600 mb-2">{error}</div>}
+          {matchWarning && (
+            <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5 mb-2">
+              {matchWarning}
+            </div>
+          )}
 
           {needsIdentityLookup && (
             <div className="mb-3 rounded-md border border-amber-200 bg-amber-50/60 p-3">
@@ -1241,9 +1303,9 @@ function ChemicalRow({
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_1fr]">
             <label>
-              <span className="field-label">Physical state</span>
+              <span className="field-label">Physical state<Req /></span>
               <select
-                className="field-input !py-1.5 text-xs"
+                className={clsx('field-input !py-1.5 text-xs', miss.form && 'field-missing')}
                 value={c.form}
                 onChange={(e) => {
                   const nextForm = e.target.value as SubstanceForm;
@@ -1256,6 +1318,7 @@ function ChemicalRow({
                   });
                 }}
               >
+                {!c.form && <option value="" disabled>— select —</option>}
                 {FORMS.map((f) => <option key={f} value={f}>{f}</option>)}
               </select>
             </label>
@@ -1334,8 +1397,9 @@ function ChemicalRow({
               invalid={miss.duration}
               value={c.exposureDuration}
               onChange={(v) => onChange({ exposureDuration: v })}
-              options={['< 15 min', '15 min', '30 min', '1 h', '2 h', '4 h', '8 h shift']}
+              options={['<1 min', '5 min', '15 min', '30 min', '1h', '2h', '4h', '8h']}
               placeholder="e.g. 30 min"
+              gridColumns={4}
             />
             <ChipPickerInput
               label="Frequency"
@@ -1395,6 +1459,7 @@ function ChipPickerInput({
   onChange,
   options,
   placeholder,
+  gridColumns,
 }: {
   label: string;
   required?: boolean;
@@ -1403,6 +1468,7 @@ function ChipPickerInput({
   onChange: (v: string) => void;
   options: string[];
   placeholder?: string;
+  gridColumns?: 4;
 }) {
   return (
     <label className="block">
@@ -1414,7 +1480,7 @@ function ChipPickerInput({
         placeholder={placeholder}
         list={`chip-${label}`}
       />
-      <div className="flex flex-wrap gap-1 mt-1">
+      <div className={clsx('mt-1 gap-1', gridColumns === 4 ? 'grid grid-cols-4' : 'flex flex-wrap')}>
         {options.map((opt) => {
           const active = value.trim().toLowerCase() === opt.toLowerCase();
           return (
@@ -1424,6 +1490,7 @@ function ChipPickerInput({
               onClick={() => onChange(opt)}
               className={clsx(
                 'px-1.5 py-0.5 rounded-full text-[10px] border transition',
+                gridColumns === 4 && 'w-full text-center',
                 active
                   ? 'bg-accent-100 border-accent-300 text-accent-900'
                   : 'bg-white border-zinc-200 text-zinc-600 hover:bg-accent-50 hover:border-accent-200',
@@ -1445,12 +1512,12 @@ function QuantityInput({
   invalid,
 }: {
   value: string;
-  form: SubstanceForm;
+  form: SubstanceForm | '';
   onChange: (next: string) => void;
   invalid?: boolean;
 }) {
   const parsed = splitQuantity(value);
-  const allowed = UNITS_BY_FORM[form];
+  const allowed = form ? UNITS_BY_FORM[form] : UNITS_BY_FORM.other;
   const unit = parsed.unit && allowed.includes(parsed.unit) ? parsed.unit : defaultUnit(form);
   const customUnit = parsed.unit && !allowed.includes(parsed.unit) ? parsed.unit : null;
 

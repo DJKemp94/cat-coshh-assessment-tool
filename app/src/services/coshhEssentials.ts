@@ -165,7 +165,7 @@ function scaleFor(q: ParsedQuantity | null): Scale | 'unknown' {
 // Volatility / dustiness band
 // ─────────────────────────────────────────────────────────────────────────────
 
-const AIRBORNE_FORMS: SubstanceForm[] = ['gas', 'vapour', 'aerosol', 'mist'];
+const AIRBORNE_FORMS: (SubstanceForm | '')[] = ['gas', 'vapour', 'aerosol', 'mist'];
 
 /** HSE COSHH Essentials volatility band from boiling point at ambient
  *  working temperature. */
@@ -303,8 +303,9 @@ export interface SubstanceAnalysis {
 }
 
 export interface OverallSuggestion {
+  /** Highest approach present in the per-substance analyses. */
   approach: Approach;
-  driver: SubstanceAnalysis | null;
+  highestApproachAnalysis: SubstanceAnalysis | null;
   analyses: SubstanceAnalysis[];
   approachLabel: string;
   gSheetRef: string;
@@ -388,11 +389,12 @@ export function suggestControls(allSubstances: Substance[]): OverallSuggestion |
     .map((c) => analyseSubstance(c));
   if (analyses.length === 0) return null;
 
-  // Driving substance = the one with the highest approach. Tie-break: highest
-  // hazard group, then largest scale.
+  // Each substance has its own approach. This aggregate is only the highest
+  // approach present, used for summary chips and reference-sheet selection.
+  // Tie-break: highest hazard group, then largest scale.
   const groupRank: Record<HazardGroup, number> = { A: 1, B: 2, C: 3, D: 4, E: 5 };
   const scaleRank: Record<Scale | 'unknown', number> = { small: 1, unknown: 2, medium: 2, large: 3 };
-  const driver = analyses.reduce<SubstanceAnalysis | null>((best, x) => {
+  const highestApproachAnalysis = analyses.reduce<SubstanceAnalysis | null>((best, x) => {
     if (!best) return x;
     if (x.approach !== best.approach) return x.approach > best.approach ? x : best;
     if (groupRank[x.hazardGroup] !== groupRank[best.hazardGroup])
@@ -407,11 +409,11 @@ export function suggestControls(allSubstances: Substance[]): OverallSuggestion |
   );
 
   return {
-    approach: driver.approach,
-    driver,
+    approach: highestApproachAnalysis.approach,
+    highestApproachAnalysis,
     analyses,
-    approachLabel: APPROACH_LABEL(driver.approach),
-    gSheetRef: G_SHEET_REF(driver.approach),
+    approachLabel: APPROACH_LABEL(highestApproachAnalysis.approach),
+    gSheetRef: G_SHEET_REF(highestApproachAnalysis.approach),
     warnings,
   };
 }

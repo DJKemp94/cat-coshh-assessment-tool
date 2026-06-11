@@ -261,7 +261,7 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
     year: 'numeric',
   });
   let sectionNo = 1;
-  const printReport = () => {
+  const printReport = async () => {
     const source = document.querySelector('.report-preview-print');
     if (!source) {
       window.print();
@@ -279,6 +279,19 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
       window.removeEventListener('afterprint', cleanup);
     };
     window.addEventListener('afterprint', cleanup);
+    const images = Array.from(printRoot.querySelectorAll('img'));
+    await Promise.all(images.map(async (image) => {
+      if (image.complete && image.naturalWidth > 0) return;
+      try {
+        await image.decode();
+      } catch {
+        await new Promise<void>((resolve) => {
+          image.addEventListener('load', () => resolve(), { once: true });
+          image.addEventListener('error', () => resolve(), { once: true });
+          window.setTimeout(resolve, 1000);
+        });
+      }
+    }));
     window.print();
     window.setTimeout(cleanup, 1000);
   };
@@ -302,12 +315,11 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
             </div>
             <div className="report-meta-strip">
               <InfoGrid rows={[
-                ['Ref', assessment.overview.riskAssessmentRef],
                 ['Assessor', assessment.overview.assessor],
                 ['Assessed', assessment.overview.dateOfAssessment],
                 ['Next review', assessment.overview.dateOfNextReview],
               ]} />
-              <div className="report-generated">Generated {generated} with CAT — COSHH Assessment Tool</div>
+              <div className="report-generated">Generated {generated} with LabCAT — COSHH Assessment Tool</div>
             </div>
           </header>
 
@@ -449,7 +461,16 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
             <section className="report-block">
               <SectionTab n={sectionNo++} title="Storage" />
               <div className="report-panel">
-                {chemicals.length > 0 && <StorageCabinetPreview a={assessment} chemicals={chemicals} />}
+                {assessment.storage2.consideredSeparately ? (
+                  <p className="report-muted">
+                    Chemical storage is assessed separately.
+                    {assessment.storage2.separateAssessmentLocation.trim()
+                      ? ` Location: ${assessment.storage2.separateAssessmentLocation.trim()}`
+                      : ' No storage assessment location recorded.'}
+                  </p>
+                ) : (
+                  chemicals.length > 0 && <StorageCabinetPreview a={assessment} chemicals={chemicals} />
+                )}
               </div>
             </section>
           )}
@@ -523,16 +544,25 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
                       <div><strong>Source:</strong> {chemical.welSummary.source}</div>
                     </td>
                     <td>
-                      {(() => {
-                        const assignment = storage20For(assessment, chemical);
-                        return (
-                          <>
-                            <strong>{ZONES[assignment.zoneId]?.zoneTitle ?? assignment.zoneId}</strong>
-                            <div>{storage20RequirementsText(assignment)}</div>
-                            <div className="report-muted">{storage20EvidenceText(assignment)}</div>
-                          </>
-                        );
-                      })()}
+                      {assessment.storage2.consideredSeparately ? (
+                        <>
+                          <strong>Assessed separately</strong>
+                          <div className="report-muted">
+                            {assessment.storage2.separateAssessmentLocation.trim() || 'No storage assessment location recorded.'}
+                          </div>
+                        </>
+                      ) : (
+                        (() => {
+                          const assignment = storage20For(assessment, chemical);
+                          return (
+                            <>
+                              <strong>{ZONES[assignment.zoneId]?.zoneTitle ?? assignment.zoneId}</strong>
+                              <div>{storage20RequirementsText(assignment)}</div>
+                              <div className="report-muted">{storage20EvidenceText(assignment)}</div>
+                            </>
+                          );
+                        })()
+                      )}
                     </td>
                     <td>{chemical.exposureDuration || DASH}<div>{chemical.exposureFrequency || DASH}</div><div>{routes(chemical)}</div></td>
                     {options.process.ghsPictograms && <td><GhsIcons ids={chemical.ghsPictograms} /></td>}
@@ -547,7 +577,7 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
           <section className="report-page">
             <SectionTab n="B1" title="Appendix B — COSHH Essentials Explanation & Screening" />
             <div className="report-note report-note-top">
-              COSHH Essentials is an HSE control-banding screen. CAT presents it as substance-level screening: it estimates a control approach for each substance from health hazard group, quantity scale, and volatility or dustiness. It is not a legal approval by itself: a competent assessor must confirm the output against SDS information, exposure route, quantity, duration, WELs and local conditions.
+              COSHH Essentials is an HSE control-banding screen. LabCAT presents it as substance-level screening: it estimates a control approach for each substance from health hazard group, quantity scale, and volatility or dustiness. It is not a legal approval by itself: a competent assessor must confirm the output against SDS information, exposure route, quantity, duration, WELs and local conditions.
             </div>
             <div className="report-table-heading">Guidance: COSHH Essentials reference tables</div>
             <table className="report-table report-table-compact report-mb">
@@ -595,7 +625,7 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
             ))}
             <div className="report-table-heading">Recommendations: substance-level screening output</div>
             <div className="report-note report-mb">
-              The table below is CAT's substance-level COSHH Essentials screening result for this assessment. The highest approach across the substances drives the suggested control approach, but the assessor must still confirm suitable task-specific controls.
+              The table below is LabCAT's substance-level COSHH Essentials screening result for this assessment. Each substance has its own approach; the highest approach present is highlighted for assessor review, but task-specific controls must still be confirmed.
             </div>
             <table className="report-table report-table-dense">
               <thead><tr><th>Substance</th><th>Group</th><th>H-codes</th><th>Scale</th><th>Band</th><th>EP</th><th>Approach</th></tr></thead>

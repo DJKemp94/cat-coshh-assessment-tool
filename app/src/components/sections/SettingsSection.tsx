@@ -36,7 +36,7 @@ export function SettingsSection() {
       <div>
         <div className="font-medium text-zinc-900 mb-1">Local data</div>
         <p className="text-xs text-zinc-500 mb-2">
-          CAT stores your in-progress draft and PubChem lookups in this browser only.
+          LabCAT stores your in-progress draft and PubChem lookups in this browser only.
           Clearing wipes both — your exported files are unaffected.
         </p>
         <div className="flex flex-wrap gap-2">
@@ -62,13 +62,13 @@ export function SettingsSection() {
             onClick={() => {
               if (
                 confirm(
-                  'This will delete the current draft and all CAT data in this browser. Continue?',
+                  'This will delete the current draft and all LabCAT data in this browser. Continue?',
                 )
               )
                 clearAll();
             }}
           >
-            <Trash2 size={14} /> Clear all CAT data
+            <Trash2 size={14} /> Clear all LabCAT data
           </button>
         </div>
       </div>
@@ -78,7 +78,7 @@ export function SettingsSection() {
       <div>
         <div className="font-medium text-zinc-900 mb-1">About</div>
         <p className="text-xs text-zinc-500">
-          CAT — COSHH Assessment Tool. Browser-only. No accounts, no online repository.
+          LabCAT — COSHH Assessment Tool. Browser-only. No accounts, no online repository.
           <br />
           <span className="italic">Please do not the cat.</span>
         </p>

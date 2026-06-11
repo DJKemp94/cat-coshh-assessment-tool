@@ -1,7 +1,7 @@
 /**
  * Exploratory random audit for the Storage classifier.
  *
- * This complements the deterministic 100-chemical regression suite. It samples
+ * This complements the deterministic 200+ chemical regression suite. It samples
  * different CAMEO records on each run and applies priority-aware consistency
  * checks so multi-hazard chemicals are not flagged just because a lower-priority
  * group was overridden by oxidizer/special/corrosive handling.
@@ -84,18 +84,19 @@ function expectedZonesFor(match) {
   ].filter(Boolean).join(' ').toLowerCase();
   const chemicalText = [
     match.chemical.name,
-    match.chemical.formNote,
     match.cameo?.name,
   ].filter(Boolean).join(' ').toLowerCase();
   const hasFlammableLabel = /\bflammable|combustible\b/.test(labelText) && !/\bnon[-\s]?flammable\b/.test(labelText);
   const isSolid = ['solid', 'powder'].includes(match.chemical.form);
+  const isGas = ['gas', 'vapour'].includes(match.chemical.form);
   const hasCompressedStorageEvidence = /\b(compressed gas|gas under pressure|gas cylinder|cylinder|liquefied gas|refrigerated liquid|cryogenic)\b/.test(chemicalText);
 
+  if (isGas) return { zones: ['compressedGases', 'oxidizersOnly', 'volatilePoisonsChlorinated', 'specialReview'], reason: 'selected gas/vapour physical state' };
   if (hasCompressedStorageEvidence) return { zones: ['compressedGases', 'oxidizersOnly', 'volatilePoisonsChlorinated', 'specialReview'], reason: 'compressed/pressure package evidence' };
   if (has([107, 109, 108, 102, 103, 76, 21, 22, 35, 42, 51, 400, 30, 110, 106, 45, 105, 99])) return { zones: ['specialReview'], reason: 'hard-isolation reactive group' };
   if (has([2])) return { zones: ['oxidizingAcids'], reason: 'strong oxidizing acid group' };
   if (has([44, 104, 49, 27, 69])) return { zones: ['oxidizersOnly', 'oxidizingAcids'], reason: 'oxidizer group priority' };
-  if (/\bacid\b/.test(chemicalText)) return { zones: ['nonOxidizingAcids', 'oxidizingAcids', 'organicSolventsAcids'], reason: 'acid name/signal' };
+  if (/\bacid\b/.test(chemicalText) && !/\b(esters?|salts?)\b/.test(chemicalText) && !/\bacid\s+(red|orange|yellow|blue|green|black|brown|violet)\b/.test(chemicalText)) return { zones: ['nonOxidizingAcids', 'oxidizingAcids', 'organicSolventsAcids'], reason: 'acid name/signal' };
   if (has([1, 2, 3, 37, 38, 40, 55, 59, 60, 71])) return { zones: ['nonOxidizingAcids', 'oxidizingAcids', 'organicSolventsAcids'], reason: 'acid group' };
   if (has([7, 10, 61, 68, 73])) return { zones: ['solidBases', 'liquidBases'], reason: 'base group' };
   if (has([6, 8, 9, 11, 12, 17, 18, 20, 25, 26, 31, 32, 33, 48, 72, 75])) {
@@ -144,26 +145,49 @@ for (const [title, map] of [
   }
 }
 
-const issues = [];
+const structuralIssues = [];
+const heuristicWarnings = [];
 for (const { cameoChemical, match, assignment } of results) {
   const expected = expectedZonesFor(match);
   const zone = ZONES[assignment.zoneId];
-  const rowIssues = [];
-  if (!zone) rowIssues.push(`unknown zone ${assignment.zoneId}`);
-  if (zone && zone.cabinetId !== assignment.cabinetId) rowIssues.push(`zone ${assignment.zoneId} maps to ${zone.cabinetId}, cabinet was ${assignment.cabinetId}`);
-  if (!CABINET_ORDER.includes(assignment.cabinetId)) rowIssues.push(`cabinet ${assignment.cabinetId} missing from CABINET_ORDER`);
-  if (!assignment.reasons.length) rowIssues.push('missing assignment reason text');
-  if (!expected.zones.includes(assignment.zoneId)) rowIssues.push(`expected one of ${expected.zones.join(', ')} for ${expected.reason}, got ${assignment.zoneId}`);
-  if (rowIssues.length > 0) issues.push({ cameoChemical, match, assignment, rowIssues });
+  const rowStructuralIssues = [];
+  if (!zone) rowStructuralIssues.push(`unknown zone ${assignment.zoneId}`);
+  if (zone && zone.cabinetId !== assignment.cabinetId) rowStructuralIssues.push(`zone ${assignment.zoneId} maps to ${zone.cabinetId}, cabinet was ${assignment.cabinetId}`);
+  if (!CABINET_ORDER.includes(assignment.cabinetId)) rowStructuralIssues.push(`cabinet ${assignment.cabinetId} missing from CABINET_ORDER`);
+  if (!assignment.reasons.length) rowStructuralIssues.push('missing assignment reason text');
+  if (rowStructuralIssues.length > 0) {
+    structuralIssues.push({ cameoChemical, match, assignment, rowIssues: rowStructuralIssues });
+  }
+  if (!expected.zones.includes(assignment.zoneId)) {
+    heuristicWarnings.push({
+      cameoChemical,
+      match,
+      assignment,
+      rowIssues: [`expected one of ${expected.zones.join(', ')} for ${expected.reason}, got ${assignment.zoneId}`],
+    });
+  }
 }
 
-console.log('\n── Priority-aware consistency checks ──');
-if (issues.length === 0) {
-  console.log(`  All ${results.length} sampled chemicals passed consistency checks.`);
+console.log('\n── Structural consistency checks ──');
+if (structuralIssues.length === 0) {
+  console.log(`  All ${results.length} sampled chemicals passed structural checks.`);
 } else {
-  for (const { cameoChemical, match, assignment, rowIssues } of issues) {
+  for (const { cameoChemical, match, assignment, rowIssues } of structuralIssues) {
     const groups = match.groups.map((group) => group.id).join(', ') || 'none';
-    console.log(`  ⚠ [${cameoChemical.name}] groups=${groups}`);
+    console.log(`  FAIL [${cameoChemical.name}] groups=${groups}`);
+    for (const issue of rowIssues) console.log(`      ${issue}`);
+    console.log(`      assigned: ${assignment.zoneId} / ${assignment.cabinetId}`);
+  }
+}
+
+console.log('\n── Heuristic priority warnings (non-failing audit) ──');
+if (heuristicWarnings.length === 0) {
+  console.log(`  No heuristic priority warnings in this sample.`);
+} else {
+  console.log(`  ${heuristicWarnings.length} sampled chemical${heuristicWarnings.length === 1 ? '' : 's'} differed from the broad audit heuristic.`);
+  for (const { cameoChemical, match, assignment, rowIssues } of heuristicWarnings) {
+    const groups = match.groups.map((group) => group.id).join(', ') || 'none';
+    console.log(`  WARN [${cameoChemical.name}] groups=${groups}`);
     for (const issue of rowIssues) console.log(`      ${issue}`);
     console.log(`      assigned: ${assignment.zoneId} / ${assignment.cabinetId}`);
   }
@@ -176,3 +200,4 @@ for (const { cameoChemical, match, assignment } of results) {
 }
 
 await rm(outdir, { recursive: true, force: true });
+if (structuralIssues.length > 0) process.exit(1);

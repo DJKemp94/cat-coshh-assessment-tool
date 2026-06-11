@@ -1,4 +1,4 @@
-// RFC 9285 Base45 — compact alphanumeric encoding for .catdraft files.
+// RFC 9285 Base45 — compact alphanumeric encoding for .labcatdraft files.
 
 const ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:';
 const INDEX: Record<string, number> = {};

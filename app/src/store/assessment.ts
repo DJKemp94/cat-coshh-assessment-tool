@@ -15,13 +15,17 @@ import {
   EmergencyRequirements,
   ProcessStep,
   emptyStepControls,
+  localDateISO,
 } from '@/types/assessment';
 import { migrateAssessment } from '@/services/migrate';
 import { normalizeChemicalName } from '@/services/chemicalNames';
 
-const STORAGE_KEY = 'cat.activeAssessment';
-const PRIVACY_ACK_KEY = 'cat.privacyAck';
-const TESTING_MODE_KEY = 'cat.testingMode';
+const STORAGE_KEY = 'labcat.activeAssessment';
+const PRIVACY_ACK_KEY = 'labcat.privacyAck';
+const TESTING_MODE_KEY = 'labcat.testingMode';
+const LEGACY_STORAGE_KEY = 'cat.activeAssessment';
+const LEGACY_PRIVACY_ACK_KEY = 'cat.privacyAck';
+const LEGACY_TESTING_MODE_KEY = 'cat.testingMode';
 
 export type SectionId =
   | 'overview'
@@ -40,12 +44,14 @@ interface AssessmentState {
   activeSection: SectionId;
   privacyAcknowledged: boolean;
   hydrated: boolean;
+  autosaveFailed: boolean;
   /** When true, the sidebar lets the user jump to any section regardless of
    *  completion order. Intended for testing the UI while data is incomplete. */
   testingMode: boolean;
 
   setSection: (id: SectionId) => void;
   acknowledgePrivacy: () => void;
+  clearAutosaveFailed: () => void;
   setTestingMode: (v: boolean) => void;
 
   updateOverview: (patch: Partial<Overview>) => void;
@@ -110,7 +116,7 @@ const loadFromStorage = (): {
   let privacy = false;
   let testingMode = false;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY);
     if (raw) {
       try {
         assessment = normalizeAssessment(migrateAssessment(JSON.parse(raw)));
@@ -118,23 +124,39 @@ const loadFromStorage = (): {
         // corrupt or incompatible — fall back to a fresh assessment
       }
     }
-    privacy = localStorage.getItem(PRIVACY_ACK_KEY) === '1';
-    testingMode = localStorage.getItem(TESTING_MODE_KEY) === '1';
+    privacy =
+      localStorage.getItem(PRIVACY_ACK_KEY) === '1' ||
+      localStorage.getItem(LEGACY_PRIVACY_ACK_KEY) === '1';
+    testingMode =
+      localStorage.getItem(TESTING_MODE_KEY) === '1' ||
+      localStorage.getItem(LEGACY_TESTING_MODE_KEY) === '1';
   } catch {
     /* ignore */
   }
   return { assessment, privacy, testingMode };
 };
 
+const addYearsToDateISO = (value: string, years: number): string => {
+  const [year, month, day] = value.split('-').map(Number);
+  const d = new Date(year, (month || 1) - 1, day || 1);
+  d.setFullYear(d.getFullYear() + years);
+  return localDateISO(d);
+};
+
 let saveTimer: number | undefined;
-const scheduleSave = (a: Assessment) => {
+const scheduleSave = (
+  a: Assessment,
+  onSuccess: () => void,
+  onFailure: () => void,
+) => {
   if (typeof window === 'undefined') return;
   if (saveTimer) window.clearTimeout(saveTimer);
   saveTimer = window.setTimeout(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(a));
+      onSuccess();
     } catch {
-      /* quota or private mode — silently ignore */
+      onFailure();
     }
   }, 500);
 };
@@ -152,7 +174,11 @@ export const useAssessment = create<AssessmentState>((set, get) => {
   const apply = (mutator: (a: Assessment) => Assessment) => {
     const next = touch(mutator(get().assessment));
     set({ assessment: next });
-    scheduleSave(next);
+    scheduleSave(
+      next,
+      () => set({ autosaveFailed: false }),
+      () => set({ autosaveFailed: true }),
+    );
   };
 
   const mutStep = (stepId: string, mut: (s: ProcessStep) => ProcessStep) =>
@@ -166,6 +192,7 @@ export const useAssessment = create<AssessmentState>((set, get) => {
     activeSection: 'overview',
     privacyAcknowledged: initialPrivacy,
     testingMode: initialTestingMode,
+    autosaveFailed: false,
     hydrated: true,
 
     setSection: (id) => set({ activeSection: id }),
@@ -173,6 +200,7 @@ export const useAssessment = create<AssessmentState>((set, get) => {
       try { localStorage.setItem(PRIVACY_ACK_KEY, '1'); } catch { /* ignore */ }
       set({ privacyAcknowledged: true });
     },
+    clearAutosaveFailed: () => set({ autosaveFailed: false }),
     setTestingMode: (v) => {
       try {
         if (v) localStorage.setItem(TESTING_MODE_KEY, '1');
@@ -192,19 +220,13 @@ export const useAssessment = create<AssessmentState>((set, get) => {
         ) {
           const prior = a.overview.dateOfAssessment;
           const expectedPriorReview = prior
-            ? (() => {
-                const d = new Date(prior + 'T00:00:00');
-                d.setFullYear(d.getFullYear() + 2);
-                return d.toISOString().slice(0, 10);
-              })()
+            ? addYearsToDateISO(prior, 2)
             : '';
           const reviewIsDefault =
             !a.overview.dateOfNextReview ||
             a.overview.dateOfNextReview === expectedPriorReview;
           if (reviewIsDefault && patch.dateOfAssessment) {
-            const d = new Date(patch.dateOfAssessment + 'T00:00:00');
-            d.setFullYear(d.getFullYear() + 2);
-            next = { ...next, dateOfNextReview: d.toISOString().slice(0, 10) };
+            next = { ...next, dateOfNextReview: addYearsToDateISO(patch.dateOfAssessment, 2) };
           }
         }
         return { ...a, overview: next };
@@ -276,13 +298,21 @@ export const useAssessment = create<AssessmentState>((set, get) => {
     replaceAssessment: (a) => {
       const next = touch(normalizeAssessment(migrateAssessment(a)));
       set({ assessment: next });
-      scheduleSave(next);
+      scheduleSave(
+        next,
+        () => set({ autosaveFailed: false }),
+        () => set({ autosaveFailed: true }),
+      );
     },
 
     resetAssessment: () => {
       const next = newAssessment();
       set({ assessment: next, activeSection: 'overview' });
-      scheduleSave(next);
+      scheduleSave(
+        next,
+        () => set({ autosaveFailed: false }),
+        () => set({ autosaveFailed: true }),
+      );
     },
 
     clearAllLocalData: () => {
@@ -290,7 +320,7 @@ export const useAssessment = create<AssessmentState>((set, get) => {
         const keys: string[] = [];
         for (let i = 0; i < localStorage.length; i++) {
           const k = localStorage.key(i);
-          if (k && k.startsWith('cat.')) keys.push(k);
+          if (k && (k.startsWith('labcat.') || k.startsWith('cat.'))) keys.push(k);
         }
         keys.forEach((k) => localStorage.removeItem(k));
       } catch { /* ignore */ }
@@ -299,6 +329,7 @@ export const useAssessment = create<AssessmentState>((set, get) => {
         assessment: next,
         activeSection: 'overview',
         privacyAcknowledged: false,
+        autosaveFailed: false,
       });
     },
   };

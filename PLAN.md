@@ -1,8 +1,8 @@
-# CAT — COSHH Assessment Tool: Build Plan
+# LabCAT — COSHH Assessment Tool: Build Plan
 
 ## Context
 
-CAT is a static, browser-only web app for producing UK COSHH (Control of Substances Hazardous to Health) risk assessments. It exists to give assessors a fast, structured way to generate a single assessment document, pull chemical hazard data from PubChem, and export the result — **without** ever acting as an online repository of assessments. Privacy and the "you own your file" principle are first-class product constraints: no accounts, no database, no server-side storage, no telemetry on assessment content.
+LabCAT is a static, browser-only web app for producing UK COSHH (Control of Substances Hazardous to Health) risk assessments. It exists to give assessors a fast, structured way to generate a single assessment document, pull chemical hazard data from PubChem, and export the result — **without** ever acting as an online repository of assessments. Privacy and the "you own your file" principle are first-class product constraints: no accounts, no database, no server-side storage, no telemetry on assessment content.
 
 The app must look and feel like a serious occupational-health SaaS tool (per the supplied mock), with restrained cat branding ("Stay curious. Stay safe.").
 
@@ -39,7 +39,7 @@ Single-page React app, fully static. No backend.
 │         │                                       │           │
 │         ▼                                       ▼           │
 │   localStorage           PubChem fetch    PDF / DOCX /      │
-│   (autosave +            (rate-limited,   .catdraft / QR    │
+│   (autosave +            (rate-limited,   .labcatdraft / QR    │
 │    PubChem cache)         CID-keyed)                        │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -148,7 +148,7 @@ interface BriefingEntry {
 **Persistence layers:**
 
 1. `localStorage["cat.activeAssessment"]` — autosave on every change, debounced 500 ms.
-2. `.catdraft` download — Base45(deflate(JSON)) wrapped with header `CATDRAFT/v1\n<payload>`.
+2. `.labcatdraft` download — Base45(deflate(JSON)) wrapped with header `LabCATDRAFT/v1\n<payload>`.
 3. QR recovery — same encoded payload, chunked into ≤2000-char QR frames numbered `i/N`.
 
 **PubChem cache:** `localStorage["cat.pubchem.<CID>"] = { fetchedAt, raw }`. Evicted after 90 days unless kept.
@@ -176,11 +176,11 @@ Every PubChem-derived field stays user-editable. Each substance row shows "from 
 
 - `pdf.ts` — **pdf-lib**, branded clean layout, GHS pictograms embedded as SVGs.
 - `docx.ts` — **docx** npm package, clean modern layout with tables.
-- `catdraft.ts` — JSON → `pako.deflateRaw` → Base45 → header wrap → `Blob` download as `<ref>-<date>.catdraft`.
+- `labcatdraft.ts` — JSON → `pako.deflateRaw` → Base45 → header wrap → `Blob` download as `<ref>-<date>.labcatdraft`.
 - `qr.ts` — chunk payload into ≤2000-char frames; render N QR codes with `1/3`, `2/3`, `3/3` captions.
-- `import.ts` — accepts `.catdraft` file, pasted text, or scanned QR set; validates `schemaVersion`, runs migrations.
+- `import.ts` — accepts `.labcatdraft` file, pasted text, or scanned QR set; validates `schemaVersion`, runs migrations.
 
-**File naming:** `CAT-<riskAssessmentRef>-<YYYYMMDD>.{pdf,docx,catdraft}`.
+**File naming:** `LabCAT-<riskAssessmentRef>-<YYYYMMDD>.{pdf,docx,labcatdraft}`.
 
 ---
 
@@ -216,7 +216,7 @@ src/
 ├── services/
 │   ├── pubchem.ts
 │   ├── storage.ts
-│   ├── exporters/{pdf,docx,catdraft,qr,import}.ts
+│   ├── exporters/{pdf,docx,labcatdraft,qr,import}.ts
 │   └── codec/{base45,compress}.ts
 ├── store/assessment.ts
 ├── types/assessment.ts
@@ -234,7 +234,7 @@ src/
 
 1. **First-run modal** — nothing leaves your browser except PubChem chemical lookups; you must export to keep your work.
 2. **Persistent banner** in export rail — "No online repository. You are the only copy."
-3. **Settings → Privacy** — shows what's stored locally, one-click "Clear all CAT data".
+3. **Settings → Privacy** — shows what's stored locally, one-click "Clear all LabCAT data".
 
 PubChem calls send only chemical names/CIDs, never assessment content.
 
@@ -253,7 +253,7 @@ No backend, no auth, no analytics.
 1. **Skeleton & shell** — Vite scaffold, Tailwind, AppShell, Sidebar, TopBar, ExportRail, Zustand store, autosave, schema types, first-run privacy modal.
 2. **Section editors** — Overview, Task Hazards (risk matrix), Substances (no PubChem yet), Controls, Additional, Briefing, Settings, Help.
 3. **PubChem integration** — `pubchem.ts` with queue + cache, wired into Substances rows.
-4. **Exports** — `.catdraft` first, then DOCX, then PDF.
+4. **Exports** — `.labcatdraft` first, then DOCX, then PDF.
 5. **QR recovery** — encoder, multi-frame printable view, scanner-driven import.
 6. **Polish** — empty states, paw motifs, error toasts, keyboard nav, print stylesheet, Pages deploy workflow.
 
@@ -264,12 +264,12 @@ No backend, no auth, no analytics.
 1. `npm run dev` → privacy modal appears and dismisses.
 2. Fill Overview, add 2 hazards, add 2 substances incl. "acetone" → PubChem fills H-codes, pictograms, exposure limit; UK WEL stays blank.
 3. Reload → autosave restores intact.
-4. Save `.catdraft` → clear data → re-import → state restores.
+4. Save `.labcatdraft` → clear data → re-import → state restores.
 5. Generate recovery code → numbered QR frames render and print correctly.
 6. Phone-scan frames in sequence → draft reconstructs byte-for-byte.
 7. PDF and DOCX exports contain every prompt-specified field, GHS pictograms, briefing with optional signature.
 8. Network throttled → PubChem failures show non-blocking toast.
-9. "Clear all CAT data" empties localStorage and resets app.
+9. "Clear all LabCAT data" empties localStorage and resets app.
 10. `npm run build` → < 500 KB gzipped JS; Pages workflow deploys cleanly.
 
 Automated: `tsc --noEmit` passes; `vitest` covers `codec/`, PubChem normaliser, import round-trip.

@@ -81,7 +81,7 @@ export function CompleteExportSection() {
         steps={[
           { title: '1. Resolve pending sections', body: 'Use the list below to see what still needs attention before export unlocks.' },
           { title: '2. Export the file', body: 'Download a PDF or DOCX copy for your records, briefing pack or approval route.' },
-          { title: '3. Keep a backup', body: 'Use the catdraft controls in the top bar if you need to restore or continue the draft later.' },
+          { title: '3. Keep a backup', body: 'Use the LabCAT draft controls in the top bar if you need to restore or continue the draft later.' },
         ]}
       />
 
@@ -128,7 +128,7 @@ export function CompleteExportSection() {
         <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 flex gap-2">
           <ShieldOff size={16} className="mt-0.5 shrink-0 text-amber-700" />
           <div className="text-[11px] leading-snug text-amber-900">
-            <span className="font-semibold">Files download to your device.</span> Nothing is uploaded. Use the catdraft controls in the top bar for draft backup and restore.
+            <span className="font-semibold">Files download to your device.</span> Nothing is uploaded. Use the LabCAT draft controls in the top bar for draft backup and restore.
           </div>
         </div>
 

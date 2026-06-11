@@ -4,7 +4,8 @@ import { lookupEh40 } from '@/services/eh40';
 const REST = 'https://pubchem.ncbi.nlm.nih.gov/rest/pug';
 const VIEW = 'https://pubchem.ncbi.nlm.nih.gov/rest/pug_view';
 const AUTOCOMPLETE = 'https://pubchem.ncbi.nlm.nih.gov/rest/autocomplete/compound';
-const CACHE_PREFIX = 'cat.pubchem.v6.';
+const CACHE_PREFIX = 'labcat.pubchem.v8.';
+const LEGACY_CACHE_PREFIX = 'cat.pubchem.v8.';
 const CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 90; // 90 days
 
 interface PubChemResult {
@@ -15,13 +16,14 @@ interface PubChemResult {
   pictograms: GhsPictogram[];
   wel: { twa?: string; stel?: string; source?: WelSource };
   form?: SubstanceForm;
-  formNote?: string;
   sdsUrl?: string;
   sdsSource?: string;
   /** Median boiling point in °C across reported sources, or undefined if unparseable. */
   boilingPointC?: number;
   flashPointC?: number;
   vapourPressureKPa?: number;
+  /** Median aqueous pH across reported sources. Used for acid/base storage determination. */
+  phValue?: number;
   pubchemPhysicalForm?: SubstanceForm;
   pubchemPhysicalDescription?: string;
   pubchemNfpa?: {
@@ -70,7 +72,7 @@ interface CacheEntry {
 
 function readCache(cid: number): PubChemResult | null {
   try {
-    const raw = localStorage.getItem(CACHE_PREFIX + cid);
+    const raw = localStorage.getItem(CACHE_PREFIX + cid) ?? localStorage.getItem(LEGACY_CACHE_PREFIX + cid);
     if (!raw) return null;
     const entry = JSON.parse(raw) as CacheEntry;
     if (Date.now() - new Date(entry.fetchedAt).getTime() > CACHE_TTL_MS) return null;
@@ -259,8 +261,8 @@ function parseHCodes(strings: string[]): HCode[] {
     while ((m = re.exec(s)) !== null) {
       const code = m[1].toUpperCase();
       if (/^EUH?\d{2,3}$/.test(code)) {
-        const eu = code.match(/^EUH?0?(\d{2})$/);
-        const normalisedEu = eu ? `EU${eu[1]}` : code.replace(/^EUH/, 'EU');
+        const eu = code.match(/^EUH?0?(\d{2,3})$/);
+        const normalisedEu = eu ? `EUH${eu[1].padStart(3, '0')}` : code.replace(/^EU(?!H)/, 'EUH');
         if (!set.has(normalisedEu)) set.set(normalisedEu, m[2].trim());
         continue;
       }
@@ -272,6 +274,51 @@ function parseHCodes(strings: string[]): HCode[] {
     }
   });
   return [...set.entries()].map(([code, text]) => ({ code, text }));
+}
+
+/**
+ * H/EUH codes whose storage consequence is hard isolation or strict
+ * segregation (explosive, self-reactive, pyrophoric, water-reactive,
+ * oxidising, reacts-with-acids/water gas formers, peroxide formers).
+ * For these a minority notifier report is honoured: missing one risks a
+ * special-isolation chemical landing in a normal cabinet, whereas a false
+ * positive only triggers an extra review.
+ */
+const STORAGE_CRITICAL_CODES = new Set([
+  'H200', 'H201', 'H202', 'H203', 'H204', 'H205', 'H206', 'H207', 'H208',
+  'H230', 'H231', 'H240', 'H241', 'H242',
+  'H250', 'H251', 'H252',
+  'H260', 'H261',
+  'H270', 'H271', 'H272',
+  'EUH014', 'EUH018', 'EUH019', 'EUH029', 'EUH031', 'EUH032',
+]);
+
+/**
+ * Extract H-codes from the GHS Classification node(s).
+ *
+ * The first "GHS Hazard Statements" entry is the authoritative majority
+ * classification; later entries are notifier-subgroup blocks whose minority
+ * codes (H351 from a handful of suppliers, etc.) would over-classify if
+ * included wholesale. Storage-critical codes are the exception: those are
+ * unioned in from every block (see STORAGE_CRITICAL_CODES).
+ * Exported for fixture testing.
+ */
+export function extractGhsHazardCodes(ghsNodes: ViewNode[]): HCode[] {
+  const hazardInfos = (nodes: ViewNode[]) =>
+    nodes.flatMap((n) => (n.Information ?? []).filter((i) => i.Name === 'GHS Hazard Statements'));
+  const strings = (infos: ViewInfo[]) =>
+    infos.flatMap((i) => i.Value?.StringWithMarkup?.map((s) => s.String) ?? []);
+
+  const allInfos = hazardInfos(ghsNodes);
+  const hCodes = parseHCodes(strings(allInfos.slice(0, 1)));
+  const known = new Set(hCodes.map((h) => h.code));
+  for (const candidate of parseHCodes(strings(allInfos.slice(1)))) {
+    if (STORAGE_CRITICAL_CODES.has(candidate.code) && !known.has(candidate.code)) {
+      hCodes.push(candidate);
+      known.add(candidate.code);
+    }
+  }
+  return hCodes;
 }
 
 function parsePictograms(strings: string[]): GhsPictogram[] {
@@ -399,6 +446,29 @@ function parseVapourPressureKPa(strings: string[]): number | undefined {
   }
   const value = median(values);
   return value === undefined ? undefined : Math.round(value * 1000) / 1000;
+}
+
+function parsePh(strings: string[]): number | undefined {
+  // PubChem pH entries look like "11.7 (0.1 molar aqueous solution)",
+  // "pH = 2.0", "12.5-13.5" (range → midpoint). Median across sources.
+  const values: number[] = [];
+  const rangeRe = /(\d+(?:\.\d+)?)\s*(?:to|-|–|—)\s*(\d+(?:\.\d+)?)/;
+  const pointRe = /(\d+(?:\.\d+)?)/;
+  for (const raw of strings) {
+    if (/N\/A|not applicable/i.test(raw)) continue;
+    // Drop concentration qualifiers like "(0.1 M solution)" or "5% solution"
+    // so their numbers aren't mistaken for the pH value.
+    const cleaned = raw.replace(/\([^)]*\)/g, ' ').replace(/\d+(?:\.\d+)?\s*(%|m\b|molar|mol\/l|g\/l)/gi, ' ');
+    const r = rangeRe.exec(cleaned);
+    let value: number | null = null;
+    if (r) value = (parseFloat(r[1]) + parseFloat(r[2])) / 2;
+    else {
+      const p = pointRe.exec(cleaned);
+      if (p) value = parseFloat(p[1]);
+    }
+    if (value !== null && Number.isFinite(value) && value >= 0 && value <= 14) values.push(value);
+  }
+  return median(values);
 }
 
 function parsePhysicalDescription(strings: string[]): string | undefined {
@@ -570,10 +640,12 @@ export async function lookupChemical(
   const bpNodes = record ? walk(record, 'Boiling Point') : [];
   const flashNodes = record ? walk(record, 'Flash Point') : [];
   const vapourNodes = record ? walkMatching(record, /^vapou?r pressure$/i) : [];
+  const phNodes = record ? walkMatching(record, /^ph$/i) : [];
   const nfpaNodes = record ? walkMatching(record, /^(nfpa|fire diamond)|nfpa/i) : [];
   const boilingPointC = parseBoilingPointC(bpNodes.flatMap((n) => infoStrings(n)));
   const flashPointC = parseFlashPointC(flashNodes.flatMap((n) => infoStrings(n)));
   const vapourPressureKPa = parseVapourPressureKPa(vapourNodes.flatMap((n) => infoStrings(n)));
+  const phValue = parsePh(phNodes.flatMap((n) => infoStrings(n)));
   const pubchemNfpa = parseNfpa(nfpaNodes.flatMap((n) => infoStrings(n)));
 
   // The single "GHS Classification" node contains ~30 sibling Information
@@ -581,15 +653,14 @@ export async function lookupChemical(
   // followed by repeated notifier-subgroup blocks (each starting again with
   // Pictogram). The notifier blocks contain minority classifications such as
   // H351 / H360FD from a handful of suppliers — including them systematically
-  // over-classifies. We take only the FIRST "GHS Hazard Statements" entry and
-  // the FIRST "Pictogram(s)" entry, which together form the authoritative set.
+  // over-classifies. We take the FIRST "GHS Hazard Statements" entry and the
+  // FIRST "Pictogram(s)" entry as the authoritative set, then union in
+  // storage-critical codes from the remaining blocks (extractGhsHazardCodes).
   const primaryGhs = ghsNodes[0];
   const firstInfoByName = (name: string): ViewInfo | undefined =>
     (primaryGhs?.Information ?? []).find((i) => i.Name === name);
   const hazardInfo = firstInfoByName('GHS Hazard Statements');
-  const hCodes = parseHCodes(
-    hazardInfo?.Value?.StringWithMarkup?.map((s) => s.String) ?? [],
-  );
+  const hCodes = extractGhsHazardCodes(ghsNodes);
 
   // Pictograms: parse from the PubChem icon markup (Extra field holds the
   // canonical GHS0X code). Falls back to keyword matching against hazard
@@ -641,12 +712,12 @@ export async function lookupChemical(
     pictograms,
     wel: mergedWel,
     form: formInfo.form,
-    formNote: formInfo.note,
     sdsUrl: sds.url,
     sdsSource: sds.source,
     boilingPointC,
     flashPointC,
     vapourPressureKPa,
+    phValue,
     pubchemPhysicalForm: formInfo.form,
     pubchemPhysicalDescription,
     pubchemNfpa,
@@ -711,7 +782,7 @@ export function clearPubChemCache() {
     const keys: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
-      if (k && k.startsWith('cat.pubchem.')) keys.push(k);
+      if (k && (k.startsWith('labcat.pubchem.') || k.startsWith('cat.pubchem.'))) keys.push(k);
     }
     keys.forEach((k) => localStorage.removeItem(k));
   } catch {

@@ -14,8 +14,12 @@ export function sectionMissingItems(a: Assessment, id: CoreSectionId): string[] 
     case 'overview': {
       const o = a.overview;
       const missing: string[] = [];
+      if (!o.businessUnit.trim()) missing.push('business unit');
+      if (!o.locations.trim()) missing.push('location');
+      if (!o.activityOutline.trim()) missing.push('RA title');
       if (!o.assessor.trim()) missing.push('risk assessor');
       if (!o.dateOfAssessment) missing.push('date of assessment');
+      if (!o.dateOfNextReview) missing.push('date of review');
       if (
         !o.personsAtRisk.staff &&
         !o.personsAtRisk.students &&
@@ -62,7 +66,7 @@ export function sectionMissingItems(a: Assessment, id: CoreSectionId): string[] 
           riskRating(h.residualRisk) === 0 ||
           !h.controlsInPlace.trim() ||
           (h.furtherAction.trim().length > 0 &&
-            (!h.owner.trim() || !h.dueDate.trim() || !h.completionDate.trim())),
+            (!h.owner.trim() || !h.dueDate.trim())),
       );
       if (firstIncomplete < 0) return [];
       const hazard = a.taskHazards[firstIncomplete];
@@ -75,7 +79,6 @@ export function sectionMissingItems(a: Assessment, id: CoreSectionId): string[] 
       if (hazard.furtherAction.trim().length > 0) {
         if (!hazard.owner.trim()) missing.push('action owner');
         if (!hazard.dueDate.trim()) missing.push('due date');
-        if (!hazard.completionDate.trim()) missing.push('completion date');
       }
       return [`hazard ${firstIncomplete + 1}: ${missing.join(', ')}`];
     }
@@ -90,6 +93,11 @@ export function sectionMissingItems(a: Assessment, id: CoreSectionId): string[] 
       return missing;
     }
     case 'storage': {
+      if (a.storage2.consideredSeparately) {
+        return a.storage2.separateAssessmentLocation.trim()
+          ? []
+          : ['storage assessment location'];
+      }
       const seen = new Set<string>();
       const chemicals = a.processSteps
         .flatMap((step) => step.chemicals)

@@ -1,8 +1,8 @@
-import { FilePlus2, Settings as SettingsIcon, HelpCircle, Save, Upload } from 'lucide-react';
+import { AlertTriangle, FilePlus2, Settings as SettingsIcon, HelpCircle, Save, Upload, X } from 'lucide-react';
 import { useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { useAssessment } from '@/store/assessment';
-import { downloadCatdraft, importCatdraftFile } from '@/services/exporters/catdraft';
+import { downloadLabcatdraft, importLabcatdraftFile } from '@/services/exporters/labcatdraft';
 
 interface Props {
   onOpenSettings: () => void;
@@ -13,10 +13,11 @@ export function TopBar({ onOpenSettings, onOpenHelp }: Props) {
   const assessment = useAssessment((s) => s.assessment);
   const replace = useAssessment((s) => s.replaceAssessment);
   const reset = useAssessment((s) => s.resetAssessment);
+  const autosaveFailed = useAssessment((s) => s.autosaveFailed);
+  const clearAutosaveFailed = useAssessment((s) => s.clearAutosaveFailed);
   const [busy, setBusy] = useState<string | null>(null);
 
   const title = assessment.overview.activityOutline || 'New COSHH Assessment';
-  const ref = assessment.overview.riskAssessmentRef;
 
   const run = async (label: string, fn: () => Promise<void> | void) => {
     setBusy(label);
@@ -36,7 +37,7 @@ export function TopBar({ onOpenSettings, onOpenHelp }: Props) {
     const input = e.currentTarget;
     run('Import', async () => {
       try {
-        const imported = await importCatdraftFile(file);
+        const imported = await importLabcatdraftFile(file);
         replace(imported);
       } finally {
         input.value = '';
@@ -46,11 +47,11 @@ export function TopBar({ onOpenSettings, onOpenHelp }: Props) {
 
   const handleNewAssessment = () => {
     const confirmed = window.confirm(
-      'Starting a new assessment will clear the current assessment from this browser. A .catdraft backup will download first so you can restore it later. Continue?',
+      'Starting a new assessment will clear the current assessment from this browser. A .labcatdraft backup will download first so you can restore it later. Continue?',
     );
     if (!confirmed) return;
     run('New assessment', async () => {
-      await downloadCatdraft(assessment);
+      await downloadLabcatdraft(assessment);
       reset();
     });
   };
@@ -60,16 +61,33 @@ export function TopBar({ onOpenSettings, onOpenHelp }: Props) {
       <div className="flex-1 min-w-0">
         <div className="text-sm font-semibold text-zinc-900 truncate">{title}</div>
         <div className="text-[11px] text-zinc-500 truncate">
-          {ref ? `Ref ${ref}` : 'Draft auto-saves in this browser'}
+          {autosaveFailed
+            ? 'Autosave failed - download a LabCAT draft now'
+            : 'Draft auto-saves in this browser'}
         </div>
       </div>
+
+      {autosaveFailed && (
+        <div className="hidden max-w-sm items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[11px] font-medium text-amber-900 lg:flex">
+          <AlertTriangle size={14} className="shrink-0 text-amber-700" />
+          <span className="truncate">Browser autosave is unavailable. Download a draft backup.</span>
+          <button
+            type="button"
+            className="rounded p-0.5 text-amber-700 hover:bg-amber-100"
+            onClick={clearAutosaveFailed}
+            aria-label="Dismiss autosave warning"
+          >
+            <X size={13} />
+          </button>
+        </div>
+      )}
 
       <button
         type="button"
         className="inline-flex items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-50"
         disabled={busy !== null}
         onClick={handleNewAssessment}
-        title="Download a catdraft backup and start a new assessment"
+        title="Download a LabCAT draft backup and start a new assessment"
       >
         <FilePlus2 size={14} />
         <span className="hidden md:inline">New assessment</span>
@@ -78,21 +96,21 @@ export function TopBar({ onOpenSettings, onOpenHelp }: Props) {
         type="button"
         className="inline-flex items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-50"
         disabled={busy !== null}
-        onClick={() => run('Draft download', () => downloadCatdraft(assessment))}
-        title="Download .catdraft backup"
+        onClick={() => run('Draft download', () => downloadLabcatdraft(assessment))}
+        title="Download .labcatdraft backup"
       >
         <Save size={14} />
-        <span className="hidden md:inline">Download catdraft</span>
+        <span className="hidden md:inline">Download LabCAT draft</span>
       </button>
       <label
         className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50"
-        title="Import .catdraft backup"
+        title="Import .labcatdraft backup"
       >
         <Upload size={14} />
-        <span className="hidden md:inline">Import catdraft</span>
+        <span className="hidden md:inline">Import LabCAT draft</span>
         <input
           type="file"
-          accept=".catdraft,text/plain"
+          accept=".labcatdraft,.catdraft,text/plain"
           className="hidden"
           disabled={busy !== null}
           onChange={handleImport}

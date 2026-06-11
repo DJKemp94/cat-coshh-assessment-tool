@@ -41,7 +41,8 @@ export function GhsIcon({ id, size = 48 }: { id: GhsPictogram; size?: number }) 
       title={GHS_LABELS[id]}
       width={size}
       height={size}
-      loading="lazy"
+      loading="eager"
+      decoding="sync"
       draggable={false}
       className="shrink-0 select-none"
     />

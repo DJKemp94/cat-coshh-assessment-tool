@@ -48,33 +48,32 @@ export function TaskHazardsSection() {
         ]}
       />
 
-      {hazards.length === 0 && (
-        <label className="card p-4 flex items-start gap-3 cursor-pointer hover:bg-zinc-50 transition mb-3">
-          <input
-            type="checkbox"
-            className="mt-0.5"
-            checked={confirmedNone}
-            onChange={(e) => setConfirmedNone(e.target.checked)}
-          />
-          <div>
-            <div className="text-sm font-medium text-zinc-900">
-              No non-chemical hazards apply to this task
-            </div>
-            <div className="text-xs text-zinc-500 mt-0.5">
-              Tick to confirm you have considered slips, manual handling, electrical,
-              sharps, etc. and none are relevant. Marks this section complete.
-            </div>
-          </div>
-        </label>
-      )}
-
       {hazards.length === 0 ? (
-        !confirmedNone && (
-          <div className="card p-6 text-center text-sm text-zinc-500">
-            No hazards added yet. Click <strong>Add hazard</strong> to begin, or
-            confirm above that none apply.
+        <div className="space-y-3">
+          {!confirmedNone && (
+            <div className="card p-6 text-center text-sm text-zinc-500">
+              No hazards added yet. Click <strong>Add hazard</strong> to begin, or
+              confirm below that none apply.
+            </div>
+          )}
+          <label className="card p-4 flex items-start gap-3 cursor-pointer hover:bg-zinc-50 transition">
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={confirmedNone}
+              onChange={(e) => setConfirmedNone(e.target.checked)}
+            />
+            <div>
+              <div className="text-sm font-medium text-zinc-900">
+                No non-chemical hazards apply to this task
+              </div>
+              <div className="text-xs text-zinc-500 mt-0.5">
+                Tick to confirm you have considered slips, manual handling, electrical,
+                sharps, etc. and none are relevant. Marks this section complete.
+              </div>
+            </div>
+          </label>
           </div>
-        )
       ) : (
         <div className="space-y-4">
           {hazards.map((h, idx) => (

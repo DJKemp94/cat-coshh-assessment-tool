@@ -14,7 +14,7 @@ export function CatLogo({ size = 28, className }: LogoProps) {
       src={catHead}
       width={size}
       height={size}
-      alt="CAT logo"
+      alt="LabCAT logo"
       draggable={false}
       className={clsx('select-none', className)}
     />

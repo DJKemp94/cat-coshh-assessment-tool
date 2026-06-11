@@ -22,7 +22,6 @@ export interface PersonsAtRisk {
 
 export interface Overview {
   businessUnit: string;
-  riskAssessmentRef: string;
   sopRef: string;
   assessor: string;
   dateOfAssessment: string;
@@ -101,8 +100,8 @@ export interface Substance {
     source?: WelSource;
   };
   quantity: string;
-  form: SubstanceForm;
-  formNote?: string;
+  /** Empty string until the assessor selects a state (or PubChem reports one). */
+  form: SubstanceForm | '';
   exposureDuration: string;
   exposureFrequency: string;
   exposureRoutes: ExposureRoutes;
@@ -119,6 +118,8 @@ export interface Substance {
   flashPointC?: number;
   /** Vapour pressure in kPa from PubChem. Used as supporting volatility/ventilation evidence. */
   vapourPressureKPa?: number;
+  /** Aqueous pH from PubChem. Used to determine acid/base storage for corrosives. */
+  phValue?: number;
   /** PubChem-derived physical state. The assessor-entered `form` remains authoritative. */
   pubchemPhysicalForm?: SubstanceForm;
   pubchemPhysicalDescription?: string;
@@ -178,6 +179,8 @@ export interface Storage2Requirements {
   pairOverrides: Record<string, Storage2PairEdit>;
   assignmentOverrides: Record<UUID, Storage2AssignmentEdit>;
   layoutNotes: string;
+  consideredSeparately: boolean;
+  separateAssessmentLocation: string;
 }
 
 export interface EmergencyRequirements {
@@ -255,22 +258,26 @@ export const isChemicalIncomplete = (c: Substance): boolean => {
 };
 
 export const uuid = (): UUID =>
-  (crypto as Crypto & { randomUUID?: () => string }).randomUUID?.() ??
+  (globalThis.crypto as Crypto & { randomUUID?: () => string } | undefined)?.randomUUID?.() ??
   Math.random().toString(36).slice(2) + Date.now().toString(36);
 
-const isoDate = (d: Date): string => d.toISOString().slice(0, 10);
+export const localDateISO = (d: Date): string => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
-export const todayISO = (): string => isoDate(new Date());
+export const todayISO = (): string => localDateISO(new Date());
 
 const plusYearsISO = (years: number): string => {
   const d = new Date();
   d.setFullYear(d.getFullYear() + years);
-  return isoDate(d);
+  return localDateISO(d);
 };
 
 const emptyOverview = (): Overview => ({
   businessUnit: '',
-  riskAssessmentRef: '',
   sopRef: '',
   assessor: '',
   dateOfAssessment: todayISO(),
@@ -302,6 +309,8 @@ export const emptyStorage2 = (): Storage2Requirements => ({
   pairOverrides: {},
   assignmentOverrides: {},
   layoutNotes: '',
+  consideredSeparately: false,
+  separateAssessmentLocation: '',
 });
 
 export const emptyEmergency = (): EmergencyRequirements => ({
@@ -332,7 +341,7 @@ export const emptySubstance = (): Substance => ({
   ghsPictograms: [],
   wel: {},
   quantity: '',
-  form: 'liquid',
+  form: '',
   exposureDuration: '',
   exposureFrequency: '',
   exposureRoutes: { inhalation: false, skin: false, ingestion: false, eye: false },

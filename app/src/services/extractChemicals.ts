@@ -1,4 +1,6 @@
 import raw from '@/data/eh40.json';
+import cameoRaw from '@/data/cameo/chemicals.json';
+import { normalizeChemicalName } from '@/services/chemicalNames';
 
 export interface ExtractMatch {
   name: string;        // canonical EH40 name to surface to the user
@@ -61,6 +63,20 @@ const index: Index = (() => {
   for (const syn of SYNONYMS) {
     const eh = data.entries.find((e) => e.cas === syn.cas);
     push(syn.term, eh?.name ?? syn.term, syn.cas);
+  }
+
+  // CAMEO primary names extend coverage to substances without a UK WEL
+  // (e.g. benzoic acid). Pushed after EH40 so EH40 stays the canonical source
+  // for terms both datasets know. Inverted index-style names ("CINNAMIC ACID,
+  // P-[...]") and short codes are skipped; a stoplist drops names that are
+  // also common English words.
+  const CAMEO_STOPLIST = new Set(['film', 'lead', 'oil', 'acid', 'base', 'salt', 'water']);
+  for (const e of cameoRaw as { name?: string; cas?: string[] }[]) {
+    const name = e.name?.trim();
+    if (!name || name.length < 4 || name.length > 60) continue;
+    if (name.includes(',') || name.includes('%')) continue;
+    if (CAMEO_STOPLIST.has(name.toLowerCase())) continue;
+    push(name, normalizeChemicalName(name), e.cas?.[0]);
   }
 
   // Longest-first so "ethyl acetate" matches before "acetate" etc.

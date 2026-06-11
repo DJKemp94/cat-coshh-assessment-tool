@@ -37,7 +37,6 @@ export const CAMEO_GROUP_TO_CABINET: Record<number, CabinetId> = {
   110: 'specialReview', // Decomposes at Elevated Temperatures (<120 deg. C)
   106: 'specialReview', // Known Catalytic Activity
    45: 'specialReview', // Reducing Agents, Strong
-   50: 'specialReview', // Reducing Agents, Weak
   105: 'specialReview', // Strong Reducing Agent
    99: 'specialReview', // Insufficient Information for Classification
 
@@ -85,7 +84,6 @@ export const CAMEO_GROUP_TO_CABINET: Record<number, CabinetId> = {
    61: 'corrosiveBases',  // Bases, Weak
     7: 'corrosiveBases',  // Amines, Phosphines, and Pyridines
    68: 'corrosiveBases',  // Amines, Aromatic
-   39: 'corrosiveBases',  // Salts, Basic
    73: 'corrosiveBases',  // Quaternary Ammonium and Phosphonium Salts
 
   // ── Toxins ─────────────────────────────────────────────────────────
@@ -109,9 +107,11 @@ export const CAMEO_GROUP_TO_CABINET: Record<number, CabinetId> = {
   // ── Shelving ───────────────────────────────────────────────────────
    46: 'shelving',  // Non-Redox-Active Inorganic Compounds
    62: 'shelving',  // Carbonate Salts
+   39: 'shelving',  // Salts, Basic — mildly basic salts (iodides, acetates); caustic bases are group 10
    98: 'shelving',  // Not Chemically Reactive
    23: 'shelving',  // Metals, Less Reactive
    74: 'shelving',  // Sulfite and Thiosulfate Salts
+   50: 'shelving',  // Reducing Agents, Weak — not hard isolation; gets a segregate-from-oxidizers constraint
   100: 'shelving',  // Water and Aqueous Solutions
 };
 

@@ -53,6 +53,7 @@ const SPILLS: Rule[] = [
   { hCodes: PYROPHORIC, trigger: 'pyrophoric', text: 'For pyrophoric or self-heating spills, isolate from air, water and ignition sources; use only SDS-approved inert media and call trained responders.' },
   { hCodes: OXIDISING, trigger: 'oxidising', text: 'For oxidiser spills, keep away from combustible materials and use only compatible inert absorbents or clean-up media specified by the SDS.' },
   { hCodes: RESP_SENS, trigger: 'respiratory sensitiser', text: 'For respiratory sensitiser spills, prevent inhalation exposure, ventilate or evacuate as appropriate and allow re-entry only after controls are confirmed effective.' },
+  { hCodes: PRESSURISED, pictograms: ['compressed-gas'], trigger: 'gas under pressure', text: 'For a gas leak or cylinder release, evacuate the area, isolate the supply only if safe, ventilate and do not re-enter until the atmosphere is confirmed safe. Beware of oxygen depletion in enclosed or poorly ventilated spaces.' },
 ];
 
 const FIRST_AID: Rule[] = [
@@ -69,6 +70,7 @@ const FIRST_AID: Rule[] = [
   { hCodes: ACUTE_TOX_DERMAL, trigger: 'dermal toxicity', text: 'Dermal toxic exposure: remove contaminated clothing, wash exposed skin thoroughly and seek medical advice based on SDS first-aid guidance.' },
   { hCodes: TARGET_ORGAN, trigger: 'target organ toxicity', text: 'Following significant exposure to target-organ toxic substances, arrange medical or Occupational Health review against the SDS and exposure details.' },
   { hCodes: CMR, trigger: 'CMR', text: 'For suspected CMR exposure, record the incident and refer to Occupational Health or competent medical advice under the local exposure-reporting process.' },
+  { hCodes: PRESSURISED, pictograms: ['compressed-gas'], trigger: 'gas under pressure', text: 'Suspected asphyxiation from gas release: do not enter the area to rescue unless it is confirmed safe; move the person to fresh air, call for emergency medical help and give the SDS details to responders.' },
 ];
 
 const FIRE: Rule[] = [

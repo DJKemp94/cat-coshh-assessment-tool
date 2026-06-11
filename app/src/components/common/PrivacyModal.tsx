@@ -18,13 +18,13 @@ export function PrivacyModal() {
 
         <div className="mt-4 space-y-3 text-sm text-zinc-700 leading-relaxed">
           <p>
-            CAT is a <strong>browser-only</strong> tool. It does not host accounts and is not
+            LabCAT is a <strong>browser-only</strong> tool. It does not host accounts and is not
             an online repository of assessments.
           </p>
           <ul className="list-disc pl-5 space-y-1 text-zinc-600">
             <li>Your assessment lives in this browser only.</li>
             <li>
-              Export PDF, DOCX or <code>.catdraft</code> regularly — clearing site data will
+              Export PDF, DOCX or <code>.labcatdraft</code> regularly — clearing site data will
               erase any unsaved work.
             </li>
             <li>

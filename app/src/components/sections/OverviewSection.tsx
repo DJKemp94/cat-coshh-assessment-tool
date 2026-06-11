@@ -20,6 +20,10 @@ const PERSONS: { key: keyof PersonsAtRisk; label: string; Icon: typeof User }[] 
 
 const Req = () => <span className="text-red-600 ml-0.5" aria-label="required">*</span>;
 
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export function OverviewSection() {
   const overview = useAssessment((s) => s.assessment.overview);
   const update = useAssessment((s) => s.updateOverview);
@@ -55,7 +59,7 @@ export function OverviewSection() {
   const date = (
     key: keyof typeof overview,
     label: string,
-    opts: { required?: boolean; Icon: typeof CalendarDays } = { Icon: CalendarDays },
+    opts: { required?: boolean; Icon: typeof CalendarDays; todayButton?: boolean } = { Icon: CalendarDays },
   ) => {
     const value = overview[key] as string;
     const missing = opts.required && !value;
@@ -67,12 +71,23 @@ export function OverviewSection() {
           {label}
           {opts.required && <Req />}
         </span>
-        <input
-          type="date"
-          className={clsx('field-input', missing && 'field-missing')}
-          value={value}
-          onChange={(e) => update({ [key]: e.target.value } as Partial<typeof overview>)}
-        />
+        <div className="flex gap-2">
+          <input
+            type="date"
+            className={clsx('field-input', missing && 'field-missing')}
+            value={value}
+            onChange={(e) => update({ [key]: e.target.value } as Partial<typeof overview>)}
+          />
+          {opts.todayButton && (
+            <button
+              type="button"
+              className="btn-secondary shrink-0 !px-3 !py-2 text-xs"
+              onClick={() => update({ [key]: todayISO() } as Partial<typeof overview>)}
+            >
+              Today
+            </button>
+          )}
+        </div>
       </label>
     );
   };
@@ -97,10 +112,12 @@ export function OverviewSection() {
         <div className="p-5 sm:p-6">
           <div className="grid grid-cols-1 gap-x-5 gap-y-5 md:grid-cols-2">
             {text('businessUnit', 'Business Unit', {
+              required: true,
               placeholder: 'e.g. School of Chemistry',
               Icon: Building2,
             })}
             {text('locations', 'Location', {
+              required: true,
               placeholder: 'Building, room',
               Icon: MapPin,
             })}
@@ -116,8 +133,10 @@ export function OverviewSection() {
             {date('dateOfAssessment', 'Date of Assessment', {
               required: true,
               Icon: CalendarDays,
+              todayButton: true,
             })}
             {date('dateOfNextReview', 'Date of Review', {
+              required: true,
               Icon: CalendarDays,
             })}
           </div>
@@ -125,10 +144,10 @@ export function OverviewSection() {
           <label className="mt-5 block">
             <span className="overview-label">
               <List size={16} />
-              RA Title
+              RA Title<Req />
             </span>
             <textarea
-              className="field-textarea !min-h-[94px]"
+              className={clsx('field-textarea !min-h-[94px]', !overview.activityOutline.trim() && 'field-missing')}
               value={overview.activityOutline}
               onChange={(e) => update({ activityOutline: e.target.value })}
               placeholder="Brief description of the activity, equipment, and any notable conditions."

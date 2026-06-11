@@ -5,9 +5,9 @@
 \paperw11900\paperh16840\margl1440\margr1440\vieww25620\viewh17400\viewkind0
 \pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
 
-\f0\fs24 \cf0 I want to build a small browser-based web app called CAT \'97 COSHH Assessment Tool \'97 based on the attached UI concept image.\
+\f0\fs24 \cf0 I want to build a small browser-based web app called LabCAT \'97 COSHH Assessment Tool \'97 based on the attached UI concept image.\
 \
-The key product constraint is that CAT must not act as an online assessment repository. It should not require user accounts, a database, or permanent server-side storage. The app is primarily a COSHH risk assessment generator: users complete a structured assessment, pull in chemical data from PubChem, review suggested controls, then export the completed assessment.\
+The key product constraint is that LabCAT must not act as an online assessment repository. It should not require user accounts, a database, or permanent server-side storage. The app is primarily a COSHH risk assessment generator: users complete a structured assessment, pull in chemical data from PubChem, review suggested controls, then export the completed assessment.\
 \
 Please design and/or help me build the app around this workflow:\
 \
@@ -15,7 +15,7 @@ Please design and/or help me build the app around this workflow:\
 2. The user completes a step-by-step form based on a task-based COSHH assessment template.\
 3. The app helps automatically populate chemical-specific fields (like H codes, GHS Symbols, WELS/STELS, States, etc using the PubChem API based on the selected chemicals.\
 4. The user can export the final assessment as PDF and DOCX.\
-5. The user can save progress without online storage by exporting a local draft file, e.g. `.catdraft`.\
+5. The user can save progress without online storage by exporting a local draft file, e.g. `.labcatdraft`.\
 6. The user can later import that draft file to continue.\
 7. Optionally, the app can generate a printable recovery code or QR-style code that represents the draft data or a compressed draft payload.\
 8. The app should make it very clear that assessments are not stored in an online repository and that users are responsible for saving/exporting their own files.\
@@ -78,6 +78,6 @@ The assessment structure should follow these sections:\
   - Signature\
   - Date\
 \
-The interface should match the image: modern professional SaaS styling, clean white/grey surfaces, muted teal accents, subtle cat branding, and a serious health-and-safety tone. Cat references should remain understated: a CAT logo, small paw details, and gentle wording such as \'93Stay curious. Stay safe.\'94 Avoid anything childish or gimmicky.\
+The interface should match the image: modern professional SaaS styling, clean white/grey surfaces, muted teal accents, subtle cat branding, and a serious health-and-safety tone. Cat references should remain understated: a LabCAT logo, small paw details, and gentle wording such as \'93Stay curious. Stay safe.\'94 Avoid anything childish or gimmicky.\
 \
 Please propose the app architecture, data model, UI component structure, and implementation plan. Assume a static-first approach using HTML/CSS/JavaScript or React/Vite hosted on GitHub Pages. Only recommend Django/Docker/Render if a server becomes necessary.}

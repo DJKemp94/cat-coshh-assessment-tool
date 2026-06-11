@@ -8,7 +8,7 @@ export function SuggestionDisclaimer() {
         <strong>Suggestions, not recommendations.</strong> The chips below are generated from the
         GHS hazard codes and pictograms of the chemicals you have added. They are starting points
         only and must be reviewed against the substance Safety Data Sheet, local procedures and
-        competent H&amp;S judgement before being relied upon. CAT does not validate that the
+        competent H&amp;S judgement before being relied upon. LabCAT does not validate that the
         chosen controls are sufficient for your activity.
       </div>
     </div>

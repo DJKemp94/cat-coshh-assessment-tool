@@ -22,8 +22,9 @@ export function HelpSection() {
         </div>
         <p className="text-sm text-zinc-700">
           UK Workplace Exposure Limits are published in HSE <strong>EH40/2005</strong>.
-          CAT cannot fetch these automatically — enter the values manually from EH40 for
-          the relevant substances.
+          LabCAT pre-fills TWA / STEL values from its bundled EH40 dataset when a chemical
+          is looked up — always verify them against the current EH40 edition and enter
+          values manually for substances it does not cover.
         </p>
         <a
           className="mt-2 inline-flex items-center gap-1 text-sm text-accent-700 hover:underline"
@@ -41,9 +42,9 @@ export function HelpSection() {
           <div className="font-medium text-zinc-900">Saving your work</div>
         </div>
         <ul className="text-sm text-zinc-700 list-disc pl-5 space-y-1">
-          <li><strong>Save Draft</strong> downloads a <code>.catdraft</code> file.</li>
-          <li><strong>Import .catdraft</strong> restores a saved draft.</li>
-          <li><strong>.catdraft</strong> files are plain text — safe for version control and sharing.</li>
+          <li><strong>Download LabCAT draft</strong> downloads a <code>.labcatdraft</code> file.</li>
+          <li><strong>Import .labcatdraft</strong> restores a saved draft.</li>
+          <li><strong>.labcatdraft</strong> files are plain text — safe for version control and sharing.</li>
           <li>Export PDF or DOCX once the assessment is complete.</li>
         </ul>
       </div>

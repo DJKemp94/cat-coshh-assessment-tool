@@ -182,7 +182,7 @@ function CoshhEssentialsPanel({
                           APPROACH_COLOR[ap],
                         )}
                       >
-                        {ap === s.approach ? s.approachLabel : `Approach ${ap}`}
+                        Approach {ap}
                       </span>
                     ))}
                     {multiple && (
@@ -224,7 +224,7 @@ function CoshhEssentialsPanel({
                 <div className="font-semibold text-zinc-900">What does this mean?</div>
                 <div className="mt-2 space-y-2.5">
                   <p>
-                    COSHH Essentials is an HSE control-banding tool. CAT uses the chemicals you've entered into the system, extracts the quantities, physical form and hazard information entered in Process Steps to estimate the control approach likely to be needed.
+                    COSHH Essentials is an HSE control-banding tool. LabCAT uses the chemicals you've entered into the system, extracts the quantities, physical form and hazard information entered in Process Steps to estimate the control approach likely to be needed.
                   </p>
                   <p>
                     In the table below, each chemical is shown alongside the COSHH Essentials screening output calculated from the data entered in Process Steps.
@@ -239,7 +239,7 @@ function CoshhEssentialsPanel({
                     Where chemicals are identified under Approach 4, specialist advice is required. Do not rely on the banded screening alone; check the SDS and record the task-specific controls before confirming the process step.
                   </p>
                   <p>
-                    You should always check the SDS and make sure the engineering controls and PPE recorded for each process step are suitable, then document the final control measures in the both the Process steps as well as the fields below.
+                    You should always check the SDS and make sure the engineering controls and PPE recorded for each process step are suitable, then document the final control measures in both the Process Steps section and the fields below.
                   </p>
                   <p className="rounded-md border border-accent-100 bg-white/70 px-2 py-1.5">
                     <span className="font-semibold text-zinc-900">Note:</span> This screening is not valid for asbestos, lead, pesticides, radioactive materials or biological agents.
@@ -310,7 +310,7 @@ function CoshhEssentialsPanel({
                     })}
                     <div className="text-[10px] text-zinc-500">
                       * assumed value used because input was missing or unparseable.
-                      The highest approach across all substances drives the screening result (HSE COSHH Essentials).
+                      Each substance has its own approach; the highest approach present is highlighted for assessor review.
                     </div>
                   </div>
                 );
@@ -647,10 +647,16 @@ function StepControlsSummary({
                 <button
                   type="button"
                   onClick={() => onOpenStep(step.id)}
-                  className="grid w-full grid-cols-1 gap-3 px-4 py-3 text-left transition hover:bg-accent-50/50 focus:bg-accent-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-accent-300 lg:grid-cols-[minmax(12rem,0.7fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]"
+                  className="group grid w-full grid-cols-1 gap-3 border-l-4 border-l-transparent px-4 py-3 text-left transition hover:border-l-accent-500 hover:bg-accent-50/50 focus:border-l-accent-500 focus:bg-accent-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-accent-300 lg:grid-cols-[minmax(12rem,0.7fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]"
+                  title="Update this step in Process Steps"
                 >
                   <div>
-                    <div className="text-sm font-semibold text-accent-800">{index + 1}. {stepName}</div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-sm font-semibold text-accent-800">{index + 1}. {stepName}</span>
+                      <span className="inline-flex items-center gap-0.5 rounded-full border border-accent-200 bg-white px-1.5 py-0.5 text-[10px] font-medium text-accent-700 opacity-80 transition group-hover:border-accent-300 group-hover:bg-accent-50 group-hover:opacity-100">
+                        Update <ChevronRight size={11} />
+                      </span>
+                    </div>
                     <div className="mt-0.5 text-xs text-zinc-500">{step.chemicals.length} chemical{step.chemicals.length === 1 ? '' : 's'}</div>
                   </div>
                   <SummaryChipGroup title="Engineering" values={controls.engineering} />
@@ -880,7 +886,7 @@ export function ControlsSection() {
   };
   const openProcessStep = (stepId: string) => {
     try {
-      sessionStorage.setItem('cat.focusProcessStep', stepId);
+      sessionStorage.setItem('labcat.focusProcessStep', stepId);
     } catch {
       /* ignore */
     }

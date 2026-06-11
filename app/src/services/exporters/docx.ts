@@ -249,7 +249,6 @@ const titleBlock = (a: Assessment): (Paragraph | Table)[] => {
         new TableRow({
           height: { value: 600, rule: HeightRule.ATLEAST },
           children: [
-            metaCell('Ref', a.overview.riskAssessmentRef),
             metaCell('Assessor', a.overview.assessor),
             metaCell('Assessed', a.overview.dateOfAssessment),
             metaCell('Next review', a.overview.dateOfNextReview),
@@ -261,7 +260,7 @@ const titleBlock = (a: Assessment): (Paragraph | Table)[] => {
       spacing: { before: 200, after: 0 },
       children: [
         new TextRun({
-          text: `Generated ${today} with CAT — COSHH Assessment Tool`,
+          text: `Generated ${today} with LabCAT — COSHH Assessment Tool`,
           italics: true,
           color: MUTED,
           size: 18,
@@ -330,7 +329,7 @@ const pictogramStrip = (pics: RasterisedPictogram[]): Paragraph[] => {
 };
 
 // Wide table for the COSHH per-substance breakdown.
-const coshhBreakdownTable = (analyses: SubstanceAnalysis[], drivingApproach: number): Table => {
+const coshhBreakdownTable = (analyses: SubstanceAnalysis[], highestApproach: number): Table => {
   const headerFill = TEAL;
   const head = (s: string) =>
     new TableCell({
@@ -380,7 +379,7 @@ const coshhBreakdownTable = (analyses: SubstanceAnalysis[], drivingApproach: num
       }),
       ...analyses.map((a, i) => {
         const fill = i % 2 === 1 ? ZEBRA : undefined;
-        const drives = a.approach === drivingApproach;
+        const isHighestApproach = a.approach === highestApproach;
         const nameCell = new TableCell({
           shading: fill ? { type: ShadingType.CLEAR, color: 'auto', fill } : undefined,
           margins: { top: 60, bottom: 60, left: 100, right: 100 },
@@ -388,10 +387,10 @@ const coshhBreakdownTable = (analyses: SubstanceAnalysis[], drivingApproach: num
             new Paragraph({
               children: [new TextRun({ text: a.name || DASH, bold: true, size: 18, font: FONT })],
             }),
-            ...(drives
+            ...(isHighestApproach
               ? [new Paragraph({
                   children: [new TextRun({
-                    text: 'drives controls', italics: true, color: TEAL_DARK, size: 14, font: FONT,
+                    text: 'highest approach present', italics: true, color: TEAL_DARK, size: 14, font: FONT,
                   })],
                 })]
               : []),
@@ -410,7 +409,7 @@ const coshhBreakdownTable = (analyses: SubstanceAnalysis[], drivingApproach: num
               fill,
             ),
             bodyShaded(a.exposurePredictor ?? DASH, fill),
-            bodyShaded(`${a.approach}`, fill, { bold: true, color: drives ? TEAL_DARK : INK }),
+            bodyShaded(`${a.approach}`, fill, { bold: true, color: isHighestApproach ? TEAL_DARK : INK }),
           ],
         });
       }),
@@ -645,21 +644,21 @@ export async function exportDocx(a: Assessment, options: ReportOptions = fullRep
       { italics: true, color: MUTED },
     ));
   } else {
-    children.push(subHeading(`Recommended approach — ${coshh.approachLabel}`));
-    const driver = coshh.driver;
-    if (driver) {
-      const driverLine =
-        `Driven by ${driver.name} — hazard group ${driver.hazardGroup}` +
-        (driver.drivingHCodes.length ? ` (${driver.drivingHCodes.join(', ')})` : '') +
-        `, scale ${driver.scale}` +
-        (driver.bandKind !== 'not-applicable' ? `, ${driver.bandKind} ${driver.band}` : '') +
-        (driver.exposurePredictor ? `, exposure predictor ${driver.exposurePredictor}` : '') + '.';
-      children.push(para(driverLine, { size: 20, spaceAfter: 80 }));
+    children.push(subHeading(`Highest screening approach present — ${coshh.approachLabel}`));
+    const highest = coshh.highestApproachAnalysis;
+    if (highest) {
+      const highestLine =
+        `Highest approach example: ${highest.name} — hazard group ${highest.hazardGroup}` +
+        (highest.drivingHCodes.length ? ` (${highest.drivingHCodes.join(', ')})` : '') +
+        `, scale ${highest.scale}` +
+        (highest.bandKind !== 'not-applicable' ? `, ${highest.bandKind} ${highest.band}` : '') +
+        (highest.exposurePredictor ? `, exposure predictor ${highest.exposurePredictor}` : '') + '.';
+      children.push(para(highestLine, { size: 20, spaceAfter: 80 }));
     }
     children.push(para(`Reference: ${coshh.gSheetRef}.`, { color: MUTED, size: 18, spaceAfter: 160 }));
 
     children.push(para('Recommendations: substance-level screening output', { bold: true, color: TEAL_DARK, size: 20, spaceBefore: 60, spaceAfter: 60 }));
-    children.push(para('The table below is CAT\'s substance-level COSHH Essentials screening result for this assessment. The highest approach across the substances drives the suggested control approach, but the assessor must still confirm suitable task-specific controls.', { color: MUTED, size: 18, spaceAfter: 80 }));
+    children.push(para('The table below is LabCAT\'s substance-level COSHH Essentials screening result for this assessment. Each substance has its own approach; the highest approach present is highlighted for assessor review, but task-specific controls must still be confirmed.', { color: MUTED, size: 18, spaceAfter: 80 }));
     children.push(coshhBreakdownTable(coshh.analyses, coshh.approach));
     children.push(para('* assumed value used because input was missing or unparseable.',
       { italics: true, color: MUTED, size: 14, spaceBefore: 60, spaceAfter: 160 }));
@@ -706,7 +705,12 @@ export async function exportDocx(a: Assessment, options: ReportOptions = fullRep
   if (options.storage.include) {
     children.push(sectionBanner(sectionNo++, 'Storage'));
     const storageChemicals = uniqueChemicals(a);
-    if (storageChemicals.length > 0) {
+    if (a.storage2.consideredSeparately) {
+      children.push(kvTable([
+        ['Storage assessment status', 'Chemical storage is assessed separately and is not considered in this task risk assessment.'],
+        ['Storage assessment location', a.storage2.separateAssessmentLocation.trim() || 'No storage assessment location recorded.'],
+      ]));
+    } else if (storageChemicals.length > 0) {
       const rows = storageChemicals.map((chemical, i) => {
         const match = resolveCameoMatch(chemical, a.storage2.matches[chemical.id]);
         const automatic = classifyStorage20(match);
@@ -802,7 +806,7 @@ export async function exportDocx(a: Assessment, options: ReportOptions = fullRep
         alignment: AlignmentType.RIGHT,
         children: [
           new TextRun({
-            text: 'CAT — COSHH Assessment Tool   ·   Page ',
+            text: 'LabCAT — COSHH Assessment Tool   ·   Page ',
             color: MUTED,
             size: 16,
             font: FONT,

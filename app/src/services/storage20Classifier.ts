@@ -1,5 +1,5 @@
 import { CAMEO_GROUP_TO_CABINET, CameoMatch } from '@/services/cameoStorage';
-import { classifyStorageSignals, EXPLOSIVE_CODES, FLAMMABLE_CODES, OXIDISING_CODES, WATER_REACTIVE_CODES, PYROPHORIC_CODES } from '@/services/storageSignals';
+import { classifyStorageSignals, isOxidisingAcid, EXPLOSIVE_CODES, FLAMMABLE_CODES, OXIDISING_CODES, WATER_REACTIVE_CODES, PYROPHORIC_CODES, EUH_WATER_REACTIVE_CODES, EUH_ACID_GAS_CODES, EUH_PEROXIDE_CODES, EUH_EXPLOSIVE_VAPOUR_CODES, normalizeHazardCode } from '@/services/storageSignals';
 
 export type Storage20CabinetId = 'flammables' | 'corrosiveAcids' | 'corrosiveBases' | 'oxidizers' | 'toxins' | 'volatilePoisons' | 'compressedGas' | 'shelving' | 'specialReview' | 'review';
 
@@ -61,27 +61,39 @@ export interface Storage20Assignment {
   constraints: string[];
 }
 
-const STRONG_SPECIAL_GROUPS = new Set([107, 109, 108, 102, 103, 76, 21, 22, 35, 42, 51, 400, 30, 110, 106, 45, 105, 99]);
-const OXIDIZER_GROUPS = new Set([44, 104, 49, 27, 69]);
+/**
+ * Group sets are derived from CAMEO_GROUP_TO_CABINET so the routing logic
+ * cannot drift from the cabinet map (previously groups 39 and 50 had drifted).
+ */
+function groupsForCabinet(cabinetId: string): Set<number> {
+  return new Set(
+    Object.entries(CAMEO_GROUP_TO_CABINET)
+      .filter(([, cabinet]) => cabinet === cabinetId)
+      .map(([id]) => Number(id)),
+  );
+}
+export const STRONG_SPECIAL_GROUPS = groupsForCabinet('specialReview');
+export const OXIDIZER_GROUPS = groupsForCabinet('oxidizers');
+export const ACID_GROUPS = groupsForCabinet('corrosiveAcids');
+export const BASE_GROUPS = groupsForCabinet('corrosiveBases');
+export const TOXIN_GROUPS = groupsForCabinet('toxins');
+export const FLAMMABLE_ORGANIC_GROUPS = groupsForCabinet('flammables');
 const OXIDIZING_ACID_GROUPS = new Set([2]);
 const ORGANIC_ACID_GROUPS = new Set([3, 71]);
-const ACID_GROUPS = new Set([1, 2, 3, 37, 38, 40, 55, 59, 60, 71]);
-const BASE_GROUPS = new Set([7, 10, 61, 68, 73]);
-const TOXIN_GROUPS = new Set([6, 8, 9, 11, 12, 17, 18, 20, 25, 26, 31, 32, 33, 48, 72, 75]);
-const FLAMMABLE_ORGANIC_GROUPS = new Set([4, 5, 13, 14, 16, 19, 28, 29, 34, 47, 58, 63, 64, 65, 66, 70, 71, 101, 111]);
 const STRONG_FLAMMABLE_GROUPS = new Set([16, 28, 29, 63, 64, 65, 101, 111]);
 const HIGH_ACUTE_TOXIC_CODES = ['H300', 'H301', 'H310', 'H311', 'H330', 'H331'];
+/** Vapour pressure at/above which a toxic liquid is treated as a volatile poison. */
+const VOLATILE_POISON_VAPOUR_PRESSURE_KPA = 10;
 
 function hasAnyHCode(match: CameoMatch, codes: string[]) {
   const wanted = new Set(codes);
-  return match.chemical.hazardStatements.some((h) => wanted.has(h.code.trim().toUpperCase()));
+  return match.chemical.hazardStatements.some((h) => wanted.has(normalizeHazardCode(h.code)));
 }
 
 function textFor(match: CameoMatch) {
   return [
     match.chemical.name,
     match.chemical.cas,
-    match.chemical.formNote,
     match.chemical.molecularFormula,
     match.chemical.iupacName,
     match.chemical.pubchemTitle,
@@ -109,9 +121,13 @@ function hasCameoFlammableEvidence(match: CameoMatch, groupIds: number[]) {
   ].filter(Boolean).join(' ').toLowerCase();
   const hasPositiveLabel = /\b(flammable|combustible|spontaneously combustible)\b/.test(labelText)
     && !/\b(non[-\s]?flammable|not.{0,40}(flammable|combustible)|does not burn|will not burn)\b/.test(labelText);
+  // Functional-group membership alone (e.g. aromatic hydrocarbons) is only
+  // accepted as flammability evidence for liquid-like forms — solids need a
+  // flammable H-code/pictogram, transport label or NFPA rating, otherwise
+  // non-flammable toxic solids like PAHs end up in the flammables cabinet.
   return hasPositiveLabel
     || (typeof nfpa === 'number' && nfpa >= 2)
-    || hasGroup(groupIds, STRONG_FLAMMABLE_GROUPS);
+    || (isLiquidLike(match) && hasGroup(groupIds, STRONG_FLAMMABLE_GROUPS));
 }
 
 function hasPubChemFlammableEvidence(match: CameoMatch, organic: boolean) {
@@ -128,17 +144,17 @@ function hasFlammableStorageEvidence(match: CameoMatch, groupIds: number[], orga
 }
 
 function hasCompressedGasSignal(match: CameoMatch) {
-  const text = textFor(match);
-  const pressurePackageSignal = /\b(compressed gas|gas under pressure|gas cylinder|cylinder|liquefied gas|refrigerated liquid|cryogenic)\b/.test(text);
+  const explicitVisiblePressureText = /\b(compressed gas|gas under pressure|gas cylinder|cylinder|liquefied gas|refrigerated liquid|cryogenic)\b/.test(textFor(match));
   const pressureHazardSignal = match.chemical.ghsPictograms.includes('compressed-gas') || hasAnyHCode(match, ['H280', 'H281']);
   const assessorGasForm = match.chemical.form === 'gas' || match.chemical.form === 'vapour';
-  const acidSignal = classifyStorageSignals(match.chemical).traits.acid;
-  if (pressurePackageSignal) return true;
-  return assessorGasForm && pressureHazardSignal && !acidSignal;
+  const assessorCryogenicLiquid = match.chemical.form === 'liquid' && hasAnyHCode(match, ['H281']);
+  if (assessorGasForm) return true;
+  if (explicitVisiblePressureText) return true;
+  return pressureHazardSignal && (assessorGasForm || assessorCryogenicLiquid);
 }
 
 function isDryBase(match: CameoMatch) {
-  const chemicalText = [match.chemical.name, match.chemical.formNote].filter(Boolean).join(' ').toLowerCase();
+  const chemicalText = [match.chemical.name].filter(Boolean).join(' ').toLowerCase();
   const cameoText = match.cameo?.name.toLowerCase() ?? '';
   const combined = `${chemicalText} ${cameoText}`;
   if (isSolid(match)) return true;
@@ -168,6 +184,35 @@ function flammableReason(match: CameoMatch, groupIds: number[], classification: 
   return 'Reference data gives flammable/combustible storage evidence.';
 }
 
+/**
+ * Assign a storage zone using an explicit hazard-priority tier list.
+ * The FIRST matching tier picks the cabinet; every other detected hazard is
+ * preserved as a requirement by residualHazardNotes (see ZONE_CONSUMED_HAZARDS),
+ * so lower-tier hazards are never silently dropped.
+ *
+ *  1. Reactive isolation — water-reactive, pyrophoric, explosive, polymerizable,
+ *     organic peroxides, strong reducers → specialReview
+ *  2. Pressure — gases / pressure packages → compressedGases (with per-hazard
+ *     segregation notes)
+ *  3. Oxidiser + flammable on one material → specialReview (an oxygen source in
+ *     the flammables cabinet and fuel in the oxidizers cabinet are equally
+ *     unsafe; genuine duals are usually self-reactive and need assessor review)
+ *  4. Oxidizing acids → oxidizingAcids (double containment)
+ *  5. Oxidizers → oxidizersOnly
+ *  6. Flammable liquids → organicSolventsAcids. The fire-rated cabinet wins over
+ *     the corrosives, bases and volatile-poisons homes (DSEAR priority):
+ *     corrosion containment, acid/base segregation and toxic-vapour controls
+ *     are carried as requirements instead of changing the cabinet.
+ *  7. Acids → nonOxidizingAcids
+ *  8. Bases → solidBases / liquidBases
+ *  9. Volatile poisons — non-flammable chlorinated/halogenated solvents →
+ *     volatilePoisonsChlorinated
+ * 10. Toxics — volatile (name or vapour pressure) → volatilePoisonsChlorinated,
+ *     else dryPoisons / liquidPoisons
+ * 11. Flammable solids → organicSolventsAcids
+ * 12. Corrosives with no acid/base determination → review (never shelving)
+ * 13. Inert solids → drySolids; low-trigger liquids → generalStorage; no data → review
+ */
 export function classifyStorage20(match: CameoMatch): Storage20Assignment {
   const classification = classifyStorageSignals(match.chemical);
   const groupIds = match.groups.map((group) => group.id);
@@ -191,9 +236,15 @@ export function classifyStorage20(match: CameoMatch): Storage20Assignment {
   const constraints = storageConstraints(match, { text, profileText: [match.cameo?.chemicalProfile, match.cameo?.airWaterReactions, match.cameo?.specialHazards].filter(Boolean).join(' ').toLowerCase(), groupNames });
   let confidence: Storage20Confidence = hasCameo || hasGhs || hasPubChem ? 'medium' : 'review';
 
-  const waterReactive = classification.traits.waterReactive || classification.traits.pyrophoric || hasAnyHCode(match, [...WATER_REACTIVE_CODES, ...PYROPHORIC_CODES, ...EXPLOSIVE_CODES, 'H242']) || hasGroup(groupIds, STRONG_SPECIAL_GROUPS);
+  if (/\bacrylamide\b/.test(text) && isSolid(match)) {
+    reasons.push('Acrylamide guidance case: toxic solid storage takes priority over polymerization-family review.');
+    requirements.push('keep sealed in secondary containment');
+    return assignment(match, 'dryPoisons', 'organicPoison', source, hasCameo || hasGhs ? 'high' : confidence, reasons, requirements, constraints);
+  }
+
+  const waterReactive = classification.traits.waterReactive || classification.traits.pyrophoric || hasAnyHCode(match, [...WATER_REACTIVE_CODES, ...EUH_WATER_REACTIVE_CODES, ...PYROPHORIC_CODES, ...EXPLOSIVE_CODES, 'H242']) || hasGroup(groupIds, STRONG_SPECIAL_GROUPS);
   if (waterReactive) {
-    reasons.push(hasGroup(groupIds, STRONG_SPECIAL_GROUPS) ? 'CAMEO reactive group requires hard isolation or dedicated reactive storage.' : 'GHS water-reactive, pyrophoric/self-heating or explosive H-code trigger.');
+    reasons.push(hasGroup(groupIds, STRONG_SPECIAL_GROUPS) ? 'CAMEO reactive group requires hard isolation or dedicated reactive storage.' : 'GHS/EUH water-reactive, pyrophoric/self-heating or explosive hazard trigger.');
     if (classification.traits.waterReactive || groupIds.some((id) => [107, 21, 22, 35, 42, 51].includes(id))) requirements.push('isolate completely');
     requirements.push('keep dry');
     requirements.push('do not store below liquids');
@@ -206,7 +257,7 @@ export function classifyStorage20(match: CameoMatch): Storage20Assignment {
   const base = classification.traits.base || hasGroup(groupIds, BASE_GROUPS);
   const organic = classification.traits.organic === true || hasGroup(groupIds, FLAMMABLE_ORGANIC_GROUPS) || hasGroup(groupIds, ORGANIC_ACID_GROUPS);
   const volatilePoisonSignal = classification.traits.volatilePoison || /chloroform|dichloromethane|methylene chloride|carbon tetrachloride|chlorobenzene|dichlorobenzene|dichloroethane|trichloroethane|trichloroethylene|tetrachloroethylene|chlorinated solvent|halogenated solvent/.test(text);
-  const flammable = !volatilePoisonSignal && hasFlammableStorageEvidence(match, groupIds, organic);
+  const flammable = hasFlammableStorageEvidence(match, groupIds, organic);
   const toxic = classification.traits.toxic || match.chemical.ghsPictograms.includes('toxic') || hasGroup(groupIds, TOXIN_GROUPS);
   const compressedGas = hasCompressedGasSignal(match);
   const severeToxicity = match.chemical.ghsPictograms.includes('toxic') || hasAnyHCode(match, HIGH_ACUTE_TOXIC_CODES);
@@ -222,29 +273,63 @@ export function classifyStorage20(match: CameoMatch): Storage20Assignment {
     return assignment(match, 'compressedGases', 'compressedGas', source, hasCameo || hasGhs ? 'high' : 'medium', reasons, requirements, constraints);
   }
 
-  const oxidizingAcid = hasGroup(groupIds, OXIDIZING_ACID_GROUPS) || (oxidising && acid && (classification.traits.corrosive || /acid/.test(text)));
+  // Oxidiser + flammable on one material: an oxygen source inside the
+  // flammables cabinet and fuel inside the oxidizers cabinet are equally
+  // unsafe, so neither ordering can resolve this dual. Genuine duals are
+  // usually self-reactive (H240-242 → tier 1); the rest need assessor review.
+  if (oxidising && flammable) {
+    reasons.push('Oxidising and flammable signals on the same material - neither the flammables nor the oxidizers cabinet is safe.');
+    requirements.push('isolate from both flammables and oxidizers');
+    requirements.push('confirm stability / self-reactivity against SDS sections 7 and 10');
+    return assignment(match, 'specialReview', 'oxidizingAgent', source, hasCameo || hasGhs ? 'high' : confidence, reasons, requirements, constraints);
+  }
+
+  const oxidizingAcid = hasGroup(groupIds, OXIDIZING_ACID_GROUPS) || isOxidisingAcid(text) || (oxidising && acid && classification.traits.corrosive);
   if (oxidizingAcid) {
-    reasons.push(hasGroup(groupIds, OXIDIZING_ACID_GROUPS) ? 'CAMEO strong oxidizing acid group.' : 'GHS oxidizer plus corrosive/acid signal.');
+    reasons.push(hasGroup(groupIds, OXIDIZING_ACID_GROUPS) ? 'CAMEO strong oxidizing acid group.' : isOxidisingAcid(text) ? 'Named oxidizing acid (nitric/sulfuric/perchloric/chromic/permanganic).' : 'GHS oxidizer plus corrosive acid signal.');
     requirements.push('double containment');
     requirements.push('isolate from organics, flammables and bases');
     return assignment(match, 'oxidizingAcids', 'oxidizingAcid', source, hasCameo || hasGhs ? 'high' : confidence, reasons, requirements, constraints);
   }
 
   if (oxidising) {
-    reasons.push(hasGroup(groupIds, OXIDIZER_GROUPS) ? 'CAMEO oxidizer reactive group.' : 'GHS oxidizer H-code or pictogram.');
+    reasons.push(hasGroup(groupIds, OXIDIZER_GROUPS) ? 'CAMEO oxidizer reactive group.' : classification.traits.oxidising ? 'GHS oxidizer H-code/pictogram or oxidizing-anion name (hypochlorite, permanganate, nitrate...).' : 'GHS oxidizer H-code or pictogram.');
     requirements.push('secondary containment');
     requirements.push('separate from organics and flammables');
     return assignment(match, 'oxidizersOnly', 'oxidizingAgent', source, hasCameo || hasGhs ? 'high' : confidence, reasons, requirements, constraints);
   }
 
-  if (acid) {
-    if (flammable && organic) {
-      reasons.push('Organic acid with flammable/organic signal; store in the flammable/organic-acid storage group with segregation.');
+  if (/\b(dimethyl sulfoxide|dmso)\b/.test(text) && !classification.traits.corrosive && !oxidising && !severeToxicity) {
+    reasons.push('DMSO guidance case: combustible organic liquid without stronger storage trigger.');
+    requirements.push('secondary containment');
+    return assignment(match, 'generalStorage', 'generalStorage', source, hasCameo || hasGhs ? 'high' : confidence, reasons, requirements, constraints);
+  }
+
+  // Flammable liquids outrank acids, bases and the volatile-poisons home: a
+  // fire-rated cabinet is the one control the other zones cannot provide
+  // (DSEAR priority). Corrosion containment comes from residualHazardNotes;
+  // acid/base segregation and toxic-vapour controls are added here.
+  if (flammable && isLiquidLike(match)) {
+    reasons.push(flammableReason(match, groupIds, classification));
+    if (acid && organic) {
+      reasons.push('Flammable organic acid: fire-rated storage takes precedence over the corrosives cabinet.');
       requirements.push('secondary containment');
       requirements.push('segregate from general solvents where local storage uses separate organic-acid containment');
       requirements.push('keep away from oxidizing acids and bases');
-      return assignment(match, 'organicSolventsAcids', 'organicAcid', source, hasCameo || hasGhs ? 'high' : confidence, reasons, requirements, constraints);
+    } else if (acid) {
+      requirements.push('separate from bases');
+    } else if (base) {
+      reasons.push('Flammable organic base: fire-rated storage takes precedence over the corrosives cabinet.');
+      requirements.push('separate from acids');
     }
+    if (volatilePoisonSignal) {
+      reasons.push('Flammable halogenated solvent: fire-rated storage takes precedence over the volatile-poisons cabinet.');
+      requirements.push('confirm ventilation and sealed containers for toxic vapours');
+    }
+    return assignment(match, 'organicSolventsAcids', acid && organic ? 'organicAcid' : 'organicSolvent', source, hasCameo || hasGhs ? 'high' : confidence, reasons, requirements, constraints);
+  }
+
+  if (acid) {
     reasons.push(hasCameo ? 'CAMEO acid reactive group.' : 'GHS/PubChem acid signal without CAMEO match.');
     requirements.push('separate from bases');
     return assignment(match, 'nonOxidizingAcids', organic ? 'organicAcid' : 'inorganicAcid', source, hasCameo || hasGhs ? 'high' : confidence, reasons, requirements, constraints);
@@ -264,15 +349,19 @@ export function classifyStorage20(match: CameoMatch): Storage20Assignment {
     return assignment(match, 'volatilePoisonsChlorinated', 'volatilePoison', source, hasCameo || hasGhs ? 'high' : confidence, reasons, requirements, constraints);
   }
 
-  if (flammable && isLiquidLike(match) && !severeToxicity) {
-    reasons.push(flammableReason(match, groupIds, classification));
-    return assignment(match, 'organicSolventsAcids', 'organicSolvent', source, hasCameo || hasGhs ? 'high' : confidence, reasons, requirements, constraints);
-  }
-
   if (toxic) {
-    const volatilePoison = !isSolid(match) && volatilePoisonSignal;
+    // Vapour-pressure evidence makes any non-flammable toxic liquid a volatile
+    // poison, not just the named chlorinated solvents. This sits after the
+    // flammable-liquid rule on purpose: flammable toxics (methanol) keep
+    // flammables-cabinet storage with toxic-label controls.
+    const highVapourPressure = typeof match.chemical.vapourPressureKPa === 'number'
+      && match.chemical.vapourPressureKPa >= VOLATILE_POISON_VAPOUR_PRESSURE_KPA;
+    const volatilePoison = !isSolid(match) && (volatilePoisonSignal || highVapourPressure);
     const zoneId: Storage20ZoneId = volatilePoison ? 'volatilePoisonsChlorinated' : isSolid(match) ? 'dryPoisons' : 'liquidPoisons';
     reasons.push(hasCameo ? 'CAMEO toxin reactive group.' : 'GHS acute/chronic toxicity signal without CAMEO match.');
+    if (volatilePoison && !volatilePoisonSignal) {
+      reasons.push(`Toxic liquid with PubChem vapour pressure ${formatKPa(match.chemical.vapourPressureKPa as number)} kPa (>= ${VOLATILE_POISON_VAPOUR_PRESSURE_KPA} kPa) - treat as volatile poison.`);
+    }
     if (zoneId === 'volatilePoisonsChlorinated') requirements.push('secondary containment');
     else if (zoneId === 'liquidPoisons') requirements.push('liquid containment');
     return assignment(match, zoneId, volatilePoison ? 'volatilePoison' : organic ? 'organicPoison' : 'inorganicPoison', source, hasCameo || hasGhs ? 'high' : confidence, reasons, requirements, constraints);
@@ -281,6 +370,15 @@ export function classifyStorage20(match: CameoMatch): Storage20Assignment {
   if (flammable) {
     reasons.push(flammableReason(match, groupIds, classification));
     return assignment(match, 'organicSolventsAcids', 'organicSolvent', source, hasCameo || hasGhs ? 'high' : confidence, reasons, requirements, constraints);
+  }
+
+  // Corrosives must never fall through to open shelving. By this point the
+  // automated acid/base determination (name patterns, CAMEO groups, PubChem pH,
+  // SMILES acid motifs) has failed, so route to assessor review.
+  if (classification.traits.corrosive) {
+    reasons.push('Corrosive material without automated acid/base determination - check SDS sections 7 and 10.');
+    requirements.push('store in corrosion-rated containment away from both acids and bases pending review');
+    return assignment(match, 'review', 'review', source, 'review', reasons, requirements, constraints);
   }
 
   if (isSolid(match)) {
@@ -299,6 +397,48 @@ export function classifyStorage20(match: CameoMatch): Storage20Assignment {
   return assignment(match, 'review', 'review', source, confidence, reasons, requirements, constraints);
 }
 
+/**
+ * Hazards a zone's own storage rules already address. Any *other* detected
+ * hazard is "residual" and must be carried into the requirements, so a
+ * multi-hazard chemical never loses a hazard just because a higher-priority
+ * rule chose its cabinet (e.g. flammable amines in the bases cabinet still
+ * need ignition-source controls).
+ */
+const ZONE_CONSUMED_HAZARDS: Partial<Record<Storage20ZoneId, ('flammable' | 'corrosive' | 'toxic' | 'oxidising')[]>> = {
+  organicSolventsAcids: ['flammable'],
+  volatilePoisonsChlorinated: ['toxic'],
+  nonOxidizingAcids: ['corrosive'],
+  oxidizingAcids: ['corrosive', 'oxidising'],
+  solidBases: ['corrosive'],
+  liquidBases: ['corrosive'],
+  oxidizersOnly: ['oxidising'],
+  dryPoisons: ['toxic'],
+  liquidPoisons: ['toxic'],
+};
+
+/**
+ * Mirrors the trait derivation in classifyStorage20 to emit requirements for
+ * hazards the chosen zone does not itself address. specialReview (hard
+ * isolation) and compressedGases (bespoke gas segregation notes) are excluded.
+ */
+function residualHazardNotes(match: CameoMatch, zoneId: Storage20ZoneId): string[] {
+  if (zoneId === 'specialReview' || zoneId === 'compressedGases') return [];
+  const classification = classifyStorageSignals(match.chemical);
+  const groupIds = match.groups.map((group) => group.id);
+  const organic = classification.traits.organic === true || hasGroup(groupIds, FLAMMABLE_ORGANIC_GROUPS) || hasGroup(groupIds, ORGANIC_ACID_GROUPS);
+  const flammable = hasFlammableStorageEvidence(match, groupIds, organic);
+  const toxic = classification.traits.toxic || match.chemical.ghsPictograms.includes('toxic') || hasGroup(groupIds, TOXIN_GROUPS);
+  const oxidising = classification.traits.oxidising || hasAnyHCode(match, OXIDISING_CODES) || hasGroup(groupIds, OXIDIZER_GROUPS);
+  const corrosive = classification.traits.corrosive;
+  const consumed = new Set(ZONE_CONSUMED_HAZARDS[zoneId] ?? []);
+  const notes: string[] = [];
+  if (toxic && !consumed.has('toxic')) notes.push('retain toxic-label controls and secondary containment');
+  if (flammable && !consumed.has('flammable')) notes.push('flammable - keep away from ignition sources and oxidizers');
+  if (corrosive && !consumed.has('corrosive')) notes.push('corrosive - use corrosion-resistant secondary containment');
+  if (oxidising && !consumed.has('oxidising')) notes.push('oxidiser - keep separated from organics and flammables');
+  return notes;
+}
+
 function assignment(match: CameoMatch, zoneId: Storage20ZoneId, category: Storage20Category, source: Storage20Source, confidence: Storage20Confidence, reasons: string[], requirements: string[], constraints: string[]): Storage20Assignment {
   return {
     match,
@@ -308,7 +448,7 @@ function assignment(match: CameoMatch, zoneId: Storage20ZoneId, category: Storag
     source,
     confidence,
     reasons: unique(reasons),
-    requirements: unique(requirements),
+    requirements: unique([...requirements, ...residualHazardNotes(match, zoneId)]),
     constraints: unique(constraints),
   };
 }
@@ -326,8 +466,57 @@ function cabinetForZone(zoneId: Storage20ZoneId): Storage20CabinetId {
   return 'review';
 }
 
+export function storage20CategoryForZone(zoneId: Storage20ZoneId): Storage20Category {
+  if (zoneId === 'specialReview') return 'waterReactive';
+  if (zoneId === 'oxidizersOnly') return 'oxidizingAgent';
+  if (zoneId === 'oxidizingAcids') return 'oxidizingAcid';
+  if (zoneId === 'nonOxidizingAcids') return 'inorganicAcid';
+  if (zoneId === 'solidBases') return 'solidBase';
+  if (zoneId === 'liquidBases') return 'liquidBase';
+  if (zoneId === 'organicSolventsAcids') return 'organicSolvent';
+  if (zoneId === 'volatilePoisonsChlorinated') return 'volatilePoison';
+  if (zoneId === 'dryPoisons') return 'inorganicPoison';
+  if (zoneId === 'liquidPoisons') return 'organicPoison';
+  if (zoneId === 'compressedGases') return 'compressedGas';
+  if (zoneId === 'drySolids') return 'drySolid';
+  if (zoneId === 'generalStorage') return 'generalStorage';
+  return 'review';
+}
+
+function normalizeState(form: string) {
+  if (form === 'powder') return 'solid';
+  if (form === 'mist' || form === 'aerosol') return 'liquid';
+  if (form === 'vapour') return 'gas';
+  return form;
+}
+
+function visiblePhysicalStateWarnings(match: CameoMatch) {
+  const warnings: string[] = [];
+  const chemical = match.chemical;
+  const pressureHazardSignal = chemical.ghsPictograms.includes('compressed-gas') || hasAnyHCode(match, ['H280', 'H281']);
+  const selectedPressureState = chemical.form === 'gas' || chemical.form === 'vapour' || (chemical.form === 'liquid' && hasAnyHCode(match, ['H281']));
+
+  if (chemical.pubchemPhysicalForm && normalizeState(chemical.form) !== normalizeState(chemical.pubchemPhysicalForm)) {
+    warnings.push(`Physical state check: assessor selected ${chemical.form}, PubChem suggests ${chemical.pubchemPhysicalForm}`);
+  }
+  if (pressureHazardSignal && !selectedPressureState) {
+    warnings.push(`Gas-under-pressure pictogram/H-code present, but selected physical state is ${chemical.form}; storage follows selected physical state`);
+  }
+  if (chemical.pubchemPhysicalForm === 'gas' && chemical.form === 'liquid') {
+    warnings.push('PubChem gas-form evidence may describe the parent chemical; selected physical state remains authoritative');
+  }
+
+  return warnings;
+}
+
 function storageConstraints(match: CameoMatch, signals: { text: string; profileText: string; groupNames: string[] }) {
   const constraints: string[] = [];
+  // In the fully automated flow GHS data comes from PubChem, so its absence
+  // means hazard signals are limited to CAMEO/name/physical data — say so
+  // explicitly rather than only via a lower confidence badge.
+  if (match.chemical.hazardStatements.length === 0 && match.chemical.ghsPictograms.length === 0) {
+    constraints.push('no GHS classification data found - hazard signals limited to CAMEO/name/physical data, confirm SDS');
+  }
   const absorbents = match.cameo?.incompatibleAbsorbents ?? [];
   const hasGroupName = (pattern: RegExp) => signals.groupNames.some((name) => pattern.test(name));
   const specialHazards = match.cameo?.specialHazards.toLowerCase() ?? '';
@@ -339,30 +528,24 @@ function storageConstraints(match: CameoMatch, signals: { text: string; profileT
   if (absorbents.length > 0) constraints.push(`incompatible absorbents: ${absorbents.slice(0, 3).join(', ')}${absorbents.length > 3 ? '...' : ''}`);
   if (/cyanide/.test(signals.text) || hasGroupName(/cyanides/)) constraints.push('hard separate from acids - HCN risk');
   if (/(sulfide|sulphide)/.test(signals.text) || hasGroupName(/sulfides/)) constraints.push('hard separate from acids - H2S risk');
-  if (/organic peroxide|peroxide-form|peroxidizable/.test(signals.text) || hasGroupName(/peroxides/)) constraints.push('peroxide/polymerization review');
+  if (/\bazide\b/.test(signals.text)) constraints.push('azide special review - keep from acids, metals and drains');
+  if (/\bperchloric acid\b/.test(signals.text)) constraints.push('perchloric acid dedicated storage review');
+  if (hasAnyHCode(match, EUH_ACID_GAS_CODES)) constraints.push('hard separate from acids - EUH toxic gas risk');
+  if (/organic peroxide|peroxide-form|peroxidizable/.test(signals.text) || hasGroupName(/peroxides/) || hasAnyHCode(match, EUH_PEROXIDE_CODES)) constraints.push('peroxide/polymerization review');
   if (hasGroupName(/polymerizable/)) constraints.push('polymerization/pressure review');
   if (/sodium metal|potassium metal|lithium metal|metal hydride|hydride\b/.test(signals.text) || hasGroupName(/hydrides|alkali metals/)) constraints.push('reactive metals/hydrides review');
   if (/generate flammable hydrogen|hydrogen gas/i.test(signals.profileText) && /metal|hydride|hydrofluoric|hydrogen fluoride/.test(signals.text)) constraints.push('hydrogen generation risk');
   if (/fluoride salts, soluble/.test(signals.groupNames.join(' ')) && /acid|hydrogen fluoride|hydrofluoric/.test(signals.text)) constraints.push('HF/fluoride special review');
-  if (hasPhysicalFormConflict(match)) constraints.push(`physical state check: assessor selected ${match.chemical.form}, PubChem suggests ${match.chemical.pubchemPhysicalForm}`);
-  if (typeof match.chemical.vapourPressureKPa === 'number' && match.chemical.vapourPressureKPa >= 10 && hasVolatileVentilationConcern(match, signals.text)) {
+  if (/\b(hydrofluoric|hydrogen fluoride|bifluoride)\b/.test(signals.text)) constraints.push('HF/fluoride special review');
+  if (hasAnyHCode(match, EUH_EXPLOSIVE_VAPOUR_CODES)) constraints.push('may form explosive vapour-air mixture - confirm ventilation/ignition controls');
+  if (hasGroupName(/reducing agent/)) constraints.push('reducing agent - segregate from oxidizers');
+  constraints.push(...visiblePhysicalStateWarnings(match));
+  if (typeof match.chemical.vapourPressureKPa === 'number' && match.chemical.vapourPressureKPa >= VOLATILE_POISON_VAPOUR_PRESSURE_KPA && hasVolatileVentilationConcern(match, signals.text)) {
     constraints.push('elevated vapour pressure - confirm ventilation and container closure');
   }
   if (typeof match.chemical.pubchemNfpa?.reactivity === 'number' && match.chemical.pubchemNfpa.reactivity >= 2) constraints.push(`NFPA reactivity ${match.chemical.pubchemNfpa.reactivity} - check SDS stability/storage`);
   if (match.chemical.pubchemNfpa?.special) constraints.push(`NFPA special: ${match.chemical.pubchemNfpa.special}`);
   return constraints;
-}
-
-function hasPhysicalFormConflict(match: CameoMatch) {
-  const pubchemForm = match.chemical.pubchemPhysicalForm;
-  if (!pubchemForm) return false;
-  const normalize = (form: string) => {
-    if (form === 'powder') return 'solid';
-    if (form === 'mist' || form === 'aerosol') return 'liquid';
-    if (form === 'vapour') return 'gas';
-    return form;
-  };
-  return normalize(match.chemical.form) !== normalize(pubchemForm);
 }
 
 function hasVolatileVentilationConcern(match: CameoMatch, text: string) {
@@ -530,8 +713,8 @@ export const ZONES: Record<Storage20ZoneId, CabinetZoneDef> = {
 
 /**
  * Apply assessor overrides to an automatic Storage assignment.
- * Mirrors `applyAssignmentEdit` in Storage20Section.tsx but uses
- * `cabinetForZone` instead of the local ZONES map.
+ * Apply the same assessor override semantics everywhere storage assignments
+ * are displayed or exported.
  */
 export function applyStorage20Edit(
   assignment: Storage20Assignment,
@@ -549,7 +732,7 @@ export function applyStorage20Edit(
     ...assignment,
     zoneId: zoneId ?? assignment.zoneId,
     cabinetId: zoneId ? cabinetForZone(zoneId) : assignment.cabinetId,
-    category: zoneId ? 'review' : assignment.category,
+    category: zoneId ? storage20CategoryForZone(zoneId) : assignment.category,
     requirements: edit?.requirements !== undefined ? splitRequirements(edit.requirements) : assignment.requirements,
     source: zoneId ? 'review' : assignment.source,
     confidence: zoneId ? 'review' : assignment.confidence,
@@ -595,6 +778,7 @@ export function storage20EvidenceText(assignment: Storage20Assignment): string {
     pictograms.length > 0 ? `GHS pictograms: ${pictograms.join(', ')}` : undefined,
     typeof chemical.flashPointC === 'number' ? `PubChem flash point: ${chemical.flashPointC} °C` : undefined,
     typeof chemical.vapourPressureKPa === 'number' ? `PubChem vapour pressure: ${formatKPa(chemical.vapourPressureKPa)} kPa` : undefined,
+    typeof chemical.phValue === 'number' ? `PubChem pH: ${chemical.phValue}` : undefined,
     chemical.pubchemPhysicalForm ? `PubChem physical form: ${chemical.pubchemPhysicalForm}` : undefined,
     physicalDescription ? `PubChem physical description: ${physicalDescription}` : undefined,
     nfpaParts.length > 0 ? `PubChem NFPA: ${nfpaParts.join(', ')}` : undefined,

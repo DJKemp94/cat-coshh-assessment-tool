@@ -45,7 +45,7 @@ export function SuggestionField({
   const chips = toChips(suggestions);
   const isEmpty = value.trim().length === 0;
   const [forced, setForced] = useState<boolean | null>(null);
-  const showChips = forced ?? false;
+  const showChips = forced ?? isEmpty;
   const missing = required && isEmpty;
 
   return (

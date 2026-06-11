@@ -11,16 +11,13 @@ import {
   cameoMeta,
   CameoCompatibility,
   CameoPairFinding,
-  CameoMatch,
-  findCameoChemicalById,
   resolveCameoMatch,
-  searchCameoChemicals,
 } from '@/services/cameoStorage';
 import {
   classifyStorage20,
+  applyStorage20Edit,
   Storage20Assignment,
   Storage20CabinetId,
-  Storage20Category,
   Storage20ZoneId,
   CabinetZoneDef,
   ZONES,
@@ -30,6 +27,11 @@ import {
   storage20SourceLabel,
 } from '@/services/storage20Classifier';
 import { Storage2AssignmentEdit, Storage2MatchEdit, Substance } from '@/types/assessment';
+
+interface AssignmentRow {
+  automaticAssignment: Storage20Assignment;
+  assignment: Storage20Assignment;
+}
 
 export function StorageSection() {
   const assessment = useAssessment((s) => s.assessment);
@@ -42,6 +44,20 @@ export function StorageSection() {
     [chemicals, storage2.matches],
   );
   const pairs = useMemo(() => buildCameoPairs(matches, storage2.pairOverrides), [matches, storage2.pairOverrides]);
+  const assignmentRows = useMemo<AssignmentRow[]>(() => matches
+    .map((match) => {
+      const automaticAssignment = classifyStorage20(match);
+      return {
+        automaticAssignment,
+        assignment: applyStorage20Edit(automaticAssignment, storage2.assignmentOverrides?.[match.chemical.id]),
+      };
+    })
+    .sort((a, b) => {
+      const nameA = (a.assignment.match.chemical.name || a.assignment.match.chemical.cas || '').toLowerCase();
+      const nameB = (b.assignment.match.chemical.name || b.assignment.match.chemical.cas || '').toLowerCase();
+      return nameA.localeCompare(nameB, undefined, { sensitivity: 'base', numeric: true });
+    }), [matches, storage2.assignmentOverrides]);
+  const assignments = useMemo(() => assignmentRows.map((row) => row.assignment), [assignmentRows]);
 
   const updateMatch = (chemicalId: string, patch: Storage2MatchEdit) => {
     updateStorage2({
@@ -81,7 +97,7 @@ export function StorageSection() {
       />
 
       <PageIntro
-        body="Review and confirm the suggested storage groups, chemical matching, and cabinet layout for the chemicals in this assessment."
+        body="Review and confirm the suggested storage groups, requirements, and cabinet layout for the chemicals in this assessment."
         steps={[
           { title: '1. Check each row', body: 'Compare the suggested storage group, guidance and compatibility information with SDS sections 7 and 10.' },
           { title: '2. Update if needed', body: 'Change the reference record, storage group or requirements where the SDS or local rules require something different.' },
@@ -92,6 +108,36 @@ export function StorageSection() {
           body: 'Review the cabinet layout against storage in practice and ensure chemicals are correctly segregated. Use the layout as guidance and always confirm via the SDS.',
         }}
       />
+
+      <div className="mb-4 rounded-lg border border-zinc-200 bg-white p-4">
+        <label className="flex items-start gap-3">
+          <input
+            type="checkbox"
+            className="mt-0.5 h-5 w-5 accent-accent-600"
+            checked={storage2.consideredSeparately}
+            onChange={(event) => updateStorage2({ consideredSeparately: event.target.checked })}
+          />
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold text-zinc-900">
+              Chemical storage is assessed separately
+            </span>
+            <span className="mt-1 block text-xs leading-5 text-zinc-500">
+              Use this when storage is not part of this task risk assessment and is covered by a separate chemical storage assessment or local storage procedure.
+            </span>
+          </span>
+        </label>
+        {storage2.consideredSeparately && (
+          <label className="mt-3 block">
+            <span className="field-label">Where is the storage assessment or procedure stored?</span>
+            <input
+              className="field-input"
+              value={storage2.separateAssessmentLocation}
+              onChange={(event) => updateStorage2({ separateAssessmentLocation: event.target.value })}
+              placeholder="e.g. SharePoint > H&S > Chemical Storage Assessment, document ref, folder path or SOP number"
+            />
+          </label>
+        )}
+      </div>
 
       <Panel
         title="How storage recommendations work"
@@ -124,11 +170,17 @@ export function StorageSection() {
         </div>
       </Panel>
 
-      <div className="mt-4 space-y-4">
-        <MatchReviewPanel matches={matches} assignmentEdits={storage2.assignmentOverrides ?? {}} onUpdateMatch={updateMatch} onUpdateAssignment={updateAssignment} />
-        <PairFindingsPanel matches={matches} pairs={pairs} assignmentEdits={storage2.assignmentOverrides ?? {}} />
-        <CabinetSchemePanel matches={matches} assignmentEdits={storage2.assignmentOverrides ?? {}} notes={storage2.layoutNotes} onNotes={(layoutNotes) => updateStorage2({ layoutNotes })} />
-      </div>
+      {storage2.consideredSeparately ? (
+        <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+          Storage recommendations are not generated in this assessment because chemical storage is recorded as assessed separately.
+        </div>
+      ) : (
+        <div className="mt-4 space-y-4">
+          <MatchReviewPanel assignmentRows={assignmentRows} assignmentEdits={storage2.assignmentOverrides ?? {}} onUpdateMatch={updateMatch} onUpdateAssignment={updateAssignment} />
+          <PairFindingsPanel assignments={assignments} pairs={pairs} />
+          <CabinetSchemePanel assignments={assignments} notes={storage2.layoutNotes} onNotes={(layoutNotes) => updateStorage2({ layoutNotes })} />
+        </div>
+      )}
     </section>
   );
 }
@@ -188,46 +240,28 @@ function EditableStar() {
 }
 
 function MatchReviewPanel({
-  matches,
+  assignmentRows,
   assignmentEdits,
   onUpdateMatch,
   onUpdateAssignment,
 }: {
-  matches: CameoMatch[];
+  assignmentRows: AssignmentRow[];
   assignmentEdits: Record<string, Storage2AssignmentEdit>;
   onUpdateMatch: (chemicalId: string, patch: Storage2MatchEdit) => void;
   onUpdateAssignment: (chemicalId: string, patch: Storage2AssignmentEdit) => void;
 }) {
-  const assignmentRows = useMemo(() => matches
-    .map((match) => {
-      const automaticAssignment = classifyStorage20(match);
-      const autoMatch = resolveCameoMatch(match.chemical);
-      const recordChanged = match.confidence === 'manual' && match.cameo?.id !== autoMatch.cameo?.id;
-      return {
-        automaticAssignment,
-        assignment: applyAssignmentEdit(automaticAssignment, assignmentEdits[match.chemical.id]),
-        recordChanged,
-      };
-    })
-    .sort((a, b) => {
-      const nameA = (a.assignment.match.chemical.name || a.assignment.match.chemical.cas || '').toLowerCase();
-      const nameB = (b.assignment.match.chemical.name || b.assignment.match.chemical.cas || '').toLowerCase();
-      return nameA.localeCompare(nameB, undefined, { sensitivity: 'base', numeric: true });
-    }), [matches, assignmentEdits]);
-
   return (
-    <Panel title="Chemical classification and database matching" subtitle="Review GHS hazards, reactive groups and the generated storage group assignment in one place." icon={<Database size={18} />}>
+    <Panel title="Chemical classification and storage assignment" subtitle="Review GHS hazards, reactive groups, generated storage groups and requirements in one place." icon={<Database size={18} />}>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[1200px] table-fixed border-collapse text-left text-[11px]">
           <colgroup>
-            <col className="w-[4%]" />
-            <col className="w-[10%]" />
-            <col className="w-[7%]" />
-            <col className="w-[8%]" />
-            <col className="w-[16%]" />
+            <col className="w-[5%]" />
             <col className="w-[12%]" />
+            <col className="w-[9%]" />
+            <col className="w-[10%]" />
+            <col className="w-[14%]" />
+            <col className="w-[26%]" />
             <col className="w-[24%]" />
-            <col className="w-[19%]" />
           </colgroup>
           <thead>
             <tr className="border-y border-zinc-200 bg-zinc-50 text-zinc-600">
@@ -235,56 +269,25 @@ function MatchReviewPanel({
               <th className="px-2 py-2 font-semibold">Chemical</th>
               <th className="px-2 py-2 font-semibold">GHS</th>
               <th className="px-2 py-2 font-semibold">H-codes</th>
-              <th className="px-2 py-2 font-semibold">
-                <span className="inline-flex items-center gap-1">
-                  Reference record <EditableStar />
-                  <details className="group relative inline-block align-text-top">
-                    <summary
-                      className="flex h-4 w-4 cursor-pointer list-none items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-400 transition hover:border-accent-300 hover:text-accent-700 focus:outline-none focus:ring-2 focus:ring-accent-100 [&::-webkit-details-marker]:hidden"
-                      aria-label="About Reference record column"
-                      title="About this column"
-                    >
-                      <Info size={10} />
-                    </summary>
-                    <div className="absolute left-1/2 z-20 mt-1 w-72 -translate-x-1/2 rounded-lg border border-zinc-200 bg-white p-3 text-[11px] leading-relaxed text-zinc-600 shadow-lg">
-                      <strong className="block text-xs font-semibold text-zinc-900">What is this column?</strong>
-                      <p className="mt-1">
-                        This column shows the reference database record matched to your chemical. The database
-                        record determines the reactive groups used for storage recommendations.
-                      </p>
-                      <p className="mt-1">
-                        <strong>Check:</strong> verify the matched name matches your chemical. If not, use the
-                        dropdown to search for and select the correct record.
-                      </p>
-                      <p className="mt-1">
-                        <strong>No database match:</strong> no record was found for this chemical. Storage
-                        recommendations will be based on GHS hazard data alone. You can try searching the
-                        dropdown for a suitable record, or check back when the chemical data is updated.
-                      </p>
-                    </div>
-                  </details>
-                </span>
-              </th>
               <th className="px-2 py-2 font-semibold">Reactive groups</th>
               <th className="px-2 py-2 font-semibold">Storage Group Assignment <EditableStar /></th>
               <th className="px-2 py-2 font-semibold">Requirements <EditableStar /></th>
             </tr>
           </thead>
           <tbody>
-            {assignmentRows.map(({ automaticAssignment, assignment, recordChanged }) => (
+            {assignmentRows.map(({ automaticAssignment, assignment }) => (
               <ClassificationMatchRow
                 key={assignment.match.chemical.id}
                 assignment={assignment}
                 automaticAssignment={automaticAssignment}
                 edit={assignmentEdits[assignment.match.chemical.id]}
-                recordChanged={recordChanged}
                 onUpdate={(patch) => onUpdateMatch(assignment.match.chemical.id, patch)}
                 onUpdateAssignment={(patch) => onUpdateAssignment(assignment.match.chemical.id, patch)}
               />
             ))}
             {assignmentRows.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-2 py-6 text-center text-sm text-zinc-500">
+                <td colSpan={7} className="px-2 py-6 text-center text-sm text-zinc-500">
                   Add chemicals in Process Steps to generate storage recommendations.
                 </td>
               </tr>
@@ -300,22 +303,17 @@ function ClassificationMatchRow({
   assignment,
   automaticAssignment,
   edit,
-  recordChanged,
   onUpdate,
   onUpdateAssignment,
 }: {
   assignment: Storage20Assignment;
   automaticAssignment: Storage20Assignment;
   edit?: Storage2AssignmentEdit;
-  recordChanged: boolean;
   onUpdate: (patch: Storage2MatchEdit) => void;
   onUpdateAssignment: (patch: Storage2AssignmentEdit) => void;
 }) {
   const match = assignment.match;
   const chemical = match.chemical;
-  const query = chemical.name || chemical.cas || '';
-  const options = useMemo(() => searchCameoChemicals(query), [query]);
-  const selected = match.cameo ? findCameoChemicalById(match.cameo.id) : null;
   const requirementText = edit?.requirements ?? requirementTextForAssignment(assignment);
 
   return (
@@ -330,7 +328,7 @@ function ClassificationMatchRow({
             className="h-5 w-5 accent-accent-600"
             checked={match.confirmed}
             onChange={(e) => onUpdate({ confirmed: e.target.checked })}
-            aria-label={`Confirm reference match for ${chemical.name || chemical.cas || 'chemical'}`}
+            aria-label={`Confirm storage classification for ${chemical.name || chemical.cas || 'chemical'}`}
           />
         </label>
       </td>
@@ -349,24 +347,6 @@ function ClassificationMatchRow({
         {chemical.hazardStatements.length > 0
           ? chemical.hazardStatements.map((h) => h.code).join(', ')
           : 'None recorded'}
-      </td>
-      <td className="px-2 py-3">
-        <div className="grid gap-1.5">
-          <select
-            className="w-full rounded-md border border-zinc-200 px-2 py-1.5 text-[11px] outline-none focus:border-accent-300 focus:ring-2 focus:ring-accent-100"
-            value={selected?.id ?? ''}
-            onChange={(e) => onUpdate({ cameoChemicalId: e.target.value ? Number(e.target.value) : null, confirmed: false })}
-          >
-            <option value="">No database match</option>
-            {options.map((chemicalOption) => (
-              <option key={chemicalOption.id} value={chemicalOption.id}>{chemicalOption.name}</option>
-            ))}
-            {selected && !options.some((option) => option.id === selected.id) && (
-              <option value={selected.id}>{selected.name}</option>
-            )}
-          </select>
-          {recordChanged && <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">User override</span>}
-        </div>
       </td>
       <td className="px-2 py-3">
         <div className="flex flex-wrap gap-1">
@@ -390,9 +370,6 @@ function ClassificationMatchRow({
           <InfoBadge label={`Confidence: ${storage20ConfidenceLabel(assignment.confidence)}`} title="Confidence reflects how strong the automatic classification evidence is." tone={assignment.confidence} />
           <AssignmentInfo assignment={assignment} />
           {edit?.zoneOverride && <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">User override</span>}
-        </div>
-        <div className="mt-1 line-clamp-3 text-[10px] leading-relaxed text-zinc-500">
-          {storage20EvidenceText(assignment)}
         </div>
       </td>
       <td className="px-2 py-3">
@@ -424,46 +401,6 @@ const STORAGE20_ZONE_OPTIONS = [
   { id: 'review', label: 'Unassigned / assessor review' },
 ] satisfies Array<{ id: Storage20ZoneId; label: string }>;
 
-function applyAssignmentEdit(assignment: Storage20Assignment, edit?: Storage2AssignmentEdit): Storage20Assignment {
-  const zoneOverride = isStorage20ZoneId(edit?.zoneOverride) ? edit.zoneOverride : undefined;
-  if (!zoneOverride && !edit?.requirements) return assignment;
-  return {
-    ...assignment,
-    zoneId: zoneOverride ?? assignment.zoneId,
-    cabinetId: zoneOverride ? ZONES[zoneOverride].cabinetId : assignment.cabinetId,
-    category: zoneOverride ? categoryForZone(zoneOverride) : assignment.category,
-    requirements: edit?.requirements !== undefined ? splitRequirements(edit.requirements) : assignment.requirements,
-    source: zoneOverride ? 'review' : assignment.source,
-    confidence: zoneOverride ? 'review' : assignment.confidence,
-    reasons: zoneOverride ? ['User selected the storage group assignment. Verify against SDS sections 7 and 10.'] : assignment.reasons,
-  };
-}
-
-function isStorage20ZoneId(value: string | undefined): value is Storage20ZoneId {
-  return Boolean(value && Object.prototype.hasOwnProperty.call(ZONES, value));
-}
-
-function categoryForZone(zoneId: Storage20ZoneId): Storage20Category {
-  if (zoneId === 'specialReview') return 'waterReactive';
-  if (zoneId === 'oxidizersOnly') return 'oxidizingAgent';
-  if (zoneId === 'oxidizingAcids') return 'oxidizingAcid';
-  if (zoneId === 'nonOxidizingAcids') return 'inorganicAcid';
-  if (zoneId === 'solidBases') return 'solidBase';
-  if (zoneId === 'liquidBases') return 'liquidBase';
-  if (zoneId === 'organicSolventsAcids') return 'organicSolvent';
-  if (zoneId === 'volatilePoisonsChlorinated') return 'volatilePoison';
-  if (zoneId === 'dryPoisons') return 'inorganicPoison';
-  if (zoneId === 'liquidPoisons') return 'organicPoison';
-  if (zoneId === 'compressedGases') return 'compressedGas';
-  if (zoneId === 'drySolids') return 'drySolid';
-  if (zoneId === 'generalStorage') return 'generalStorage';
-  return 'review';
-}
-
-function splitRequirements(value: string) {
-  return value.split(/[;\n]/).map((item) => item.trim()).filter(Boolean);
-}
-
 function requirementTextForAssignment(assignment: Storage20Assignment) {
   return [...assignment.requirements, ...assignment.constraints].slice(0, 4).join('; ') || 'Check SDS sections 7 and 10';
 }
@@ -486,6 +423,11 @@ function InfoBadge({ label, title, tone }: { label: string; title: string; tone?
 }
 
 function AssignmentInfo({ assignment }: { assignment: Storage20Assignment }) {
+  const cameoGroups = assignment.match.groups.map((group) => `${group.id}: ${group.name}`).slice(0, 3);
+  const evidenceLines = storage20EvidenceText(assignment)
+    .split(/(?=\b(?:Source|Confidence|CAMEO groups|H-codes|GHS pictograms|PubChem flash point|PubChem vapour pressure|PubChem pH|PubChem physical form|PubChem physical description|PubChem NFPA):)/)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith('Source:') && !line.startsWith('Confidence:') && !line.startsWith('CAMEO groups:'));
   return (
     <details className="group relative inline-block">
       <summary
@@ -495,11 +437,35 @@ function AssignmentInfo({ assignment }: { assignment: Storage20Assignment }) {
       >
         <Info size={12} />
       </summary>
-      <div className="absolute right-0 z-20 mt-1 w-72 rounded-lg border border-zinc-200 bg-white p-3 text-[11px] leading-relaxed text-zinc-700 shadow-lg">
-        <div className="font-semibold text-zinc-900">Assignment source</div>
-        <div className="mt-1">{storage20SourceLabel(assignment.source)}</div>
-        <div className="mt-2 font-semibold text-zinc-900">Reason</div>
-        <div className="mt-1">{storage20EvidenceText(assignment) || 'No automatic reason recorded.'}</div>
+      <div className="absolute right-0 z-20 mt-1 w-80 rounded-lg border border-zinc-200 bg-white p-3 text-[11px] leading-relaxed text-zinc-700 shadow-lg">
+        <div className="space-y-2.5">
+          <div>
+            <div className="font-semibold text-zinc-900">Assignment source</div>
+            <div className="mt-0.5">{storage20SourceLabel(assignment.source)}</div>
+          </div>
+          <div>
+            <div className="font-semibold text-zinc-900">Confidence</div>
+            <div className="mt-0.5">{storage20ConfidenceLabel(assignment.confidence)}</div>
+          </div>
+          <div>
+            <div className="font-semibold text-zinc-900">Reason</div>
+            {evidenceLines.length > 0 ? (
+              <ul className="mt-1 list-disc space-y-1 pl-4">
+                {evidenceLines.map((line) => <li key={line}>{line}</li>)}
+              </ul>
+            ) : (
+              <div className="mt-0.5">No automatic reason recorded.</div>
+            )}
+          </div>
+          {cameoGroups.length > 0 && (
+            <div>
+              <div className="font-semibold text-zinc-900">CAMEO groups</div>
+              <ul className="mt-1 list-disc space-y-1 pl-4">
+                {cameoGroups.map((group) => <li key={group}>{group}</li>)}
+              </ul>
+            </div>
+          )}
+        </div>
       </div>
     </details>
   );
@@ -510,8 +476,7 @@ function assignmentClassName(zoneId: Storage20ZoneId) {
   return clsx(zone.className, zone.textClassName, 'border-transparent');
 }
 
-function PairFindingsPanel({ matches, pairs, assignmentEdits }: { matches: CameoMatch[]; pairs: ReturnType<typeof buildCameoPairs>; assignmentEdits: Record<string, Storage2AssignmentEdit> }) {
-  const assignments = useMemo(() => matches.map((match) => applyAssignmentEdit(classifyStorage20(match), assignmentEdits[match.chemical.id])), [matches, assignmentEdits]);
+function PairFindingsPanel({ assignments, pairs }: { assignments: Storage20Assignment[]; pairs: ReturnType<typeof buildCameoPairs> }) {
   const assignmentsByGroup = useMemo(() => {
     const map = new Map<MatrixGroupId, Storage20Assignment[]>();
     for (const assignment of assignments) {
@@ -645,7 +610,7 @@ const STORAGE20_MATRIX: Record<MatrixGroupId, Record<MatrixGroupId, boolean>> = 
 };
 
 function matrixGroupForAssignment(assignment: Storage20Assignment): MatrixGroupId | null {
-  const categoryMap: Partial<Record<Storage20Category, MatrixGroupId>> = {
+  const categoryMap: Partial<Record<Storage20Assignment['category'], MatrixGroupId>> = {
     waterReactive: 'waterReactive',
     oxidizingAgent: 'oxidizingAgents',
     oxidizingAcid: 'oxidizingAcids',
@@ -792,17 +757,14 @@ function hasStrongStorageEvidence(pair: CameoPairFinding) {
 
 
 function CabinetSchemePanel({
-  matches,
-  assignmentEdits,
+  assignments,
   notes,
   onNotes,
 }: {
-  matches: CameoMatch[];
-  assignmentEdits: Record<string, Storage2AssignmentEdit>;
+  assignments: Storage20Assignment[];
   notes: string;
   onNotes: (value: string) => void;
 }) {
-  const assignments = useMemo(() => matches.map((match) => applyAssignmentEdit(classifyStorage20(match), assignmentEdits[match.chemical.id])), [matches, assignmentEdits]);
   const assignmentsByCabinet = useMemo(() => {
     const byCabinet = new Map<Storage20CabinetId, Storage20Assignment[]>();
     for (const assignment of assignments) {

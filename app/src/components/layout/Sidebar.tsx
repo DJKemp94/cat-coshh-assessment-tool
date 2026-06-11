@@ -61,7 +61,7 @@ export function Sidebar() {
       <div className="px-5 py-5 flex items-center gap-3 border-b border-zinc-100">
         <CatLogo size={48} />
         <div className="leading-tight">
-          <div className="font-semibold text-zinc-900 text-lg">CAT</div>
+          <div className="font-semibold text-zinc-900 text-lg">LabCAT</div>
           <div className="text-[10px] uppercase tracking-wider text-zinc-500">
             COSHH Assessment Tool
           </div>
