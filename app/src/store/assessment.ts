@@ -89,12 +89,30 @@ const touch = (a: Assessment): Assessment => ({
 
 const normalizeSubstance = (c: Substance): Substance => ({
   ...c,
+  casNotApplicable: c.casNotApplicable ?? false,
+  hazardSource: c.hazardSource ?? {
+    type: c.pubchemFetchedAt ? 'pubchem' : 'manual',
+    pubchemBaseline: c.pubchemFetchedAt && c.pubchemCid
+      ? {
+          cid: c.pubchemCid,
+          fetchedAt: c.pubchemFetchedAt,
+          hazardStatements: c.hazardStatements ?? [],
+          ghsPictograms: c.ghsPictograms ?? [],
+        }
+      : undefined,
+  },
+  hazardStatements: c.hazardStatements ?? [],
+  ghsPictograms: c.ghsPictograms ?? [],
   name: normalizeChemicalName(c.name),
 });
 
 const normalizeStep = (step: ProcessStep): ProcessStep => ({
   ...step,
   description: step.description ?? '',
+  exposureDuration:
+    step.exposureDuration ??
+    step.chemicals.map((c) => c.exposureDuration?.trim()).find(Boolean) ??
+    '',
   controls: {
     ...emptyStepControls(),
     ...(step.controls ?? {}),
@@ -104,6 +122,16 @@ const normalizeStep = (step: ProcessStep): ProcessStep => ({
 
 const normalizeAssessment = (a: Assessment): Assessment => ({
   ...a,
+  overview: {
+    ...a.overview,
+    activityFrequency:
+      a.overview.activityFrequency ??
+      a.processSteps
+        .flatMap((step) => step.chemicals)
+        .map((c) => c.exposureFrequency?.trim())
+        .find(Boolean) ??
+      '',
+  },
   processSteps: a.processSteps.map(normalizeStep),
 });
 

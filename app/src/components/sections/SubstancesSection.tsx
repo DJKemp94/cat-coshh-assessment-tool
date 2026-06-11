@@ -10,26 +10,54 @@ import clsx from 'clsx';
 import { useAssessment } from '@/store/assessment';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { PageIntro } from '@/components/common/PageIntro';
-import { HCodeList } from '@/components/common/GhsBadges';
-import { GhsRow, GhsGrid } from '@/components/common/GhsPictograms';
+import { GhsRow, GhsIcon, GHS_LABELS } from '@/components/common/GhsPictograms';
 import { ChemicalAutocomplete } from '@/components/common/ChemicalAutocomplete';
 import { lookupChemical } from '@/services/pubchem';
 import { volatilityFromBP } from '@/services/coshhEssentials';
 import { extractChemicals, ExtractMatch } from '@/services/extractChemicals';
+import { GHS_HAZARD_STATEMENTS, findHazardStatement } from '@/data/ghsHazardStatements';
 import {
-  Substance, SubstanceForm, ExposureRoutes, ProcessStep,
+  diffPubChemHazards,
+  hazardSourceAfterEdit,
+  hCodeKey,
+  pubChemHazardSource,
+  uniqueHCodes,
+  uniquePictograms,
+} from '@/services/hazardEdits';
+import {
+  Substance, SubstanceForm, ExposureRoutes, ProcessStep, HCode, GhsPictogram,
   StepControls, isChemicalIncomplete,
 } from '@/types/assessment';
 
 const FORMS: SubstanceForm[] = [
-  'solid', 'liquid', 'gas', 'vapour', 'aerosol', 'mist', 'powder', 'other',
+  'solid', 'liquid', 'gas', 'other',
 ];
+
+function simplifiedForm(form: SubstanceForm | '' | undefined): SubstanceForm | '' {
+  if (!form) return '';
+  if (form === 'powder') return 'solid';
+  if (form === 'vapour' || form === 'aerosol' || form === 'mist') return 'gas';
+  if (form === 'solid' || form === 'liquid' || form === 'gas') return form;
+  return 'other';
+}
 
 const ROUTES: { key: keyof ExposureRoutes; label: string }[] = [
   { key: 'inhalation', label: 'Inhalation' },
   { key: 'skin', label: 'Skin' },
   { key: 'ingestion', label: 'Ingestion' },
   { key: 'eye', label: 'Eye' },
+];
+
+const GHS_PICKER: GhsPictogram[] = [
+  'explosive',
+  'flammable',
+  'oxidising',
+  'compressed-gas',
+  'corrosive',
+  'toxic',
+  'harmful',
+  'health-hazard',
+  'environmental',
 ];
 
 const ENGINEERING_CONTROLS = [
@@ -157,6 +185,7 @@ function isProcessStepReady(step: ProcessStep): boolean {
   return Boolean(
     step.step.trim() &&
       step.description.trim() &&
+      step.exposureDuration.trim() &&
       step.controls?.engineering?.length > 0 &&
       step.controls?.ppe?.length > 0,
   );
@@ -166,6 +195,7 @@ function processStepMissingItems(step: ProcessStep): string[] {
   const missing: string[] = [];
   if (!step.step.trim()) missing.push('step name');
   if (!step.description.trim()) missing.push('description');
+  if (!step.exposureDuration.trim()) missing.push('step duration');
   if (step.chemicals.length === 0) missing.push('at least one chemical');
   else if (step.chemicals.some(isChemicalIncomplete)) missing.push('chemical details');
   if ((step.controls?.engineering?.length ?? 0) === 0) missing.push('engineering controls');
@@ -510,15 +540,17 @@ function ProcessStepCard({
       addChemical(step.id, {
         pubchemCid: r.cid,
         cas: r.cas ?? m.cas,
+        casNotApplicable: false,
         name: r.name,
         hazardStatements: r.hazardStatements,
         ghsPictograms: r.pictograms,
+        hazardSource: pubChemHazardSource(r.cid, r.fetchedAt, r.hazardStatements, r.pictograms),
         wel: {
           twa: r.wel.twa ?? 'n/a',
           stel: r.wel.stel ?? 'n/a',
           source: r.wel.source ?? 'Manual',
         },
-        form: r.pubchemPhysicalForm ?? r.form ?? '',
+        form: simplifiedForm(r.pubchemPhysicalForm ?? r.form),
         sdsUrl: r.sdsUrl,
         sdsSource: r.sdsSource,
         boilingPointC: r.boilingPointC,
@@ -774,9 +806,11 @@ function ProcessStepCard({
                     addChemical(step.id, {
                       pubchemCid: chem.pubchemCid,
                       cas: chem.cas,
+                      casNotApplicable: chem.casNotApplicable,
                       name: chem.name,
                       hazardStatements: chem.hazardStatements,
                       ghsPictograms: chem.ghsPictograms,
+                      hazardSource: chem.hazardSource,
                       wel: { ...chem.wel },
                       form: chem.form,
                       exposureRoutes: { ...chem.exposureRoutes },
@@ -831,6 +865,27 @@ function ProcessStepCard({
           >
             <Plus size={12} /> Add chemical
           </button>
+        </div>
+      </div>
+
+      <div className="border-t border-zinc-200 bg-white px-4 py-4">
+        <div className="mb-2 text-sm font-semibold text-zinc-900">Step duration</div>
+        <p className="mb-3 max-w-3xl text-xs leading-5 text-zinc-600">
+          Estimate the time someone could be exposed to the chemicals in this step. Focus on
+          hands-on time near the experiment, transfer, weighing, sampling or cleanup. Do not include
+          unattended waiting time such as refluxing or incubation where nobody is near the process.
+        </p>
+        <div className="max-w-sm">
+          <ChipPickerInput
+            label="Step duration"
+            required
+            invalid={!step.exposureDuration.trim()}
+            value={step.exposureDuration}
+            onChange={(v) => updateStep(step.id, { exposureDuration: v })}
+            options={['<1 min', '5 min', '15 min', '30 min', '1h', '2h', '4h', '8h']}
+            placeholder="e.g. 30 min"
+            gridColumns={4}
+          />
         </div>
       </div>
 
@@ -1013,9 +1068,44 @@ function ChemicalRow({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [matchWarning, setMatchWarning] = useState<string | null>(null);
+  const [hCodeQuery, setHCodeQuery] = useState('');
+  const [showHazardEditor, setShowHazardEditor] = useState(false);
 
   const onChange = (patch: Partial<Substance>) => update(stepId, c.id, patch);
   const welSummary = collapsedWelSummary(c.wel);
+  const hazardDiff = diffPubChemHazards(c);
+
+  const updateHazards = (hazardStatements: HCode[], ghsPictograms: GhsPictogram[]) => {
+    const nextHCodes = uniqueHCodes(hazardStatements);
+    const nextPictograms = uniquePictograms(ghsPictograms);
+    onChange({
+      hazardStatements: nextHCodes,
+      ghsPictograms: nextPictograms,
+      hazardSource: hazardSourceAfterEdit(c, nextHCodes, nextPictograms),
+    });
+  };
+
+  const togglePictogram = (id: GhsPictogram) => {
+    updateHazards(
+      c.hazardStatements,
+      c.ghsPictograms.includes(id)
+        ? c.ghsPictograms.filter((p) => p !== id)
+        : [...c.ghsPictograms, id],
+    );
+  };
+
+  const addHCode = (code: string) => {
+    const trimmed = code.trim();
+    if (!trimmed) return;
+    const known = findHazardStatement(trimmed);
+    const next = known ?? { code: trimmed.toUpperCase(), text: '' };
+    if (c.hazardStatements.some((h) => hCodeKey(h.code) === hCodeKey(next.code))) return;
+    updateHazards([...c.hazardStatements, next], c.ghsPictograms);
+  };
+
+  const removeHCode = (code: string) => {
+    updateHazards(c.hazardStatements.filter((h) => hCodeKey(h.code) !== hCodeKey(code)), c.ghsPictograms);
+  };
 
   const lookup = async (force = false, override?: string | number) => {
     const query = typeof override === 'number' ? override : (override ?? (c.name || (c.cas ?? ''))).trim();
@@ -1044,8 +1134,8 @@ function ChemicalRow({
       // previous chemical rather than carrying them over. An assessor-chosen
       // state stays authoritative; otherwise adopt the PubChem-reported one.
       const form = isDifferentChemical
-        ? (r.pubchemPhysicalForm ?? '')
-        : c.form || (r.pubchemPhysicalForm ?? '');
+        ? simplifiedForm(r.pubchemPhysicalForm)
+        : simplifiedForm(c.form || r.pubchemPhysicalForm);
       const bp = r.boilingPointC ?? (isDifferentChemical ? undefined : c.boilingPointC);
       // On a fresh lookup, set volatility from BP for liquids — user can still
       // override afterwards. This keeps the dropdown in sync with the BP shown.
@@ -1058,9 +1148,11 @@ function ChemicalRow({
       onChange({
         pubchemCid: r.cid,
         cas: r.cas,
+        casNotApplicable: false,
         name: r.name,
         hazardStatements: r.hazardStatements,
         ghsPictograms: r.pictograms,
+        hazardSource: pubChemHazardSource(r.cid, r.fetchedAt, r.hazardStatements, r.pictograms),
         wel: {
           twa: r.wel.twa ?? 'n/a',
           stel: r.wel.stel ?? 'n/a',
@@ -1151,7 +1243,7 @@ function ChemicalRow({
         </button>
 
         <span className="hidden text-[11px] text-zinc-500 font-mono xl:block">
-          {c.cas || '—'}
+          {c.casNotApplicable ? 'CAS N/A' : c.cas || '—'}
         </span>
         <div className="hidden min-h-[22px] min-w-0 items-center overflow-hidden xl:flex">
           {c.ghsPictograms.length > 0 ? (
@@ -1196,8 +1288,10 @@ function ChemicalRow({
         </div>
 
         <div className="flex min-w-0 flex-wrap items-center gap-2 xl:hidden">
-          {c.cas && (
-            <span className="text-[11px] text-zinc-500 font-mono">· {c.cas}</span>
+          {(c.cas || c.casNotApplicable) && (
+            <span className="text-[11px] text-zinc-500 font-mono">
+              · {c.casNotApplicable ? 'CAS N/A' : c.cas}
+            </span>
           )}
           {c.ghsPictograms.length > 0 && (
             <GhsRow ids={c.ghsPictograms} size={22} />
@@ -1238,20 +1332,22 @@ function ChemicalRow({
       </div>
 
       {isOpen && (() => {
-        const needsIdentityLookup =
-          !c.name.trim() ||
-          !c.cas?.trim() ||
-          (!c.pubchemFetchedAt && c.hazardStatements.length === 0 && c.ghsPictograms.length === 0);
         const miss = {
           name: !c.name.trim(),
           form: !c.form,
-          cas: !c.cas?.trim(),
+          cas: !c.casNotApplicable && !c.cas?.trim(),
           quantity: !splitQuantity(c.quantity).value,
           wel: !c.wel.twa?.trim() && !c.wel.stel?.trim(),
-          duration: !c.exposureDuration.trim(),
-          frequency: !c.exposureFrequency.trim(),
           routes: !Object.values(c.exposureRoutes).some(Boolean),
         };
+        const hCodeTerm = hCodeQuery.trim().toLowerCase();
+        const selectedHCodes = new Set(c.hazardStatements.map((h) => hCodeKey(h.code)));
+        const hCodeMatches = GHS_HAZARD_STATEMENTS.filter((h) => {
+          if (selectedHCodes.has(hCodeKey(h.code))) return false;
+          if (!hCodeTerm) return true;
+          return h.code.toLowerCase().includes(hCodeTerm) || h.text.toLowerCase().includes(hCodeTerm);
+        }).slice(0, 8);
+        const formValue = simplifiedForm(c.form);
         return (
         <div className="border-t border-zinc-100 px-4 py-3 bg-white">
           {error && <div className="text-xs text-red-600 mb-2">{error}</div>}
@@ -1261,36 +1357,51 @@ function ChemicalRow({
             </div>
           )}
 
-          {needsIdentityLookup && (
-            <div className="mb-3 rounded-md border border-amber-200 bg-amber-50/60 p-3">
-              <div className="grid grid-cols-1 md:grid-cols-[1fr_11rem_auto] gap-2.5 items-end">
-                <div>
-                  <span className="field-label">Chemical name<Req /></span>
-                  <ChemicalAutocomplete
-                    value={c.name}
-                    onChange={(v) => onChange({ name: v })}
-                    onSelect={(selection) => {
-                      onChange({ name: selection.name });
-                      lookup(false, selection.cid ?? selection.name);
-                    }}
-                    placeholder="e.g. acetone or 67-64-1"
-                    disabled={busy}
-                    invalid={miss.name}
-                  />
-                </div>
-                <label>
-                  <span className="field-label">CAS<Req /></span>
-                  <input
-                    className={clsx('field-input !py-1.5 text-xs font-mono', miss.cas && 'field-missing')}
-                    value={c.cas ?? ''}
-                    onChange={(e) => onChange({ cas: e.target.value })}
-                    onKeyDown={(e) => e.stopPropagation()}
-                    placeholder="67-64-1"
-                  />
-                </label>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div>
+              <span className="field-label">Chemical name<Req /></span>
+              <ChemicalAutocomplete
+                value={c.name}
+                onChange={(v) => onChange({ name: v })}
+                onSelect={(selection) => {
+                  onChange({ name: selection.name });
+                  lookup(false, selection.cid ?? selection.name);
+                }}
+                placeholder="e.g. acetone or 67-64-1"
+                disabled={busy}
+                invalid={miss.name}
+              />
+            </div>
+            <div>
+              <span className="field-label">CAS<Req /></span>
+              <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-2">
+                <input
+                  className={clsx('field-input font-mono', miss.cas && 'field-missing')}
+                  value={c.cas ?? ''}
+                  disabled={c.casNotApplicable}
+                  onChange={(e) => onChange({ cas: e.target.value, casNotApplicable: false })}
+                  onKeyDown={(e) => e.stopPropagation()}
+                  placeholder={c.casNotApplicable ? 'N/A' : '67-64-1'}
+                />
                 <button
                   type="button"
-                  className="btn-secondary text-xs"
+                  className={clsx(
+                    'inline-flex h-[42px] items-center justify-center rounded-md border px-3 text-xs font-semibold transition',
+                    c.casNotApplicable
+                      ? 'border-accent-300 bg-accent-100 text-accent-900'
+                      : 'border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50',
+                  )}
+                  onClick={() => onChange({
+                    cas: c.casNotApplicable ? '' : undefined,
+                    casNotApplicable: !c.casNotApplicable,
+                  })}
+                  aria-pressed={Boolean(c.casNotApplicable)}
+                >
+                  N/A
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary h-[42px] px-3 text-xs"
                   disabled={busy || (!c.name.trim() && !c.cas?.trim())}
                   onClick={() => lookup(true)}
                 >
@@ -1299,14 +1410,12 @@ function ChemicalRow({
                 </button>
               </div>
             </div>
-          )}
 
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_1fr]">
             <label>
               <span className="field-label">Physical state<Req /></span>
               <select
-                className={clsx('field-input !py-1.5 text-xs', miss.form && 'field-missing')}
-                value={c.form}
+                className={clsx('field-input', miss.form && 'field-missing')}
+                value={formValue}
                 onChange={(e) => {
                   const nextForm = e.target.value as SubstanceForm;
                   const { value, unit } = splitQuantity(c.quantity);
@@ -1323,11 +1432,11 @@ function ChemicalRow({
               </select>
             </label>
 
-            {c.form === 'liquid' ? (
+            {formValue === 'liquid' ? (
               <label>
                 <span className="field-label">Volatility <span className="text-zinc-400 font-normal text-[10px]">COSHH</span></span>
                 <select
-                  className="field-input !py-1.5 text-xs"
+                  className="field-input"
                   value={c.volatility ?? ''}
                   onChange={(e) => onChange({ volatility: (e.target.value || undefined) as Substance['volatility'] })}
                 >
@@ -1344,12 +1453,12 @@ function ChemicalRow({
               <label>
                 <span className="field-label">Dustiness <span className="text-zinc-400 font-normal text-[10px]">COSHH</span></span>
                 <select
-                  className="field-input !py-1.5 text-xs"
+                  className="field-input"
                   value={c.dustiness ?? ''}
-                  disabled={c.form !== 'solid' && c.form !== 'powder'}
+                  disabled={formValue !== 'solid'}
                   onChange={(e) => onChange({ dustiness: (e.target.value || undefined) as Substance['dustiness'] })}
                 >
-                  <option value="">{c.form === 'solid' || c.form === 'powder' ? '— select —' : 'Not applicable'}</option>
+                  <option value="">{formValue === 'solid' ? '— select —' : 'Not applicable'}</option>
                   <option value="low">Low (pellet / waxy)</option>
                   <option value="medium">Medium (granular)</option>
                   <option value="high">High (fine powder)</option>
@@ -1361,7 +1470,7 @@ function ChemicalRow({
               <span className="field-label">Quantity</span>
               <QuantityInput
                 value={c.quantity}
-                form={c.form}
+                form={formValue}
                 onChange={(next) => onChange({ quantity: next })}
                 invalid={miss.quantity}
               />
@@ -1369,7 +1478,7 @@ function ChemicalRow({
 
             <div>
               <span className="field-label">Exposure routes</span>
-              <div className={clsx('flex flex-wrap gap-1 rounded-md', miss.routes && 'field-missing p-1')}>
+              <div className={clsx('flex min-h-[42px] flex-wrap items-center gap-1 rounded-md border border-zinc-200 bg-white px-2 py-1.5 shadow-soft', miss.routes && 'field-missing')}>
                 {ROUTES.map(({ key, label }) => {
                   const on = c.exposureRoutes[key];
                   return (
@@ -1391,32 +1500,13 @@ function ChemicalRow({
               </div>
             </div>
 
-            <ChipPickerInput
-              label="Duration"
-              required
-              invalid={miss.duration}
-              value={c.exposureDuration}
-              onChange={(v) => onChange({ exposureDuration: v })}
-              options={['<1 min', '5 min', '15 min', '30 min', '1h', '2h', '4h', '8h']}
-              placeholder="e.g. 30 min"
-              gridColumns={4}
-            />
-            <ChipPickerInput
-              label="Frequency"
-              required
-              invalid={miss.frequency}
-              value={c.exposureFrequency}
-              onChange={(v) => onChange({ exposureFrequency: v })}
-              options={['Daily', 'Weekly', 'Monthly', 'Occasional', 'One-off']}
-              placeholder="e.g. weekly"
-            />
           </div>
 
           <div className="mt-3 grid grid-cols-1 gap-3 border-t border-zinc-100 pt-3 md:grid-cols-2">
             <label>
               <span className="field-label">TWA (8 h)<Req /></span>
               <input
-                className={clsx('field-input !py-1.5 text-xs', miss.wel && 'field-missing')}
+                className={clsx('field-input', miss.wel && 'field-missing')}
                 value={c.wel.twa ?? ''}
                 onChange={(e) => onChange({ wel: { ...c.wel, twa: e.target.value, source: e.target.value && !c.wel.source ? 'Manual' : c.wel.source } })}
                 placeholder="value or n/a"
@@ -1425,7 +1515,7 @@ function ChemicalRow({
             <label>
               <span className="field-label">STEL (15 min)</span>
               <input
-                className={clsx('field-input !py-1.5 text-xs', miss.wel && 'field-missing')}
+                className={clsx('field-input', miss.wel && 'field-missing')}
                 value={c.wel.stel ?? ''}
                 onChange={(e) => onChange({ wel: { ...c.wel, stel: e.target.value, source: e.target.value && !c.wel.source ? 'Manual' : c.wel.source } })}
                 placeholder="value or n/a"
@@ -1433,20 +1523,270 @@ function ChemicalRow({
             </label>
           </div>
 
-          {(c.hazardStatements.length > 0 || c.ghsPictograms.length > 0) && (
-            <div className="mt-2 rounded border border-zinc-200 bg-white p-2.5">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
-                Hazard data — {c.ghsPictograms.length} pictogram{c.ghsPictograms.length === 1 ? '' : 's'} · {c.hazardStatements.length} H-code{c.hazardStatements.length === 1 ? '' : 's'}
+          <div className="mt-3 rounded border border-zinc-200 bg-white p-2.5">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+                Hazard data - {c.ghsPictograms.length} pictogram{c.ghsPictograms.length === 1 ? '' : 's'} · {c.hazardStatements.length} H-code{c.hazardStatements.length === 1 ? '' : 's'}
               </div>
-              <div className="space-y-2.5">
-                <GhsGrid ids={c.ghsPictograms} />
-                <HCodeList codes={c.hazardStatements} />
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  className="btn-secondary text-xs !px-2 !py-1"
+                  onClick={() => setShowHazardEditor((v) => !v)}
+                >
+                  {showHazardEditor ? 'Done editing' : 'Edit hazard data'}
+                </button>
               </div>
             </div>
-          )}
+            {!showHazardEditor ? (
+              <HazardDisplay
+                chemical={c}
+                diff={hazardDiff}
+                onEdit={() => setShowHazardEditor(true)}
+              />
+            ) : (
+            <div className="space-y-3 rounded-md border border-accent-100 bg-accent-50/30 p-2">
+              <div>
+                <div className="mb-1.5 text-xs font-semibold text-zinc-600">GHS symbols</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {GHS_PICKER.map((id) => {
+                    const active = c.ghsPictograms.includes(id);
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        className={clsx(
+                          'inline-flex min-h-9 items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium transition',
+                          active
+                            ? 'border-accent-300 bg-accent-50 text-accent-900'
+                            : 'border-zinc-200 bg-white text-zinc-600 hover:border-accent-200 hover:bg-accent-50',
+                        )}
+                        onClick={() => togglePictogram(id)}
+                        aria-pressed={active}
+                      >
+                        <GhsIcon id={id} size={22} />
+                        <span>{GHS_LABELS[id]}</span>
+                        <HazardSourcePill source={pictogramEditorSourceLabel(c, id, active)} />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-1.5 text-xs font-semibold text-zinc-600">H-codes</div>
+                {c.hazardStatements.length > 0 ? (
+                  <div className="mb-2 flex flex-wrap gap-1.5">
+                    {c.hazardStatements.map((h) => (
+                      <span
+                        key={h.code}
+                        className="inline-flex max-w-full items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-xs text-zinc-700"
+                        title={h.text}
+                      >
+                        <span className="font-mono font-semibold text-zinc-900">{h.code}</span>
+                        <span className="hidden max-w-[20rem] truncate sm:inline">{h.text}</span>
+                        <HazardSourcePill source={hCodeSourceLabel(c, h)} />
+                        <button
+                          type="button"
+                          className="ml-0.5 rounded-full p-0.5 text-zinc-400 hover:bg-red-50 hover:text-red-600"
+                          onClick={() => removeHCode(h.code)}
+                          aria-label={`Remove ${h.code}`}
+                        >
+                          <X size={11} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mb-2 text-xs text-zinc-400">No hazard statements selected</div>
+                )}
+                <div className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,1fr)_auto]">
+                  <input
+                    className="field-input !py-1.5 text-xs"
+                    value={hCodeQuery}
+                    onChange={(e) => setHCodeQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      e.stopPropagation();
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addHCode(hCodeQuery);
+                        setHCodeQuery('');
+                      }
+                    }}
+                    placeholder="Search or type H-code, e.g. H225"
+                  />
+                  <button
+                    type="button"
+                    className="btn-secondary text-xs"
+                    disabled={!hCodeQuery.trim()}
+                    onClick={() => {
+                      addHCode(hCodeQuery);
+                      setHCodeQuery('');
+                    }}
+                  >
+                    <Plus size={12} /> Add code
+                  </button>
+                </div>
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                  {hCodeMatches.map((h) => (
+                    <button
+                      key={h.code}
+                      type="button"
+                      className="inline-flex max-w-full items-center gap-1 rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-[11px] text-zinc-700 hover:border-accent-200 hover:bg-accent-50"
+                      onClick={() => {
+                        addHCode(h.code);
+                        setHCodeQuery('');
+                      }}
+                      title={h.text}
+                    >
+                      <span className="font-mono font-semibold text-zinc-900">{h.code}</span>
+                      <span className="max-w-[18rem] truncate">{h.text}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            )}
+          </div>
         </div>
         );
       })()}
+    </div>
+  );
+}
+
+function baselineHCodeKeys(c: Substance): Set<string> {
+  return new Set(
+    c.hazardSource?.type === 'pubchem'
+      ? c.hazardSource.pubchemBaseline?.hazardStatements.map((h) => hCodeKey(h.code)) ?? []
+      : [],
+  );
+}
+
+function baselinePictograms(c: Substance): Set<GhsPictogram> {
+  return new Set(
+    c.hazardSource?.type === 'pubchem'
+      ? c.hazardSource.pubchemBaseline?.ghsPictograms ?? []
+      : [],
+  );
+}
+
+function hCodeSourceLabel(c: Substance, h: HCode): 'Assessor added' | undefined {
+  if (c.hazardSource?.type !== 'pubchem') return undefined;
+  return baselineHCodeKeys(c).has(hCodeKey(h.code)) ? undefined : 'Assessor added';
+}
+
+function pictogramSourceLabel(c: Substance, id: GhsPictogram): 'Assessor added' | undefined {
+  if (c.hazardSource?.type !== 'pubchem') return undefined;
+  return baselinePictograms(c).has(id) ? undefined : 'Assessor added';
+}
+
+function pictogramEditorSourceLabel(
+  c: Substance,
+  id: GhsPictogram,
+  active: boolean,
+): 'Assessor added' | 'Removed from PubChem' | undefined {
+  if (c.hazardSource?.type !== 'pubchem') return undefined;
+  const fromPubChem = baselinePictograms(c).has(id);
+  if (active && !fromPubChem) return 'Assessor added';
+  if (!active && fromPubChem) return 'Removed from PubChem';
+  return undefined;
+}
+
+function HazardSourcePill({
+  source,
+}: {
+  source?: 'Assessor added' | 'Removed from PubChem';
+}) {
+  if (!source) return null;
+  return (
+    <span
+      className={clsx(
+        'inline-flex shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold',
+        'min-w-[4.75rem] items-center justify-center text-center leading-tight',
+        source === 'Assessor added' && 'border-emerald-200 bg-emerald-50 text-emerald-800',
+        source === 'Removed from PubChem' && 'border-amber-200 bg-amber-50 text-amber-800',
+      )}
+    >
+      {source}
+    </span>
+  );
+}
+
+function HazardDisplay({
+  chemical,
+  diff,
+  onEdit,
+}: {
+  chemical: Substance;
+  diff: ReturnType<typeof diffPubChemHazards>;
+  onEdit: () => void;
+}) {
+  const hasCurrent = chemical.ghsPictograms.length > 0 || chemical.hazardStatements.length > 0;
+  const hasRemoved = diff.removedHCodes.length > 0 || diff.removedPictograms.length > 0;
+
+  if (!hasCurrent && !hasRemoved) {
+    return (
+      <div className="rounded-md border border-dashed border-zinc-200 bg-zinc-50/60 p-3 text-xs text-zinc-500">
+        No GHS symbols or H-codes recorded yet.
+        <button
+          type="button"
+          className="ml-2 font-semibold text-accent-700 hover:underline"
+          onClick={onEdit}
+        >
+          Add hazard data
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2.5">
+      <div>
+        <div className="mb-1.5 text-xs font-semibold text-zinc-600">GHS symbols</div>
+        {chemical.ghsPictograms.length > 0 ? (
+          <div className="flex flex-wrap gap-3">
+            {chemical.ghsPictograms.map((id) => (
+              <div key={id} className="flex w-24 flex-col items-center gap-1 rounded-md border border-zinc-100 bg-white p-1.5">
+                <GhsIcon id={id} size={48} />
+                <div className="text-center text-[10px] leading-tight text-zinc-600">{GHS_LABELS[id]}</div>
+                <HazardSourcePill source={pictogramSourceLabel(chemical, id)} />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-xs text-zinc-400">No GHS symbols selected</div>
+        )}
+      </div>
+
+      <div>
+        <div className="mb-1.5 text-xs font-semibold text-zinc-600">H-codes</div>
+        {chemical.hazardStatements.length > 0 ? (
+          <ul className="space-y-1">
+            {chemical.hazardStatements.map((h) => (
+              <li key={h.code} className="flex flex-wrap items-center gap-1.5 text-xs text-zinc-700">
+                <span className="font-mono font-semibold text-zinc-900">{h.code}</span>
+                <span className="text-zinc-600">{h.text}</span>
+                <HazardSourcePill source={hCodeSourceLabel(chemical, h)} />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="text-xs text-zinc-400">No hazard statements selected</div>
+        )}
+      </div>
+
+      {hasRemoved && (
+        <div className="rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs text-amber-900">
+          <div className="font-semibold">Removed from PubChem data</div>
+          {diff.removedHCodes.length > 0 && (
+            <div>H-codes: {diff.removedHCodes.map((h) => h.code).join(', ')}</div>
+          )}
+          {diff.removedPictograms.length > 0 && (
+            <div>GHS symbols: {diff.removedPictograms.map((id) => GHS_LABELS[id]).join(', ')}</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -1524,7 +1864,7 @@ function QuantityInput({
   return (
     <div className="flex gap-1">
       <input
-        className={clsx('field-input !py-1.5 text-xs flex-1 min-w-0', invalid && 'field-missing')}
+        className={clsx('field-input min-w-0 flex-1', invalid && 'field-missing')}
         type="text"
         inputMode="decimal"
         value={parsed.value}
@@ -1532,7 +1872,7 @@ function QuantityInput({
         placeholder="e.g. 500"
       />
       <select
-        className="field-input !py-1.5 text-xs !pr-6 w-[5.25rem] shrink-0"
+        className="field-input w-[5.25rem] shrink-0 !pr-6"
         value={unit}
         onChange={(e) => onChange(joinQuantity(parsed.value, e.target.value))}
       >

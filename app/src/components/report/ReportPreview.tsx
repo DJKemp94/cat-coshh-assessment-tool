@@ -10,6 +10,7 @@ import {
   EP_EXPOSURE_TABLE_EXPLANATION,
 } from '@/services/exporters/coshhSummary';
 import { resolveCameoMatch } from '@/services/cameoStorage';
+import { hazardEditSummary } from '@/services/hazardEdits';
 import {
   classifyStorage20,
   applyStorage20Edit,
@@ -47,8 +48,8 @@ function allChemicals(a: Assessment) {
   });
 }
 
-function allChemicalEntries(a: Assessment) {
-  return a.processSteps.flatMap((step) => step.chemicals);
+function allChemicalStepEntries(a: Assessment) {
+  return a.processSteps.flatMap((step) => step.chemicals.map((chemical) => ({ chemical, step })));
 }
 
 function uniqueText(values: Array<string | undefined>) {
@@ -58,29 +59,42 @@ function uniqueText(values: Array<string | undefined>) {
 
 function chemicalDetailRows(a: Assessment) {
   const groups = new Map<string, Substance[]>();
-  allChemicalEntries(a).forEach((chemical) => {
+  const stepGroups = new Map<string, ReturnType<typeof allChemicalStepEntries>>();
+  allChemicalStepEntries(a).forEach((entry) => {
+    const chemical = entry.chemical;
     const key = (chemical.cas?.trim() || chemical.name).toLowerCase().trim() || chemical.id;
     groups.set(key, [...(groups.get(key) ?? []), chemical]);
+    stepGroups.set(key, [...(stepGroups.get(key) ?? []), entry]);
   });
-  return [...groups.values()].map((items) => {
+  return [...groups.entries()].map(([key, items]) => {
     const primary = items[0];
+    const entries = stepGroups.get(key) ?? [];
     const hazardStatements = [...new Map(items.flatMap((item) => item.hazardStatements).map((h) => [h.code, h])).values()];
     const pictograms = [...new Set(items.flatMap((item) => item.ghsPictograms))];
+    const hazardEditNotes = [
+      ...new Set(items.flatMap((item) => hazardEditSummary(item, (id) => GHS_LABELS[id]))),
+    ];
     return {
       ...primary,
       hazardStatements,
       ghsPictograms: pictograms,
+      hazardEditNotes,
       formSummary: uniqueText(items.map((item) => item.form)),
       quantitySummary: uniqueText(items.map((item) => item.quantity)),
       welSummary: welSummary(items),
-      exposureDuration: uniqueText(items.map((item) => item.exposureDuration)),
-      exposureFrequency: uniqueText(items.map((item) => item.exposureFrequency)),
+      exposureDuration: uniqueText(entries.map((entry) => entry.step.exposureDuration || entry.chemical.exposureDuration)),
+      exposureFrequency: a.overview.activityFrequency || uniqueText(items.map((item) => item.exposureFrequency)),
     };
   });
 }
 
 function hCodes(c: Substance) {
   return c.hazardStatements.map((h) => h.text ? `${h.code} ${h.text}` : h.code).join('; ') || DASH;
+}
+
+function casDisplay(c: Substance) {
+  if (c.casNotApplicable) return 'N/A';
+  return c.cas || DASH;
 }
 
 function routes(c: Substance) {
@@ -151,6 +165,14 @@ function riskText(score: RiskScore) {
 
 function stepGhs(step: Assessment['processSteps'][number]) {
   return [...new Set(step.chemicals.flatMap((chemical) => chemical.ghsPictograms))];
+}
+
+function stepExposureDuration(step: Assessment['processSteps'][number]) {
+  return step.exposureDuration || uniqueText(step.chemicals.map((chemical) => chemical.exposureDuration));
+}
+
+function stepHazardEditNotes(step: Assessment['processSteps'][number]) {
+  return [...new Set(step.chemicals.flatMap((chemical) => hazardEditSummary(chemical, (id) => GHS_LABELS[id])))];
 }
 
 
@@ -335,6 +357,7 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
                     ['SOP Ref number(s)', assessment.overview.sopRef],
                     ['Date of Assessment', assessment.overview.dateOfAssessment],
                     ['Date of Review', assessment.overview.dateOfNextReview],
+                    ['Activity Frequency', assessment.overview.activityFrequency],
                     ['Persons at Risk', personsLine(assessment)],
                   ]} />
                 )}
@@ -357,6 +380,7 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
                     <tr>
                       <th>Step</th>
                       <th>Activity</th>
+                      <th>Step duration</th>
                       <th>Chemicals</th>
                       <th>GHS summary</th>
                       {options.process.stepControls && <th>Engineering</th>}
@@ -365,17 +389,29 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
                     </tr>
                   </thead>
                   <tbody>
-                    {assessment.processSteps.map((step, index) => (
-                      <tr key={step.id}>
-                        <td>Step {index + 1}</td>
-                        <td><strong>{step.step || DASH}</strong><div>{step.description || DASH}</div></td>
-                        <td>{chemicalNames(step)}</td>
-                        <td><GhsIcons ids={stepGhs(step)} /></td>
-                        {options.process.stepControls && <td>{step.controls.engineering.join(', ') || DASH}</td>}
-                        {options.process.stepControls && <td>{step.controls.ppe.join(', ') || DASH}</td>}
-                        {options.process.stepControls && <td>{step.controls.other || DASH}</td>}
-                      </tr>
-                    ))}
+                    {assessment.processSteps.map((step, index) => {
+                      const notes = stepHazardEditNotes(step);
+                      return (
+                        <tr key={step.id}>
+                          <td>Step {index + 1}</td>
+                          <td><strong>{step.step || DASH}</strong><div>{step.description || DASH}</div></td>
+                          <td>{stepExposureDuration(step)}</td>
+                          <td>{chemicalNames(step)}</td>
+                          <td>
+                            <GhsIcons ids={stepGhs(step)} />
+                            {notes.length > 0 && (
+                              <div className="report-muted">
+                                <strong>PubChem hazard data edited by assessor.</strong>
+                                {notes.map((line) => <div key={line}>{line}</div>)}
+                              </div>
+                            )}
+                          </td>
+                          {options.process.stepControls && <td>{step.controls.engineering.join(', ') || DASH}</td>}
+                          {options.process.stepControls && <td>{step.controls.ppe.join(', ') || DASH}</td>}
+                          {options.process.stepControls && <td>{step.controls.other || DASH}</td>}
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
                 <GhsLegend chemicals={chemicals} />
@@ -535,9 +571,17 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
                 {chemicalDetails.map((chemical, index) => (
                   <tr key={chemical.id}>
                     <td>{index + 1}</td>
-                    <td><strong>{chemical.name || DASH}</strong><div>CAS {chemical.cas || DASH}</div></td>
+                    <td><strong>{chemical.name || DASH}</strong><div>CAS {casDisplay(chemical)}</div></td>
                     <td><strong>Forms:</strong> {chemical.formSummary}<div><strong>Mass/volume range:</strong> {chemical.quantitySummary}</div></td>
-                    <td>{hCodes(chemical)}</td>
+                    <td>
+                      {hCodes(chemical)}
+                      {chemical.hazardEditNotes.length > 0 && (
+                        <div className="report-muted">
+                          <strong>PubChem hazard data edited by assessor.</strong>
+                          {chemical.hazardEditNotes.map((line) => <div key={line}>{line}</div>)}
+                        </div>
+                      )}
+                    </td>
                     <td>
                       <div><strong>TWA:</strong> {chemical.welSummary.twa}</div>
                       <div><strong>STEL:</strong> {chemical.welSummary.stel}</div>
@@ -564,8 +608,19 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
                         })()
                       )}
                     </td>
-                    <td>{chemical.exposureDuration || DASH}<div>{chemical.exposureFrequency || DASH}</div><div>{routes(chemical)}</div></td>
-                    {options.process.ghsPictograms && <td><GhsIcons ids={chemical.ghsPictograms} /></td>}
+                    <td>
+                      {chemical.exposureDuration || DASH}
+                      <div>Frequency: {assessment.overview.activityFrequency || chemical.exposureFrequency || DASH}</div>
+                      <div>{routes(chemical)}</div>
+                    </td>
+                    {options.process.ghsPictograms && (
+                      <td>
+                        <GhsIcons ids={chemical.ghsPictograms} />
+                        {chemical.hazardEditNotes.length > 0 && (
+                          <div className="report-muted">Edited PubChem hazards</div>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

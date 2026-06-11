@@ -26,6 +26,7 @@ import {
   storage20RequirementsText,
   STORAGE20_ZONE_LABELS,
 } from '@/services/storage20Classifier';
+import { hazardEditSummary } from '@/services/hazardEdits';
 
 // Modern palette
 const TEAL = '0d9488';
@@ -48,6 +49,11 @@ const formatStepControls = (step: { controls?: { engineering?: string[]; ppe?: s
   ['Other step controls', step.controls?.other?.trim() || DASH],
 ] as [string, string][];
 
+const stepExposureDuration = (step: Assessment['processSteps'][number]) =>
+  step.exposureDuration ||
+  step.chemicals.map((chemical) => chemical.exposureDuration?.trim()).find(Boolean) ||
+  DASH;
+
 function uniqueChemicals(a: Assessment): Substance[] {
   const seen = new Set<string>();
   return a.processSteps.flatMap((step) => step.chemicals).filter((chemical) => {
@@ -56,6 +62,18 @@ function uniqueChemicals(a: Assessment): Substance[] {
     seen.add(key);
     return true;
   });
+}
+
+function casLine(s: Substance): string | null {
+  if (s.casNotApplicable) return 'CAS N/A';
+  return s.cas ? `CAS ${s.cas}` : null;
+}
+
+function hazardEditLines(s: Substance): string[] {
+  const lines = hazardEditSummary(s);
+  return lines.length > 0
+    ? ['PubChem hazard data edited by assessor', ...lines]
+    : [];
 }
 
 const txt = (
@@ -546,6 +564,7 @@ export async function exportDocx(a: Assessment, options: ReportOptions = fullRep
       ['SOP Ref number(s)', a.overview.sopRef],
       ['Date of Assessment', a.overview.dateOfAssessment],
       ['Date of Review', a.overview.dateOfNextReview],
+      ['Activity Frequency', a.overview.activityFrequency],
       ['Persons at Risk', personsLine(a.overview.personsAtRisk)],
     ]));
     children.push(blank(120));
@@ -597,16 +616,22 @@ export async function exportDocx(a: Assessment, options: ReportOptions = fullRep
   } else {
     a.processSteps.forEach((step, si) => {
       children.push(subHeading(`Step ${si + 1} — ${step.step || DASH}`));
-      if (options.process.stepControls) children.push(kvTable(formatStepControls(step)));
+      if (options.process.stepControls) {
+        children.push(kvTable([
+          ['Step duration', stepExposureDuration(step)],
+          ...formatStepControls(step),
+        ]));
+      }
       if (!options.process.chemicalDetails) return;
       if (step.chemicals.length === 0) {
         children.push(para('No chemicals recorded for this step.', { italics: true, color: MUTED }));
       }
       step.chemicals.forEach((s, ci) => {
         const idParts = [
-          s.cas ? `CAS ${s.cas}` : null,
+          casLine(s),
           s.pubchemCid ? `PubChem CID ${s.pubchemCid}` : null,
         ].filter(Boolean).join('  ·  ');
+        const hazardLines = hazardEditLines(s);
         children.push(para(
           `${si + 1}.${ci + 1}    ${s.name || DASH}${idParts ? `    (${idParts})` : ''}`,
           { bold: true, size: 22, color: INK, spaceBefore: 120, spaceAfter: 60 },
@@ -615,10 +640,13 @@ export async function exportDocx(a: Assessment, options: ReportOptions = fullRep
         children.push(kvTable([
           ['Form / quantity', `${s.form}  ·  ${s.quantity || DASH}`],
           ['H-codes', s.hazardStatements.map((c) => `${c.code} ${c.text}`).join('; ') || DASH],
+          ...(hazardLines.length > 0
+            ? [['Hazard data edits', hazardLines.join('\n')] as [string, string]]
+            : []),
           ['WEL TWA / STEL',
             `${s.wel.twa || DASH}  /  ${s.wel.stel || DASH}${s.wel.source ? `  (${s.wel.source})` : ''}`],
           ['Exposure',
-            `${s.exposureDuration || DASH}, ${s.exposureFrequency || DASH}  ·  routes: ${routes || DASH}`],
+            `${stepExposureDuration(step)}, ${a.overview.activityFrequency || s.exposureFrequency || DASH}  ·  routes: ${routes || DASH}`],
         ]));
         if (options.process.ghsPictograms) {
           children.push(para('GHS pictograms', { bold: true, color: MUTED, size: 16, spaceBefore: 80, spaceAfter: 40 }));
@@ -716,11 +744,15 @@ export async function exportDocx(a: Assessment, options: ReportOptions = fullRep
         const automatic = classifyStorage20(match);
         const assignment = applyStorage20Edit(automatic, a.storage2.assignmentOverrides?.[chemical.id]);
         const fill = i % 2 === 1 ? ZEBRA : undefined;
+        const hazardLines = hazardEditLines(chemical);
         return new TableRow({
           children: [
-            cell(`${chemical.name || DASH}${chemical.cas ? `\nCAS ${chemical.cas}` : ''}`, { bold: true, widthDxa: 1600, fill }),
+            cell(`${chemical.name || DASH}${casLine(chemical) ? `\n${casLine(chemical)}` : ''}`, { bold: true, widthDxa: 1600, fill }),
             cell(chemical.ghsPictograms.join(', ') || DASH, { widthDxa: 1200, fill }),
-            cell(chemical.hazardStatements.map((h) => h.code).join(', ') || DASH, { widthDxa: 1200, fill }),
+            cell([
+              chemical.hazardStatements.map((h) => h.code).join(', ') || DASH,
+              ...hazardLines,
+            ].join('\n'), { widthDxa: 1200, fill }),
             cell(STORAGE20_ZONE_LABELS[assignment.zoneId], { widthDxa: 2200, fill }),
             cell(storage20RequirementsText(assignment), { widthDxa: 2400, fill }),
             cell(storage20EvidenceText(assignment), { widthDxa: 2600, fill }),

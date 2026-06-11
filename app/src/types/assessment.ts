@@ -1,5 +1,5 @@
 const APP_VERSION = '0.2.0';
-export const SCHEMA_VERSION = 3 as const;
+export const SCHEMA_VERSION = 5 as const;
 
 type UUID = string;
 
@@ -27,6 +27,7 @@ export interface Overview {
   dateOfAssessment: string;
   dateOfNextReview: string;
   locations: string;
+  activityFrequency: string;
   activityTitle: string;
   activityOutline: string;
   personsAtRisk: PersonsAtRisk;
@@ -87,13 +88,28 @@ export type WelSource =
   | 'Manual-EH40'
   | 'Manual';
 
+export interface PubChemHazardBaseline {
+  cid: number;
+  fetchedAt: string;
+  hazardStatements: HCode[];
+  ghsPictograms: GhsPictogram[];
+}
+
+export interface HazardSource {
+  type: 'manual' | 'pubchem';
+  pubchemBaseline?: PubChemHazardBaseline;
+  editedAt?: string;
+}
+
 export interface Substance {
   id: UUID;
   pubchemCid?: number;
   cas?: string;
+  casNotApplicable?: boolean;
   name: string;
   hazardStatements: HCode[];
   ghsPictograms: GhsPictogram[];
+  hazardSource?: HazardSource;
   wel: {
     twa?: string;
     stel?: string;
@@ -208,6 +224,7 @@ export interface ProcessStep {
   id: UUID;
   step: string;
   description: string;
+  exposureDuration: string;
   chemicals: Substance[];
   controls: StepControls;
 }
@@ -235,6 +252,7 @@ export const emptyProcessStep = (): ProcessStep => ({
   id: uuid(),
   step: '',
   description: '',
+  exposureDuration: '',
   chemicals: [],
   controls: emptyStepControls(),
 });
@@ -247,12 +265,10 @@ export const emptyStepControls = (): StepControls => ({
 
 export const isChemicalIncomplete = (c: Substance): boolean => {
   if (!c.name.trim()) return true;
-  if (!c.cas?.trim()) return true;
+  if (!c.casNotApplicable && !c.cas?.trim()) return true;
   if (!c.quantity.trim()) return true;
   if (!c.form) return true;
   if (!c.wel.twa?.trim() && !c.wel.stel?.trim()) return true;
-  if (!c.exposureDuration.trim()) return true;
-  if (!c.exposureFrequency.trim()) return true;
   if (!Object.values(c.exposureRoutes).some(Boolean)) return true;
   return false;
 };
@@ -283,6 +299,7 @@ const emptyOverview = (): Overview => ({
   dateOfAssessment: todayISO(),
   dateOfNextReview: plusYearsISO(2),
   locations: '',
+  activityFrequency: '',
   activityTitle: '',
   activityOutline: '',
   personsAtRisk: {
@@ -337,8 +354,10 @@ export const emptyTaskHazard = (): TaskHazard => ({
 export const emptySubstance = (): Substance => ({
   id: uuid(),
   name: '',
+  casNotApplicable: false,
   hazardStatements: [],
   ghsPictograms: [],
+  hazardSource: { type: 'manual' },
   wel: {},
   quantity: '',
   form: '',

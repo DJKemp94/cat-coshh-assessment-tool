@@ -2,6 +2,85 @@ import {
   Assessment, ProcessStep, SCHEMA_VERSION, uuid, emptyStorage2, emptyEmergency, emptyStepControls,
 } from '@/types/assessment';
 
+function normalizeChemical(raw: Record<string, unknown>): Record<string, unknown> {
+  const hazardStatements = Array.isArray(raw.hazardStatements) ? raw.hazardStatements : [];
+  const ghsPictograms = Array.isArray(raw.ghsPictograms) ? raw.ghsPictograms : [];
+  const pubchemFetchedAt = typeof raw.pubchemFetchedAt === 'string' ? raw.pubchemFetchedAt : undefined;
+  const pubchemCid = typeof raw.pubchemCid === 'number' ? raw.pubchemCid : undefined;
+  return {
+    ...raw,
+    casNotApplicable: typeof raw.casNotApplicable === 'boolean' ? raw.casNotApplicable : false,
+    hazardStatements,
+    ghsPictograms,
+    hazardSource: raw.hazardSource && typeof raw.hazardSource === 'object'
+      ? raw.hazardSource
+      : pubchemFetchedAt
+        ? {
+            type: 'pubchem',
+            pubchemBaseline: {
+              cid: pubchemCid ?? 0,
+              fetchedAt: pubchemFetchedAt,
+              hazardStatements,
+              ghsPictograms,
+            },
+          }
+        : { type: 'manual' },
+  };
+}
+
+function firstText(values: unknown[]): string {
+  return values.map((value) => (typeof value === 'string' ? value.trim() : '')).find(Boolean) ?? '';
+}
+
+function normalizeProcessStep(raw: unknown) {
+  const step = raw as Record<string, unknown>;
+  const chemicals = Array.isArray(step.chemicals)
+    ? step.chemicals.map((chemical) => normalizeChemical(chemical as Record<string, unknown>))
+    : [];
+  return {
+    ...step,
+    description: typeof step.description === 'string' ? step.description : '',
+    exposureDuration: typeof step.exposureDuration === 'string'
+      ? step.exposureDuration
+      : firstText(chemicals.map((chemical) => chemical.exposureDuration)),
+    controls: {
+      ...emptyStepControls(),
+      ...(step.controls as Record<string, unknown> | undefined),
+    },
+    chemicals,
+  };
+}
+
+function normalizeCurrentAssessment(rawAssessment: Record<string, unknown>): Assessment {
+  const processSteps = Array.isArray(rawAssessment.processSteps)
+    ? rawAssessment.processSteps.map(normalizeProcessStep)
+    : [];
+  const overview = (rawAssessment.overview || {}) as Record<string, unknown>;
+  rawAssessment.overview = {
+    ...overview,
+    activityFrequency: typeof overview.activityFrequency === 'string'
+      ? overview.activityFrequency
+      : firstText(processSteps.flatMap((step) => step.chemicals.map((chemical) => chemical.exposureFrequency))),
+  };
+  rawAssessment.processSteps = processSteps;
+  rawAssessment.storage2 = {
+    ...emptyStorage2(),
+    ...((rawAssessment.storage2 || {}) as Record<string, unknown>),
+    matches: typeof ((rawAssessment.storage2 || {}) as Record<string, unknown>).matches === 'object' && ((rawAssessment.storage2 || {}) as Record<string, unknown>).matches !== null
+      ? ((rawAssessment.storage2 || {}) as Record<string, unknown>).matches
+      : {},
+    pairOverrides: typeof ((rawAssessment.storage2 || {}) as Record<string, unknown>).pairOverrides === 'object' && ((rawAssessment.storage2 || {}) as Record<string, unknown>).pairOverrides !== null
+      ? ((rawAssessment.storage2 || {}) as Record<string, unknown>).pairOverrides
+      : {},
+    assignmentOverrides: typeof ((rawAssessment.storage2 || {}) as Record<string, unknown>).assignmentOverrides === 'object' && ((rawAssessment.storage2 || {}) as Record<string, unknown>).assignmentOverrides !== null
+      ? ((rawAssessment.storage2 || {}) as Record<string, unknown>).assignmentOverrides
+      : {},
+  };
+  delete rawAssessment.additional;
+  delete rawAssessment.storage;
+  return rawAssessment as unknown as Assessment;
+}
+
 /**
  * Migrate older Assessment shapes to the current schema.
  * Throws if the input is unrecoverable.
@@ -13,34 +92,7 @@ export function migrateAssessment(raw: unknown): Assessment {
 
   if (v === SCHEMA_VERSION) {
     const rawAssessment = raw as Record<string, unknown>;
-    rawAssessment.storage2 = {
-      ...emptyStorage2(),
-      ...((rawAssessment.storage2 || {}) as Record<string, unknown>),
-      matches: typeof ((rawAssessment.storage2 || {}) as Record<string, unknown>).matches === 'object' && ((rawAssessment.storage2 || {}) as Record<string, unknown>).matches !== null
-        ? ((rawAssessment.storage2 || {}) as Record<string, unknown>).matches
-        : {},
-      pairOverrides: typeof ((rawAssessment.storage2 || {}) as Record<string, unknown>).pairOverrides === 'object' && ((rawAssessment.storage2 || {}) as Record<string, unknown>).pairOverrides !== null
-        ? ((rawAssessment.storage2 || {}) as Record<string, unknown>).pairOverrides
-        : {},
-      assignmentOverrides: typeof ((rawAssessment.storage2 || {}) as Record<string, unknown>).assignmentOverrides === 'object' && ((rawAssessment.storage2 || {}) as Record<string, unknown>).assignmentOverrides !== null
-        ? ((rawAssessment.storage2 || {}) as Record<string, unknown>).assignmentOverrides
-        : {},
-    };
-    if (Array.isArray(rawAssessment.processSteps)) {
-      rawAssessment.processSteps = rawAssessment.processSteps.map((step) => ({
-        ...(step as Record<string, unknown>),
-        description: typeof (step as Record<string, unknown>).description === 'string'
-          ? (step as Record<string, unknown>).description
-          : '',
-        controls: {
-          ...emptyStepControls(),
-          ...((step as Record<string, unknown>).controls as Record<string, unknown> | undefined),
-        },
-      }));
-    }
-    delete rawAssessment.additional;
-    delete rawAssessment.storage;
-    return rawAssessment as unknown as Assessment;
+    return normalizeCurrentAssessment(rawAssessment);
   }
 
   // Step migration: v1 → v2 → v3
@@ -54,7 +106,7 @@ export function migrateAssessment(raw: unknown): Assessment {
     for (const s of oldSubs) {
       const step = typeof s.processStep === 'string' ? s.processStep.trim() : '';
       const key = step || `__solo_${uuid()}`;
-      if (!grouped.has(key)) grouped.set(key, { id: uuid(), step, description: '', chemicals: [], controls: emptyStepControls() });
+      if (!grouped.has(key)) grouped.set(key, { id: uuid(), step, description: '', exposureDuration: '', chemicals: [], controls: emptyStepControls() });
       const { processStep: _drop, ...chem } = s;
       void _drop;
       grouped.get(key)!.chemicals.push(chem as unknown as Assessment['processSteps'][number]['chemicals'][number]);
@@ -83,7 +135,7 @@ export function migrateAssessment(raw: unknown): Assessment {
 
     const v3 = {
       ...current,
-      schemaVersion: SCHEMA_VERSION,
+      schemaVersion: 3,
       storage2: emptyStorage2(),
       emergency,
     } as Record<string, unknown>;
@@ -92,7 +144,26 @@ export function migrateAssessment(raw: unknown): Assessment {
     currentV = 3;
   }
 
-  if (currentV === SCHEMA_VERSION) return current as unknown as Assessment;
+  if (currentV === 3) {
+    current = {
+      ...current,
+      schemaVersion: 4,
+      processSteps: Array.isArray(current.processSteps)
+        ? current.processSteps.map(normalizeProcessStep)
+        : [],
+    } as Record<string, unknown>;
+    currentV = 4;
+  }
+
+  if (currentV === 4) {
+    current = {
+      ...current,
+      schemaVersion: SCHEMA_VERSION,
+    } as Record<string, unknown>;
+    return normalizeCurrentAssessment(current);
+  }
+
+  if (currentV === SCHEMA_VERSION) return normalizeCurrentAssessment(current);
 
   throw new Error(`Unsupported schema version: ${currentV}`);
 }

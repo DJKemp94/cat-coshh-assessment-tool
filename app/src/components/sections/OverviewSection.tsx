@@ -2,7 +2,7 @@ import clsx from 'clsx';
 import {
   Building2, CalendarDays, Check, GraduationCap,
   HardHat, IdCard, List, MapPin, ShieldCheck, User, UserRound,
-  Users, UsersRound, Globe2,
+  Users, UsersRound, Globe2, Repeat2,
 } from 'lucide-react';
 import { useAssessment } from '@/store/assessment';
 import { SectionHeader } from '@/components/common/SectionHeader';
@@ -17,6 +17,8 @@ const PERSONS: { key: keyof PersonsAtRisk; label: string; Icon: typeof User }[] 
   { key: 'visitors', label: 'Visitors', Icon: IdCard },
   { key: 'public', label: 'Public', Icon: Globe2 },
 ];
+
+const FREQUENCY_OPTIONS = ['Daily', 'Weekly', 'Monthly', 'Occasional', 'One-off'];
 
 const Req = () => <span className="text-red-600 ml-0.5" aria-label="required">*</span>;
 
@@ -153,6 +155,39 @@ export function OverviewSection() {
               placeholder="Brief description of the activity, equipment, and any notable conditions."
             />
           </label>
+
+          <div className="mt-5">
+            <span className="overview-label">
+              <Repeat2 size={16} />
+              Activity frequency<Req />
+            </span>
+            <input
+              className={clsx('field-input', !overview.activityFrequency.trim() && 'field-missing')}
+              value={overview.activityFrequency}
+              onChange={(e) => update({ activityFrequency: e.target.value })}
+              placeholder="e.g. weekly"
+            />
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {FREQUENCY_OPTIONS.map((option) => {
+                const active = overview.activityFrequency.trim().toLowerCase() === option.toLowerCase();
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => update({ activityFrequency: option })}
+                    className={clsx(
+                      'rounded-full border px-2.5 py-1 text-xs font-medium transition',
+                      active
+                        ? 'border-accent-300 bg-accent-50 text-accent-900'
+                        : 'border-zinc-200 bg-white text-zinc-600 hover:border-accent-200 hover:bg-accent-50',
+                    )}
+                  >
+                    {option}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           <div className="mt-5">
             <span className="overview-label">

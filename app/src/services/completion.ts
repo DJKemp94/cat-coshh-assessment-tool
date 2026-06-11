@@ -20,6 +20,7 @@ export function sectionMissingItems(a: Assessment, id: CoreSectionId): string[] 
       if (!o.assessor.trim()) missing.push('risk assessor');
       if (!o.dateOfAssessment) missing.push('date of assessment');
       if (!o.dateOfNextReview) missing.push('date of review');
+      if (!o.activityFrequency.trim()) missing.push('activity frequency');
       if (
         !o.personsAtRisk.staff &&
         !o.personsAtRisk.students &&
@@ -38,6 +39,7 @@ export function sectionMissingItems(a: Assessment, id: CoreSectionId): string[] 
         (s) =>
           !s.step.trim() ||
           !s.description.trim() ||
+          !s.exposureDuration.trim() ||
           (s.controls?.engineering?.length ?? 0) === 0 ||
           (s.controls?.ppe?.length ?? 0) === 0 ||
           s.chemicals.length === 0 ||
@@ -48,6 +50,7 @@ export function sectionMissingItems(a: Assessment, id: CoreSectionId): string[] 
       const missing: string[] = [];
       if (!step.step.trim()) missing.push('step name');
       if (!step.description.trim()) missing.push('description');
+      if (!step.exposureDuration.trim()) missing.push('step duration');
       if (step.chemicals.length === 0) missing.push('at least one chemical');
       else if (step.chemicals.some((c) => isChemicalIncomplete(c))) missing.push('chemical details');
       if ((step.controls?.engineering?.length ?? 0) === 0) missing.push('engineering controls');
