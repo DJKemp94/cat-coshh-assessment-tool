@@ -38,7 +38,7 @@ const BASE_SPILL_CONSIDERATIONS = [
 
 const BASE_SPILL_SUGGESTIONS: ChipSuggestion[] = [
   { text: 'Only trained staff may clean up spills, and only small, contained spills of a known substance with suitable PPE and spill materials to hand.' },
-  { text: 'For anything larger — or any exposure, vapours, dusts, fire or reactivity risk, drain risk, missing equipment or uncertainty — stop work, isolate the area and escalate under the local spill plan.' },
+  { text: 'For anything larger, or any exposure, vapours, dusts, fire or reactivity risk, drain risk, missing equipment or uncertainty, stop work, isolate the area and escalate under the local spill plan.' },
   { text: 'Use SDS Section 6 and the local spill procedure for the clean-up method, compatible absorbents, PPE and waste route.' },
 ];
 

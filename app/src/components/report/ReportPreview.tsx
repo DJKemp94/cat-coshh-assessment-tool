@@ -24,7 +24,7 @@ import {
   Storage20ZoneId,
 } from '@/services/storage20Classifier';
 
-const DASH = '—';
+const DASH = '-';
 
 function personsLine(a: Assessment) {
   const labels: Array<[keyof Assessment['overview']['personsAtRisk'], string]> = [
@@ -342,7 +342,7 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
                 ['Assessed', assessment.overview.dateOfAssessment],
                 ['Next review', assessment.overview.dateOfNextReview],
               ]} />
-              <div className="report-generated">Generated {generated} with LabCAT — COSHH Assessment Tool</div>
+              <div className="report-generated">Generated {generated} with LabCAT - COSHH Assessment Tool</div>
             </div>
             </div>
           </header>
@@ -429,7 +429,7 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
                 <GhsLegend chemicals={chemicals} />
                 {options.process.chemicalDetails && chemicalDetails.length > 0 && (
                   <div className="report-note">
-                    See <a href="#appendix-a" className="underline hover:text-blue-700">Appendix A — Chemical Detail</a> for full hazard statements, WELs, and exposure information per chemical.
+                    See <a href="#appendix-a" className="underline hover:text-blue-700">Appendix A - Chemical Detail</a> for full hazard statements, WELs, and exposure information per chemical.
                   </div>
                 )}
               </div>
@@ -565,7 +565,7 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
 
         {options.process.include && options.process.chemicalDetails && chemicalDetails.length > 0 && (
           <section className="report-page" id="appendix-a">
-            <SectionTab n="A1" title="Appendix A — Chemical Detail" />
+            <SectionTab n="A1" title="Appendix A - Chemical Detail" />
             <table className="report-table report-table-dense" style={{ tableLayout: 'fixed', width: '100%' }}>
               <colgroup>
                 <col style={{ width: '3%' }} />   {/* # */}
@@ -601,7 +601,7 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
                         return pf ? (
                           <div className="mt-1">
                             <span className="inline-block text-center rounded-full border border-amber-400 bg-amber-100 px-2 py-0.5 text-[9px] font-bold leading-tight text-amber-950">
-                              Peroxide former — Class {pf.class}
+                              Peroxide former - Class {pf.class}
                             </span>
                           </div>
                         ) : null;
@@ -676,7 +676,7 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
 
         {options.controls.include && options.controls.coshhScreening && coshh && (
           <section className="report-page">
-            <SectionTab n="B1" title="Appendix B — COSHH Essentials Explanation & Screening" />
+            <SectionTab n="B1" title="Appendix B - COSHH Essentials Explanation & Screening" />
             <div className="report-note report-note-top">
               COSHH Essentials is an HSE control-banding screen. LabCAT presents it as substance-level screening: it estimates a control approach for each substance from health hazard group, quantity scale, and volatility or dustiness. It is not a legal approval by itself: a competent assessor must confirm the output against SDS information, exposure route, quantity, duration, WELs and local conditions.
             </div>

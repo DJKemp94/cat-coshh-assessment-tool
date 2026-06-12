@@ -118,14 +118,14 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="px-5 py-5 border-t border-zinc-100 flex items-end gap-3">
-        <CatSitting className="w-24 h-24 -mb-2 -ml-1" />
-        <div className="text-xs text-zinc-500 leading-snug pb-2 flex-1">
-          Please do not
-          <br />
-          the cat...
+      <div className="border-t border-zinc-100 px-5 py-4">
+        <div className="flex items-end justify-center gap-3">
+          <CatSitting className="h-20 w-20 -mb-1" />
+          <PawMark className="mb-1 h-7 w-7 opacity-40" />
         </div>
-        <PawMark className="w-8 h-8 opacity-40 pb-2" />
+        <div className="mt-1 text-center text-[11px] italic leading-tight text-zinc-500">
+          Please do not the cat...
+        </div>
       </div>
     </aside>
   );

@@ -226,19 +226,19 @@ function ClassificationInfoButton() {
           <div className="absolute left-0 top-6 z-50 w-80 rounded-lg border border-zinc-200 bg-white p-4 shadow-xl">
             <div className="mb-2 text-xs font-semibold text-zinc-800">How storage groups are assigned</div>
             <p className="text-[11px] leading-relaxed text-zinc-600">
-              Each chemical is classified using a <strong>priority tier system</strong>. The first matching tier determines the storage group — lower-tier hazards are kept as requirements rather than dropped.
+              Each chemical is classified using a <strong>priority tier system</strong>. The first matching tier determines the storage group; lower-tier hazards are kept as requirements rather than dropped.
             </p>
             <ol className="mt-2 space-y-1 text-[11px] leading-relaxed text-zinc-600 list-decimal list-inside">
-              <li><strong>Reactive isolation</strong> — water-reactive, pyrophoric, explosive → Special Review</li>
-              <li><strong>Compressed gas</strong> — gas form or pressure H-codes → Compressed Gas</li>
+              <li><strong>Reactive isolation</strong> - water-reactive, pyrophoric, explosive → Special Review</li>
+              <li><strong>Compressed gas</strong> - gas form or pressure H-codes → Compressed Gas</li>
               <li><strong>Oxidiser + flammable</strong> on the same chemical → Special Review</li>
               <li><strong>Oxidising acid</strong> (e.g. nitric, perchloric) → Oxidizing Acids</li>
               <li><strong>Oxidiser</strong> → Oxidizers Cabinet</li>
-              <li><strong>Flammable liquid</strong> — GHS codes, flash point or NFPA data → Flammables Cabinet</li>
+              <li><strong>Flammable liquid</strong> - GHS codes, flash point or NFPA data → Flammables Cabinet</li>
               <li><strong>Acid</strong> → Non-Oxidizing Acids</li>
-              <li><strong>Base</strong> — solid or liquid → Corrosives Cabinet</li>
+              <li><strong>Base</strong> - solid or liquid → Corrosives Cabinet</li>
               <li><strong>Volatile / chlorinated solvent</strong> → Volatile Poisons</li>
-              <li><strong>Toxic</strong> — further split by vapour pressure and form</li>
+              <li><strong>Toxic</strong> - further split by vapour pressure and form</li>
               <li><strong>Dry solid, no stronger trigger</strong> → Shelving</li>
               <li><strong>No data / unresolved corrosive</strong> → Assessor Review</li>
             </ol>

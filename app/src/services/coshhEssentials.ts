@@ -322,17 +322,17 @@ function analyseSubstance(c: Substance): SubstanceAnalysis {
   const warnings: string[] = [];
   if (group === 'E') {
     warnings.push(
-      `Group E hazard (${drivers.join(', ')}) — COSHH Essentials directs to specialist advice (Approach 4). Do not rely on the banded screening.`
+      `Group E hazard (${drivers.join(', ')}): COSHH Essentials directs to specialist advice (Approach 4). Do not rely on the banded screening.`
     );
   }
   if (codes.some((x) => /^H304/i.test(x))) {
-    warnings.push('H304 aspiration hazard: COSHH Essentials does not fully cover aspiration risk — consider design controls against accidental swallowing/inhalation of mists.');
+    warnings.push('H304 aspiration hazard: COSHH Essentials does not fully cover aspiration risk. Consider design controls against accidental swallowing/inhalation of mists.');
   }
   if (scale === 'unknown') {
     warnings.push(`Could not parse quantity "${c.quantity}". Add a unit (g / mL / kg / L / m³) so the scale band can be set. Assumed medium for the screening.`);
   }
   if (band === 'unknown' && kind !== 'not-applicable') {
-    warnings.push(`${kind === 'volatility' ? 'Volatility' : 'Dustiness'} band not set for "${c.name}". Assumed medium for the screening — set the band on the substance to refine.`);
+    warnings.push(`${kind === 'volatility' ? 'Volatility' : 'Dustiness'} band not set for "${c.name}". Assumed medium for the screening; set the band on the substance to refine.`);
   }
   if (physicalKind === 'unsupported') {
     warnings.push(`"${c.name}" is recorded as ${c.form}. The generic COSHH Essentials scheme is for liquids and solids only; seek competent specialist advice.`);
@@ -361,19 +361,19 @@ function analyseSubstance(c: Substance): SubstanceAnalysis {
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export function APPROACH_LABEL(a: Approach): string {
   switch (a) {
-    case 1: return 'Approach 1 — General ventilation';
-    case 2: return 'Approach 2 — Engineering controls (LEV)';
-    case 3: return 'Approach 3 — Containment / enclosure';
-    case 4: return 'Approach 4 — Specialist advice required';
+    case 1: return 'Approach 1 - General ventilation';
+    case 2: return 'Approach 2 - Engineering controls (LEV)';
+    case 3: return 'Approach 3 - Containment / enclosure';
+    case 4: return 'Approach 4 - Specialist advice required';
   }
 }
 
 function G_SHEET_REF(a: Approach): string {
   switch (a) {
-    case 1: return 'HSE Generic Guidance Sheet G100 series — general ventilation';
-    case 2: return 'HSE Generic Guidance Sheet G200 series — engineering / LEV';
-    case 3: return 'HSE Generic Guidance Sheet G300 series — containment';
-    case 4: return 'HSE Generic Guidance Sheet G400 — refer to occupational hygienist / specialist';
+    case 1: return 'HSE Generic Guidance Sheet G100 series - general ventilation';
+    case 2: return 'HSE Generic Guidance Sheet G200 series - engineering / LEV';
+    case 3: return 'HSE Generic Guidance Sheet G300 series - containment';
+    case 4: return 'HSE Generic Guidance Sheet G400 - refer to occupational hygienist / specialist';
   }
 }
 

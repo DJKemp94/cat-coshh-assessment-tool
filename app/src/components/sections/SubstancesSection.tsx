@@ -818,7 +818,7 @@ function ProcessStepCard({
                 : lastChemicalIncomplete
                   ? 'Complete the current chemical details before adding another suggestion'
                   : m.cas
-                    ? `CAS ${m.cas} — adds with PubChem details`
+                    ? `CAS ${m.cas} - adds with PubChem details`
                     : undefined;
               return (
                 <button
@@ -867,7 +867,7 @@ function ProcessStepCard({
         {showReuse && reusableChemicals.length > 0 && (
           <div className="mb-2 rounded-md border border-zinc-200 bg-white p-2">
             <div className="text-[10px] text-zinc-500 mb-1.5">
-              Click a chemical to copy it into this step. Quantity, duration and frequency are not copied — set them for this step.
+              Click a chemical to copy it into this step. Quantity, duration and frequency are not copied; set them for this step.
             </div>
             <div className="flex flex-wrap gap-1.5">
               {reusableChemicals.map(({ key, from, chem }) => (
@@ -1166,7 +1166,7 @@ function ChemicalRow({
         });
         if (!matches) {
           setMatchWarning(
-            `PubChem matched "${r.name}" for "${query}" — check this is the substance you meant.`,
+            `PubChem matched "${r.name}" for "${query}". Check this is the substance you meant.`,
           );
         }
       }
@@ -1225,7 +1225,7 @@ function ChemicalRow({
       const msg = e instanceof Error ? e.message : '';
       setError(
         /failed to fetch|networkerror|load failed/i.test(msg)
-          ? 'PubChem could not be reached — check your connection or enter the details manually.'
+          ? 'PubChem could not be reached. Check your connection or enter the details manually.'
           : msg || 'Lookup failed',
       );
     } finally {
@@ -1284,20 +1284,20 @@ function ChemicalRow({
         </button>
 
         <span className="hidden text-[11px] text-zinc-500 font-mono xl:block">
-          {c.casNotApplicable ? 'CAS N/A' : c.cas || '—'}
+          {c.casNotApplicable ? 'CAS N/A' : c.cas || '-'}
         </span>
         <div className="hidden min-h-[22px] min-w-0 items-center overflow-hidden xl:flex">
           {c.ghsPictograms.length > 0 ? (
             <GhsRow ids={c.ghsPictograms} size={22} />
           ) : (
-            <span className="text-xs text-zinc-300">—</span>
+            <span className="text-xs text-zinc-300">-</span>
           )}
         </div>
         <div className="hidden xl:block">
           {c.hazardStatements.length > 0 ? (
             <span className="pill">{c.hazardStatements.length} H</span>
           ) : (
-            <span className="text-xs text-zinc-300">—</span>
+            <span className="text-xs text-zinc-300">-</span>
           )}
         </div>
         <div className="hidden min-w-0 xl:block">
@@ -1324,7 +1324,7 @@ function ChemicalRow({
               SDS <ExternalLink size={10} />
             </a>
           ) : (
-            <span className="text-xs text-zinc-300">—</span>
+            <span className="text-xs text-zinc-300">-</span>
           )}
         </div>
 
@@ -1471,7 +1471,7 @@ function ChemicalRow({
                   });
                 }}
               >
-                {!c.form && <option value="" disabled>— select —</option>}
+                {!c.form && <option value="" disabled>- select -</option>}
                 {FORMS.map((f) => <option key={f} value={f}>{f}</option>)}
               </select>
             </label>
@@ -1484,7 +1484,7 @@ function ChemicalRow({
                   value={c.volatility ?? ''}
                   onChange={(e) => onChange({ volatility: (e.target.value || undefined) as Substance['volatility'] })}
                 >
-                  <option value="">{typeof c.boilingPointC === 'number' ? `Auto from BP (${formatAutoVolatility(c.boilingPointC)})` : '— select —'}</option>
+                  <option value="">{typeof c.boilingPointC === 'number' ? `Auto from BP (${formatAutoVolatility(c.boilingPointC)})` : '- select -'}</option>
                   <option value="low">{'Low (>150 °C)'}</option>
                   <option value="medium">Medium (50–150 °C)</option>
                   <option value="high">{'High (<50 °C)'}</option>
@@ -1502,7 +1502,7 @@ function ChemicalRow({
                   disabled={formValue !== 'solid'}
                   onChange={(e) => onChange({ dustiness: (e.target.value || undefined) as Substance['dustiness'] })}
                 >
-                  <option value="">{formValue === 'solid' ? '— select —' : 'Not applicable'}</option>
+                  <option value="">{formValue === 'solid' ? '- select -' : 'Not applicable'}</option>
                   <option value="low">Low (pellet / waxy)</option>
                   <option value="medium">Medium (granular)</option>
                   <option value="high">High (fine powder)</option>

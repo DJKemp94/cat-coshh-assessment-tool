@@ -12,7 +12,7 @@ export function PrivacyModal() {
             <ShieldCheck size={20} />
           </div>
           <h2 className="text-lg font-semibold text-zinc-900">
-            Before you start — privacy first
+            Before you start: privacy first
           </h2>
         </div>
 
@@ -24,7 +24,7 @@ export function PrivacyModal() {
           <ul className="list-disc pl-5 space-y-1 text-zinc-600">
             <li>Your assessment lives in this browser only.</li>
             <li>
-              Export PDF, DOCX or <code>.labcatdraft</code> regularly — clearing site data will
+              Export PDF, DOCX or <code>.labcatdraft</code> regularly; clearing site data will
               erase any unsaved work.
             </li>
             <li>
@@ -37,7 +37,7 @@ export function PrivacyModal() {
 
         <div className="mt-6 flex justify-end">
           <button className="btn-primary" onClick={ack}>
-            I understand — start assessment
+            I understand - start assessment
           </button>
         </div>
       </div>

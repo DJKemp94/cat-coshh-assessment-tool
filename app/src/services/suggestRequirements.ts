@@ -52,8 +52,8 @@ const SPILLS: Rule[] = [
   { hCodes: WATER_REACTIVE, trigger: 'water-reactive', text: 'Water-reactive spill ({chemicals}): keep the material dry, isolate it from water and aqueous cleaners, and use only the dry absorbents listed in the SDS.' },
   { hCodes: PYROPHORIC, trigger: 'pyrophoric', text: 'Pyrophoric or self-heating spill ({chemicals}): isolate from air, water and ignition sources and call trained responders. Use only SDS-approved inert media.' },
   { hCodes: OXIDISING, trigger: 'oxidising', text: 'Oxidiser spill ({chemicals}): keep combustible materials away and collect with the inert, compatible media specified in the SDS.' },
-  { hCodes: RESP_SENS, trigger: 'respiratory sensitiser', text: 'Respiratory sensitiser spill ({chemicals}): stop inhalation exposure — ventilate or evacuate — and re-enter only once controls are confirmed effective.' },
-  { hCodes: PRESSURISED, pictograms: ['compressed-gas'], trigger: 'gas under pressure', text: 'Gas leak or cylinder release ({chemicals}): evacuate, isolate the supply only if safe, and ventilate. Do not re-enter until the atmosphere is confirmed safe — beware oxygen depletion in enclosed spaces.' },
+  { hCodes: RESP_SENS, trigger: 'respiratory sensitiser', text: 'Respiratory sensitiser spill ({chemicals}): stop inhalation exposure, ventilate or evacuate, and re-enter only once controls are confirmed effective.' },
+  { hCodes: PRESSURISED, pictograms: ['compressed-gas'], trigger: 'gas under pressure', text: 'Gas leak or cylinder release ({chemicals}): evacuate, isolate the supply only if safe, and ventilate. Do not re-enter until the atmosphere is confirmed safe; beware oxygen depletion in enclosed spaces.' },
 ];
 
 const FIRST_AID: Rule[] = [
@@ -63,10 +63,10 @@ const FIRST_AID: Rule[] = [
   { hCodes: EYE_DMG, trigger: 'eye damage (H318)', text: 'Eye contact with {chemicals} (serious eye damage): rinse at the eyewash immediately for at least 15 minutes, holding eyelids open. Get urgent medical attention.' },
   { hCodes: EYE_IRR, trigger: 'eye irritation (H319)', text: 'Eye contact with {chemicals}: rinse with water for several minutes, removing contact lenses if easy. Get medical advice if pain or redness persists.' },
   { hCodes: [...ACUTE_TOX_INH, ...RESP_IRR], trigger: 'respiratory hazard', text: 'Inhalation of {chemicals}: move the person to fresh air and keep them at rest. Get medical advice if there are any symptoms.' },
-  { hCodes: RESP_SENS, trigger: 'respiratory sensitiser (H334)', text: 'Inhalation of {chemicals} (respiratory sensitiser): move to fresh air. Get medical advice even if the person feels fine — wheeze or asthma symptoms can develop hours later.' },
+  { hCodes: RESP_SENS, trigger: 'respiratory sensitiser (H334)', text: 'Inhalation of {chemicals} (respiratory sensitiser): move to fresh air. Get medical advice even if the person feels fine; wheeze or asthma symptoms can develop hours later.' },
   { hCodes: CNS_DEPRESS, trigger: 'CNS depressant (H336)', text: 'Drowsiness or dizziness after exposure to {chemicals}: move to fresh air and stay with the person. Get medical advice if symptoms persist.' },
   { hCodes: ACUTE_TOX_ORAL, trigger: 'acute oral toxicity', text: 'Ingestion of {chemicals} (toxic): rinse the mouth. Do not induce vomiting. Get urgent medical help and have the SDS ready.' },
-  { hCodes: ASPIRATION, trigger: 'aspiration hazard (H304)', text: 'Ingestion of {chemicals} (aspiration hazard): do not induce vomiting — liquid entering the lungs can cause serious harm. Get urgent medical attention.' },
+  { hCodes: ASPIRATION, trigger: 'aspiration hazard (H304)', text: 'Ingestion of {chemicals} (aspiration hazard): do not induce vomiting. Liquid entering the lungs can cause serious harm. Get urgent medical attention.' },
   { hCodes: ACUTE_TOX_DERMAL, trigger: 'dermal toxicity', text: 'Skin contact with {chemicals} (toxic): remove contaminated clothing and wash the skin thoroughly. Get medical advice.' },
   { hCodes: TARGET_ORGAN, trigger: 'target organ toxicity', text: 'Significant exposure to {chemicals} (target-organ toxicity): arrange a medical or Occupational Health review with the SDS and exposure details.' },
   { hCodes: CMR, trigger: 'CMR', text: 'Exposure to {chemicals} (CMR): record the incident and refer the person to Occupational Health under the local exposure-reporting process.' },
@@ -74,8 +74,8 @@ const FIRST_AID: Rule[] = [
 ];
 
 const FIRE: Rule[] = [
-  { hCodes: EXPLOSIVE, trigger: 'explosive', text: 'Fire risk from {chemicals} (explosive/self-reactive): evacuate and keep your distance. Do not fight the fire — tell responders the substance and its location.' },
-  { hCodes: FLAMMABLE, pictograms: ['flammable'], trigger: 'flammable', text: 'Fire involving {chemicals} (flammable): use only the extinguishing media listed in SDS Section 5 — do not assume water is safe. Cool exposed containers from a protected position only if safe.' },
+  { hCodes: EXPLOSIVE, trigger: 'explosive', text: 'Fire risk from {chemicals} (explosive/self-reactive): evacuate and keep your distance. Do not fight the fire; tell responders the substance and its location.' },
+  { hCodes: FLAMMABLE, pictograms: ['flammable'], trigger: 'flammable', text: 'Fire involving {chemicals} (flammable): use only the extinguishing media listed in SDS Section 5. Do not assume water is safe. Cool exposed containers from a protected position only if safe.' },
   { hCodes: OXIDISING, pictograms: ['oxidising'], trigger: 'oxidising', text: 'Fire involving {chemicals} (oxidiser): expect the fire to intensify. Keep combustibles clear and use only SDS-approved firefighting media.' },
   { hCodes: WATER_REACTIVE, trigger: 'water-reactive', text: 'Fire involving {chemicals} (water-reactive): do not use water. Use the compatible dry media specified in SDS Section 5.' },
   { hCodes: PYROPHORIC, trigger: 'pyrophoric / self-heating', text: 'Fire involving {chemicals} (pyrophoric/self-heating): evacuate and use only SDS-approved extinguishing media. Do not use water.' },
@@ -85,7 +85,7 @@ const FIRE: Rule[] = [
 ];
 
 const WASTE: Rule[] = [
-  { hCodes: EXPLOSIVE, trigger: 'explosive', text: 'Explosive or self-reactive waste ({chemicals}): never place in routine waste streams — arrange specialist disposal through the approved hazardous-waste route.' },
+  { hCodes: EXPLOSIVE, trigger: 'explosive', text: 'Explosive or self-reactive waste ({chemicals}): never place in routine waste streams; arrange specialist disposal through the approved hazardous-waste route.' },
   { hCodes: CMR, trigger: 'CMR', text: 'CMR waste ({chemicals}): segregate, label clearly and dispose of it through the approved hazardous-waste route.' },
   { hCodes: AQUATIC, pictograms: ['environmental'], trigger: 'aquatic hazard', text: 'Environmentally hazardous waste ({chemicals}): collect in sealed, compatible containers. Never dispose of it to drain.' },
   { hCodes: FLAMMABLE, trigger: 'flammable', text: 'Flammable waste ({chemicals}): collect in sealed, labelled, compatible containers, segregated from other waste streams per the local procedure.' },

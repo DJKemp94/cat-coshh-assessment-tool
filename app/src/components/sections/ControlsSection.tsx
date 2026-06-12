@@ -272,7 +272,7 @@ function CoshhEssentialsPanel({
                               <span className="px-1.5 py-0.5 rounded bg-white/60 border border-current/30">
                                 Approach {approach}
                               </span>
-                              <span>{APPROACH_LABEL(approach).replace(/^Approach \d+ — /, '')}</span>
+                              <span>{APPROACH_LABEL(approach).replace(/^Approach \d+ - /, '')}</span>
                               <span className="text-[10px] opacity-70">
                                 {items.length} substance{items.length === 1 ? '' : 's'}
                               </span>
@@ -294,13 +294,13 @@ function CoshhEssentialsPanel({
                                 <tr key={a.substanceId} className="border-t border-zinc-200/60 align-top">
                                   <td className="p-1.5 font-medium text-zinc-900">{a.name}</td>
                                   <td className="p-1.5 text-zinc-700">{a.hazardGroup}</td>
-                                  <td className="p-1.5 text-zinc-700">{a.drivingHCodes.join(', ') || '—'}</td>
+                                  <td className="p-1.5 text-zinc-700">{a.drivingHCodes.join(', ') || '-'}</td>
                                   <td className="p-1.5 text-zinc-700">{a.scale}{a.assumed.scale && ' *'}</td>
                                   <td className="p-1.5 text-zinc-700">
-                                    {a.bandKind === 'not-applicable' ? '—' : `${a.band} (${a.bandKind})`}
+                                    {a.bandKind === 'not-applicable' ? '-' : `${a.band} (${a.bandKind})`}
                                     {a.assumed.band && ' *'}
                                   </td>
-                                  <td className="p-1.5 text-zinc-700">{a.exposurePredictor ?? '—'}</td>
+                                  <td className="p-1.5 text-zinc-700">{a.exposurePredictor ?? '-'}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -562,13 +562,13 @@ function processStepControlReviewItemsByStep(
     if (maxApproach >= 2 && !hasLevOrEnclosureControl(controls)) {
       items.push({
         id: `${step.id}:engineering`,
-        message: 'No LEV or enclosure-style control is recorded — review the engineering controls for this step.',
+        message: 'No LEV or enclosure-style control is recorded; review the engineering controls for this step.',
       });
     }
     if (controls.ppe.length === 0) {
       items.push({
         id: `${step.id}:ppe`,
-        message: 'No PPE is recorded for this step — add the PPE required.',
+        message: 'No PPE is recorded for this step; add the PPE required.',
       });
     }
     analyses
@@ -576,7 +576,7 @@ function processStepControlReviewItemsByStep(
       .forEach((analysis) => {
         items.push({
           id: `${step.id}:approach4:${analysis.substanceId}`,
-          message: `${analysis.name} needs specialist advice (Approach 4) — review the SDS, document any specialist controls in the assessment, and add additional controls where required.`,
+          message: `${analysis.name} needs specialist advice (Approach 4). Review the SDS, document any specialist controls in the assessment, and add additional controls where required.`,
         });
       });
     // Steps that were screened but raised nothing still get an entry, so the
@@ -628,7 +628,7 @@ function StepControlsSummary({
             </span>
           ) : allClear ? (
             <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-800">
-              All clear — nothing flagged
+              All clear: nothing flagged
             </span>
           ) : null}
         </div>
@@ -707,12 +707,12 @@ function StepControlsSummary({
                 {stepAnalysed && reviewItems.length === 0 && (
                   <div className="mx-4 mb-3 flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50/60 p-2 text-xs font-medium text-emerald-800">
                     <CheckCircle2 size={13} />
-                    No review points — controls are consistent with the screening.
+                    No review points; controls are consistent with the screening.
                   </div>
                 )}
                 {!stepAnalysed && (
                   <div className="mx-4 mb-3 rounded-md border border-zinc-200 bg-zinc-50/60 p-2 text-xs text-zinc-500">
-                    No screening available for this step yet — complete its chemical details in Process Steps.
+                    No screening available for this step yet. Complete its chemical details in Process Steps.
                   </div>
                 )}
               </div>

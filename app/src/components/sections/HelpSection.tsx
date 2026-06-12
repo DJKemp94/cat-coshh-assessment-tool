@@ -23,7 +23,7 @@ export function HelpSection() {
         <p className="text-sm text-zinc-700">
           UK Workplace Exposure Limits are published in HSE <strong>EH40/2005</strong>.
           LabCAT pre-fills TWA / STEL values from its bundled EH40 dataset when a chemical
-          is looked up — always verify them against the current EH40 edition and enter
+          is looked up. Always verify them against the current EH40 edition and enter
           values manually for substances it does not cover.
         </p>
         <a
@@ -44,7 +44,7 @@ export function HelpSection() {
         <ul className="text-sm text-zinc-700 list-disc pl-5 space-y-1">
           <li><strong>Download LabCAT draft</strong> downloads a <code>.labcatdraft</code> file.</li>
           <li><strong>Import .labcatdraft</strong> restores a saved draft.</li>
-          <li><strong>.labcatdraft</strong> files are plain text — safe for version control and sharing.</li>
+          <li><strong>.labcatdraft</strong> files are plain text, safe for version control and sharing.</li>
           <li>Export PDF or DOCX once the assessment is complete.</li>
         </ul>
       </div>

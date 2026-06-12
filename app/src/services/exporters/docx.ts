@@ -39,7 +39,7 @@ const ZEBRA = 'f8fafc';
 const WHITE = 'ffffff';
 
 const FONT = 'Calibri';
-const DASH = '—';
+const DASH = '-';
 
 const formatStepControlList = (values: string[] | undefined) =>
   values && values.length > 0 ? values.join(', ') : DASH;
@@ -279,7 +279,7 @@ const titleBlock = (a: Assessment): (Paragraph | Table)[] => {
       spacing: { before: 200, after: 0 },
       children: [
         new TextRun({
-          text: `Generated ${today} with LabCAT — COSHH Assessment Tool`,
+          text: `Generated ${today} with LabCAT - COSHH Assessment Tool`,
           italics: true,
           color: MUTED,
           size: 18,
@@ -583,7 +583,7 @@ export async function exportDocx(a: Assessment, options: ReportOptions = fullRep
     children.push(para('No hazards recorded.', { italics: true, color: MUTED }));
   } else {
     a.taskHazards.forEach((haz, i) => {
-      children.push(subHeading(`Hazard ${i + 1} — ${haz.hazard || DASH}`));
+      children.push(subHeading(`Hazard ${i + 1} - ${haz.hazard || DASH}`));
       const rows: [string, string][] = [
         ['How harm occurs', haz.harmMechanism],
         ['Controls in place', haz.controlsInPlace],
@@ -616,7 +616,7 @@ export async function exportDocx(a: Assessment, options: ReportOptions = fullRep
     children.push(para('No process steps recorded.', { italics: true, color: MUTED }));
   } else {
     a.processSteps.forEach((step, si) => {
-      children.push(subHeading(`Step ${si + 1} — ${step.step || DASH}`));
+      children.push(subHeading(`Step ${si + 1} - ${step.step || DASH}`));
       if (options.process.stepControls) {
         children.push(kvTable([
           ['Step duration', stepExposureDuration(step)],
@@ -673,11 +673,11 @@ export async function exportDocx(a: Assessment, options: ReportOptions = fullRep
       { italics: true, color: MUTED },
     ));
   } else {
-    children.push(subHeading(`Highest screening approach present — ${coshh.approachLabel}`));
+    children.push(subHeading(`Highest screening approach present - ${coshh.approachLabel}`));
     const highest = coshh.highestApproachAnalysis;
     if (highest) {
       const highestLine =
-        `Highest approach example: ${highest.name} — hazard group ${highest.hazardGroup}` +
+        `Highest approach example: ${highest.name} - hazard group ${highest.hazardGroup}` +
         (highest.drivingHCodes.length ? ` (${highest.drivingHCodes.join(', ')})` : '') +
         `, scale ${highest.scale}` +
         (highest.bandKind !== 'not-applicable' ? `, ${highest.bandKind} ${highest.band}` : '') +
@@ -798,9 +798,9 @@ export async function exportDocx(a: Assessment, options: ReportOptions = fullRep
   if (options.emergency.include) {
     children.push(sectionBanner(sectionNo++, 'Emergency Response and Waste'));
     const rows: [string, string][] = [];
-    if (options.emergency.spills) rows.push(['Emergency — Spills', a.emergency.emergencySpills]);
-    if (options.emergency.firstAid) rows.push(['Emergency — First aid', a.emergency.emergencyFirstAid]);
-    if (options.emergency.fire) rows.push(['Emergency — Fire', a.emergency.emergencyFire]);
+    if (options.emergency.spills) rows.push(['Emergency - Spills', a.emergency.emergencySpills]);
+    if (options.emergency.firstAid) rows.push(['Emergency - First aid', a.emergency.emergencyFirstAid]);
+    if (options.emergency.fire) rows.push(['Emergency - Fire', a.emergency.emergencyFire]);
     if (options.emergency.waste) rows.push(['Waste handling', a.emergency.wasteHandling]);
     if (options.emergency.other) rows.push(['Other', a.emergency.other]);
     children.push(kvTable(rows.length > 0 ? rows : [['Included content', 'No emergency subsections selected.']]));
@@ -844,7 +844,7 @@ export async function exportDocx(a: Assessment, options: ReportOptions = fullRep
         alignment: AlignmentType.RIGHT,
         children: [
           new TextRun({
-            text: 'LabCAT — COSHH Assessment Tool   ·   Page ',
+            text: 'LabCAT - COSHH Assessment Tool   ·   Page ',
             color: MUTED,
             size: 16,
             font: FONT,

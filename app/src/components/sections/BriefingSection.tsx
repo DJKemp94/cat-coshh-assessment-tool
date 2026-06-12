@@ -91,7 +91,7 @@ export function BriefingSection() {
             </button>
           </div>
           <p className="text-xs text-zinc-500 mb-2">
-            Paste one name per line. Today&apos;s date is set on each new entry — you can adjust afterwards.
+            Paste one name per line. Today&apos;s date is set on each new entry; you can adjust afterwards.
           </p>
           <textarea
             className="field-textarea text-sm"

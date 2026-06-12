@@ -37,7 +37,7 @@ export function SettingsSection() {
         <div className="font-medium text-zinc-900 mb-1">Local data</div>
         <p className="text-xs text-zinc-500 mb-2">
           LabCAT stores your in-progress draft and PubChem lookups in this browser only.
-          Clearing wipes both — your exported files are unaffected.
+          Clearing wipes both; your exported files are unaffected.
         </p>
         <div className="flex flex-wrap gap-2">
           <button
@@ -78,9 +78,9 @@ export function SettingsSection() {
       <div>
         <div className="font-medium text-zinc-900 mb-1">About</div>
         <p className="text-xs text-zinc-500">
-          LabCAT — COSHH Assessment Tool. Browser-only. No accounts, no online repository.
+          LabCAT - COSHH Assessment Tool. Browser-only. No accounts, no online repository.
           <br />
-          <span className="italic">Please do not the cat.</span>
+          <span className="inline-block whitespace-nowrap italic">Please do not the cat.</span>
         </p>
       </div>
     </div>
