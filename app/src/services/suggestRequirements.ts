@@ -44,16 +44,16 @@ const TARGET_ORGAN = ['H370','H371','H372','H373'];
 const AQUATIC = ['H400','H410','H411','H412','H413'];
 
 const SPILLS: Rule[] = [
-  { hCodes: EXPLOSIVE, trigger: 'explosive', text: 'Evacuate and call specialist response for explosive or self-reactive spills. Do not sweep, absorb or disturb unless the SDS and local emergency plan confirm it is safe.' },
-  { hCodes: [...SKIN_CORR, ...CORROSIVE_METALS], trigger: 'corrosive', text: 'For corrosive spills, isolate the area, wear suitable chemical PPE, ventilate, contain with compatible absorbent and collect as hazardous waste. Neutralise only where the SDS and local procedure allow.' },
-  { hCodes: FLAMMABLE, pictograms: ['flammable'], trigger: 'flammable', text: 'For flammable spills, remove ignition sources if safe, ventilate, prevent spread and collect with compatible non-sparking equipment and inert absorbent.' },
-  { hCodes: ALL_ACUTE_TOX, trigger: 'acute toxicity', text: 'For toxic spills, keep people away, escalate to trained responders and follow the SDS spill procedure, including any respiratory protection or evacuation requirements.' },
-  { hCodes: AQUATIC, pictograms: ['environmental'], trigger: 'aquatic hazard', text: 'Prevent spills entering drains or watercourses. Bund, absorb or contain the release and escalate under the local environmental procedure.' },
-  { hCodes: WATER_REACTIVE, trigger: 'water-reactive', text: 'For water-reactive spills, keep dry, isolate from water and aqueous materials, ventilate if safe and follow the SDS for compatible absorbents.' },
-  { hCodes: PYROPHORIC, trigger: 'pyrophoric', text: 'For pyrophoric or self-heating spills, isolate from air, water and ignition sources; use only SDS-approved inert media and call trained responders.' },
-  { hCodes: OXIDISING, trigger: 'oxidising', text: 'For oxidiser spills, keep away from combustible materials and use only compatible inert absorbents or clean-up media specified by the SDS.' },
-  { hCodes: RESP_SENS, trigger: 'respiratory sensitiser', text: 'For respiratory sensitiser spills, prevent inhalation exposure, ventilate or evacuate as appropriate and allow re-entry only after controls are confirmed effective.' },
-  { hCodes: PRESSURISED, pictograms: ['compressed-gas'], trigger: 'gas under pressure', text: 'For a gas leak or cylinder release, evacuate the area, isolate the supply only if safe, ventilate and do not re-enter until the atmosphere is confirmed safe. Beware of oxygen depletion in enclosed or poorly ventilated spaces.' },
+  { hCodes: EXPLOSIVE, trigger: 'explosive', text: 'Explosive or self-reactive spill ({chemicals}): evacuate, raise the alarm and call specialist responders. Do not sweep, absorb or disturb the material.' },
+  { hCodes: [...SKIN_CORR, ...CORROSIVE_METALS], trigger: 'corrosive', text: 'Corrosive spill ({chemicals}): isolate the area, put on chemical-resistant PPE, ventilate, contain with a compatible absorbent and collect as hazardous waste. Do not neutralise unless the SDS and local procedure authorise it.' },
+  { hCodes: FLAMMABLE, pictograms: ['flammable'], trigger: 'flammable', text: 'Flammable spill ({chemicals}): remove ignition sources if safe, ventilate, stop the spread and collect with non-sparking tools and inert absorbent.' },
+  { hCodes: ALL_ACUTE_TOX, trigger: 'acute toxicity', text: 'Toxic spill ({chemicals}): clear everyone from the area and escalate to trained responders. Do not attempt cleanup without the respiratory protection specified in SDS Section 6.' },
+  { hCodes: AQUATIC, pictograms: ['environmental'], trigger: 'aquatic hazard', text: 'Environmentally hazardous spill ({chemicals}): block access to drains, bund and absorb the release, and report it under the local environmental procedure.' },
+  { hCodes: WATER_REACTIVE, trigger: 'water-reactive', text: 'Water-reactive spill ({chemicals}): keep the material dry, isolate it from water and aqueous cleaners, and use only the dry absorbents listed in the SDS.' },
+  { hCodes: PYROPHORIC, trigger: 'pyrophoric', text: 'Pyrophoric or self-heating spill ({chemicals}): isolate from air, water and ignition sources and call trained responders. Use only SDS-approved inert media.' },
+  { hCodes: OXIDISING, trigger: 'oxidising', text: 'Oxidiser spill ({chemicals}): keep combustible materials away and collect with the inert, compatible media specified in the SDS.' },
+  { hCodes: RESP_SENS, trigger: 'respiratory sensitiser', text: 'Respiratory sensitiser spill ({chemicals}): stop inhalation exposure — ventilate or evacuate — and re-enter only once controls are confirmed effective.' },
+  { hCodes: PRESSURISED, pictograms: ['compressed-gas'], trigger: 'gas under pressure', text: 'Gas leak or cylinder release ({chemicals}): evacuate, isolate the supply only if safe, and ventilate. Do not re-enter until the atmosphere is confirmed safe — beware oxygen depletion in enclosed spaces.' },
 ];
 
 const FIRST_AID: Rule[] = [

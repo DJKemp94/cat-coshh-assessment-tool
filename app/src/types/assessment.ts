@@ -79,6 +79,8 @@ export interface ExposureRoutes {
   skin: boolean;
   ingestion: boolean;
   eye: boolean;
+  /** Exclusive with the real routes — for non-hazardous substances. */
+  none: boolean;
 }
 
 export type WelSource =
@@ -363,7 +365,7 @@ export const emptySubstance = (): Substance => ({
   form: '',
   exposureDuration: '',
   exposureFrequency: '',
-  exposureRoutes: { inhalation: false, skin: false, ingestion: false, eye: false },
+  exposureRoutes: { inhalation: false, skin: false, ingestion: false, eye: false, none: false },
 });
 
 export const emptyBriefing = (): BriefingEntry => ({

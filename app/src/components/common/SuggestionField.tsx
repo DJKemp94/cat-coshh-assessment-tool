@@ -50,13 +50,17 @@ export function SuggestionField({
 
   return (
     <div className={className}>
-      <div className="flex items-baseline justify-between gap-2 mb-1">
-        <span className="field-label !mb-0">
-          {label}
-          {required && (
-            <span className="text-red-600 ml-0.5" aria-label="required">*</span>
-          )}
-        </span>
+      <div className={clsx('flex items-baseline justify-between gap-2', label ? 'mb-1' : 'mb-1.5')}>
+        {label ? (
+          <span className="field-label !mb-0">
+            {label}
+            {required && (
+              <span className="text-red-600 ml-0.5" aria-label="required">*</span>
+            )}
+          </span>
+        ) : (
+          <span />
+        )}
         <div className="flex items-center gap-2">
           {hint && (
             <span className="text-[11px] text-zinc-500 hidden md:block">{hint}</span>

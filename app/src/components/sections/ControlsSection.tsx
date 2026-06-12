@@ -562,13 +562,13 @@ function processStepControlReviewItemsByStep(
     if (maxApproach >= 2 && !hasLevOrEnclosureControl(controls)) {
       items.push({
         id: `${step.id}:engineering`,
-        message: 'Check engineering controls: no LEV/enclosure-style control is recorded.',
+        message: 'No LEV or enclosure-style control is recorded — review the engineering controls for this step.',
       });
     }
     if (controls.ppe.length === 0) {
       items.push({
         id: `${step.id}:ppe`,
-        message: 'Check PPE: no PPE is recorded for this step.',
+        message: 'No PPE is recorded for this step — add the PPE required.',
       });
     }
     analyses
@@ -576,12 +576,12 @@ function processStepControlReviewItemsByStep(
       .forEach((analysis) => {
         items.push({
           id: `${step.id}:approach4:${analysis.substanceId}`,
-          message: `Check controls for ${analysis.name} - Review SDS and ensure any specialist controls listed are documented in assessment. Add additional controls where required.`,
+          message: `${analysis.name} needs specialist advice (Approach 4) — review the SDS, document any specialist controls in the assessment, and add additional controls where required.`,
         });
       });
-    if (items.length > 0) {
-      out[step.id] = items;
-    }
+    // Steps that were screened but raised nothing still get an entry, so the
+    // UI can tell "analysed and all clear" apart from "no screening available".
+    out[step.id] = items;
   }
   return out;
 }
@@ -599,21 +599,23 @@ function StepControlsSummary({
   onToggleReview: (id: string) => void;
   onOpenStep: (stepId: string) => void;
 }) {
+  const analysedStepCount = steps.filter((step) => reviewItemsByStep[step.id] !== undefined).length;
   const allReviewItems = steps.flatMap((step) => reviewItemsByStep[step.id] ?? []);
   const checkedCount = allReviewItems.filter((item) => checkedReviews.has(item.id)).length;
   const allChecked = allReviewItems.length > 0 && checkedCount === allReviewItems.length;
+  const allClear = analysedStepCount > 0 && allReviewItems.length === 0;
 
   return (
     <div
       className={clsx(
         'card mb-5 overflow-hidden',
-        allChecked && 'border-emerald-200',
+        (allChecked || allClear) && 'border-emerald-200',
       )}
     >
       <div className="border-b border-zinc-100 px-4 py-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="text-sm font-semibold text-zinc-950">Engineering and PPE by process step</div>
-          {allReviewItems.length > 0 && (
+          {allReviewItems.length > 0 ? (
             <span
               className={clsx(
                 'rounded-full border px-2 py-0.5 text-[11px] font-medium',
@@ -622,9 +624,13 @@ function StepControlsSummary({
                   : 'border-amber-200 bg-amber-50 text-amber-800',
               )}
             >
-              {checkedCount} of {allReviewItems.length} checks complete
+              {checkedCount} of {allReviewItems.length} review point{allReviewItems.length === 1 ? '' : 's'} cleared
             </span>
-          )}
+          ) : allClear ? (
+            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-800">
+              All clear — nothing flagged
+            </span>
+          ) : null}
         </div>
         <div className="mt-1 text-xs text-zinc-500">
           Engineering controls and PPE are recorded against each process step. Update them in Process Steps if the task controls change.
@@ -637,8 +643,10 @@ function StepControlsSummary({
           {steps.map((step, index) => {
             const controls = controlsForStep(step);
             const stepName = step.step.trim() || `Step ${index + 1}`;
-            const reviewItems = reviewItemsByStep[step.id] ?? [];
-            const stepAllChecked = reviewItems.length > 0 && reviewItems.every((item) => checkedReviews.has(item.id));
+            const reviewItems = reviewItemsByStep[step.id];
+            const stepAnalysed = reviewItems !== undefined;
+            const stepAllChecked =
+              stepAnalysed && reviewItems.length > 0 && reviewItems.every((item) => checkedReviews.has(item.id));
             return (
               <div
                 key={step.id}
@@ -666,7 +674,7 @@ function StepControlsSummary({
                     <div className="mt-1 whitespace-pre-line text-sm text-zinc-700">{controls.other || <span className="text-zinc-400">None recorded</span>}</div>
                   </div>
                 </button>
-                {reviewItems.length > 0 && (
+                {stepAnalysed && reviewItems.length > 0 && (
                   <div
                     className={clsx(
                       'mx-4 mb-3 rounded-md border p-2',
@@ -682,7 +690,7 @@ function StepControlsSummary({
                       )}
                     >
                       {stepAllChecked ? <CheckCircle2 size={13} /> : <AlertTriangle size={13} />}
-                      Checks for this step
+                      Review points for this step
                     </div>
                     <div className="space-y-1.5">
                       {reviewItems.map((item) => (
@@ -694,6 +702,17 @@ function StepControlsSummary({
                         />
                       ))}
                     </div>
+                  </div>
+                )}
+                {stepAnalysed && reviewItems.length === 0 && (
+                  <div className="mx-4 mb-3 flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50/60 p-2 text-xs font-medium text-emerald-800">
+                    <CheckCircle2 size={13} />
+                    No review points — controls are consistent with the screening.
+                  </div>
+                )}
+                {!stepAnalysed && (
+                  <div className="mx-4 mb-3 rounded-md border border-zinc-200 bg-zinc-50/60 p-2 text-xs text-zinc-500">
+                    No screening available for this step yet — complete its chemical details in Process Steps.
                   </div>
                 )}
               </div>
@@ -901,11 +920,11 @@ export function ControlsSection() {
       />
 
       <PageIntro
-        body="Use this page to record the final control measures for the assessment. Start by checking whether the process-step engineering controls and PPE match the COSHH Essentials screening result, then complete the hierarchy of control fields below."
+        body="Use this page to record the final control measures for the assessment. Start by confirming the process-step engineering controls and PPE match the COSHH Essentials screening result, then complete the hierarchy of control fields below."
         steps={[
-          { title: '1. Check the screening', body: 'Use the COSHH Essentials section to identify the suggested control approach for the chemicals used.' },
-          { title: '2. Check step controls', body: 'A series of "Checks" are identified by comparing the controls selected in Process Steps with the COSHH Essentials screening output. Review each "Check", update any controls, and mark the "Checks" as complete as you go.' },
-          { title: '3. Record other controls', body: 'Review the other steps in the hierarchy of control, and indicate the other controls in place to ensure that work is safely completed. Check the prompts and suggestions for feedback on what to consider, alongside some standardised responses for you to consider.' },
+          { title: '1. Run the screening', body: 'Use the COSHH Essentials section to find the suggested control approach for the chemicals used.' },
+          { title: '2. Review flagged controls', body: 'LabCAT compares each step’s engineering controls and PPE against the screening result and flags anything that looks missing as a review point under the step. Review each one, update the step if needed, then tick it off.' },
+          { title: '3. Record other controls', body: 'Work through the other levels of the hierarchy of control and record the measures in place to complete the work safely. The prompts and suggestions offer feedback on what to consider, alongside standardised responses you can adopt.' },
         ]}
       />
 
@@ -933,6 +952,7 @@ export function ControlsSection() {
           iconClass="bg-accent-600 text-white"
           label="Elimination / Substitution"
           hint="Remove or replace with a less hazardous option."
+          required
           considerationLabel="Review elimination/substitution prompts"
           considerations={elimSubPrompts.considerations}
           suggestions={elimSubPrompts.suggestions}
@@ -955,6 +975,7 @@ export function ControlsSection() {
           iconClass="bg-accent-600 text-white"
           label="Reduction"
           hint="Reduce quantity, concentration or duration."
+          required
           considerationLabel="Review reduction prompts"
           considerations={reductionControlPrompts.considerations}
           suggestions={reductionControlPrompts.suggestions}
@@ -1072,6 +1093,7 @@ function ControlRow({
         )}
         <SuggestionField
           label=""
+          required={required}
           suggestions={suggestions}
           value={value}
           onChange={onChange}

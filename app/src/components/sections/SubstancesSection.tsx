@@ -46,7 +46,16 @@ const ROUTES: { key: keyof ExposureRoutes; label: string }[] = [
   { key: 'skin', label: 'Skin' },
   { key: 'ingestion', label: 'Ingestion' },
   { key: 'eye', label: 'Eye' },
+  { key: 'none', label: 'None' },
 ];
+
+// "None" (non-hazardous substance) is mutually exclusive with the real routes.
+function toggledExposureRoutes(routes: ExposureRoutes, key: keyof ExposureRoutes): ExposureRoutes {
+  if (key === 'none') {
+    return { inhalation: false, skin: false, ingestion: false, eye: false, none: !routes.none };
+  }
+  return { ...routes, [key]: !routes[key], none: false };
+}
 
 const GHS_PICKER: GhsPictogram[] = [
   'explosive',
@@ -116,11 +125,24 @@ const CONNECTOR_WORDS = new Set([
   'then', 'after', 'before', 'followed', 'using', 'use', 'add', 'adding',
 ]);
 
-function looksLikePartOfLongerChemicalPhrase(text: string, matchedTerm: string): boolean {
-  if (matchedTerm.trim().split(/\s+/).length > 1) return false;
-  const re = new RegExp(`\\b${matchedTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[ \\t]+([a-z][a-z0-9-]*)`, 'i');
-  const next = text.match(re)?.[1]?.toLowerCase();
-  return Boolean(next && !CONNECTOR_WORDS.has(next));
+const DESCRIPTOR_WORDS = new Set([
+  'metal', 'powder', 'solid', 'liquid', 'gas', 'solution', 'aqueous', 'anhydrous',
+  'buffer', 'mixture', 'slurry', 'suspension', 'pellets', 'granules', 'crystals',
+  'reagent', 'sample',
+]);
+
+const BREAK_WORDS = new Set([...CONNECTOR_WORDS, ...DESCRIPTOR_WORDS]);
+
+// Suffixes typical of chemical nomenclature (glycinate, chloride, peroxide,
+// nitrite, ethanol, dodecyl, heptahydrate, ...). A following word must look
+// chemical before it is allowed to extend a matched name into a phrase, so
+// "magnesium glycinate" is offered but "magnesium stirrer bar" is not.
+const CHEMICAL_WORD_RE =
+  /(ate|ide|ite|ol|ine|ane|ene|yne|yl|amine|amide|oxide|acid|ose|ium|hydrate)s?$/;
+
+function looksChemicalWord(word: string): boolean {
+  if (word.length < 4 || BREAK_WORDS.has(word)) return false;
+  return CHEMICAL_WORD_RE.test(word);
 }
 
 function expandedChemicalPhrases(text: string, matches: ExtractMatch[]): string[] {
@@ -142,18 +164,18 @@ function expandedChemicalPhrases(text: string, matches: ExtractMatch[]): string[
       if (token !== termKey) return;
       const words: string[] = [];
       for (const word of tokens.slice(index + 1, index + 4)) {
-        if (word === ';' || word === '.' || CONNECTOR_WORDS.has(word)) break;
+        if (!looksChemicalWord(word)) break;
         words.push(word);
       }
       if (words.length === 0) return;
 
-      for (let len = Math.min(words.length, 3); len >= 1; len--) {
-        const phrase = [term, ...words.slice(0, len)].join(' ').replace(/\s+/g, ' ');
-        const key = phrase.toLowerCase();
-        if (phrase.length < 3 || phrase.length > 80 || seen.has(key)) continue;
-        seen.add(key);
-        out.push(phrase);
-      }
+      // Offer only the longest gated phrase: intermediate prefixes such as
+      // "sodium dodecyl" (from "sodium dodecyl sulfate") are rarely compounds.
+      const phrase = [term, ...words.slice(0, 3)].join(' ').replace(/\s+/g, ' ');
+      const key = phrase.toLowerCase();
+      if (phrase.length < 3 || phrase.length > 80 || seen.has(key)) return;
+      seen.add(key);
+      out.push(phrase);
     });
   }
 
@@ -407,6 +429,7 @@ function ProcessStepCard({
 
   const [showReuse, setShowReuse] = useState(false);
   const [showControlsInfo, setShowControlsInfo] = useState(false);
+  const [showDurationInfo, setShowDurationInfo] = useState(false);
   const [openChemIndex, setOpenChemIndex] = useState<number | null>(null);
   const prevChemCount = useRef(step.chemicals.length);
 
@@ -466,28 +489,25 @@ function ProcessStepCard({
       step.chemicals.map((c) => (c.cas ?? c.name).toLowerCase()).filter(Boolean),
     );
     const localMatches = extractChemicals(searchableText);
+    const local = localMatches.filter(
+      (m) => !existing.has((m.cas ?? m.name).toLowerCase()),
+    );
+    const localNames = new Set(local.map((m) => m.name.toLowerCase()));
+    const localTerms = new Set(local.map((m) => m.matchedTerm.toLowerCase()));
     const phraseMatches = expandedChemicalPhrases(searchableText, localMatches).map((phrase) => ({
       name: displayChemicalPhrase(phrase),
       cas: undefined,
       matchedTerm: phrase,
     }));
-    const phraseNames = new Set(phraseMatches.map((m) => m.name.toLowerCase()));
-    const local = extractChemicals(searchableText).filter(
-      (m) => !existing.has((m.cas ?? m.name).toLowerCase()),
-    );
+    const filteredPhrases = phraseMatches.filter((m) => {
+      const name = m.name.toLowerCase();
+      return !(existing.has(name) || localNames.has(name) || localTerms.has(name));
+    });
+    // Phrases first: "Magnesium glycinate" is the more likely intent than the
+    // bare "Magnesium" it was expanded from. Both stay available to click.
     return [
-      ...phraseMatches.filter(
-        (m) => !existing.has((m.cas ?? m.name).toLowerCase()),
-      ),
-      ...local.filter((m) => {
-        if (phraseNames.has(m.name.toLowerCase())) return false;
-        if (looksLikePartOfLongerChemicalPhrase(searchableText, m.matchedTerm)) return false;
-        return !phraseMatches.some(
-          (p) =>
-            p.name.toLowerCase().includes(m.matchedTerm.toLowerCase()) &&
-            p.name.length > m.matchedTerm.length,
-        );
-      }),
+      ...filteredPhrases,
+      ...local,
     ];
   }, [step.description, step.step, step.chemicals]);
 
@@ -711,9 +731,9 @@ function ProcessStepCard({
         </div>
       </div>
 
-      <div className="border-t border-zinc-100 bg-white px-4 py-4">
-        <div className="mb-3 text-sm font-semibold text-zinc-900">Step details</div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(14rem,0.7fr)_1fr]">
+      <div className="border-t border-zinc-100 bg-white px-4 py-3">
+        <div className="mb-1.5 text-sm font-semibold text-zinc-900">Step details</div>
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(12rem,0.6fr)_1fr_minmax(13rem,0.65fr)]">
           <label className="block">
             <span className="field-label">Step name<Req /></span>
             <input
@@ -735,6 +755,43 @@ function ProcessStepCard({
               placeholder="e.g. Add slowly with stirring"
             />
           </label>
+          <div className="relative">
+            <button
+              type="button"
+              className="absolute right-0 top-0 inline-flex h-5 w-5 items-center justify-center rounded-md text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
+              onClick={() => setShowDurationInfo((v) => !v)}
+              aria-label="Step duration guidance"
+              aria-expanded={showDurationInfo}
+            >
+              <Info size={13} />
+            </button>
+            {showDurationInfo && (
+              <div className="absolute right-0 top-6 z-20 w-72 rounded-md border border-zinc-200 bg-white p-3 text-xs leading-5 text-zinc-600 shadow-lg">
+                <button
+                  type="button"
+                  className="absolute right-2 top-2 rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+                  onClick={() => setShowDurationInfo(false)}
+                  aria-label="Close step duration guidance"
+                >
+                  <X size={13} />
+                </button>
+                Estimate the time someone could be exposed to the chemicals in this step. Focus on
+                hands-on time near the experiment, transfer, weighing, sampling or cleanup. Do not
+                include unattended waiting time such as refluxing or incubation where nobody is
+                near the process.
+              </div>
+            )}
+            <ChipPickerInput
+              label="Step duration"
+              required
+              invalid={!step.exposureDuration.trim()}
+              value={step.exposureDuration}
+              onChange={(v) => updateStep(step.id, { exposureDuration: v })}
+              options={['<1 min', '5 min', '15 min', '30 min', '1h', '2h', '4h', '8h']}
+              placeholder="e.g. 30 min"
+              gridColumns={4}
+            />
+          </div>
         </div>
       </div>
 
@@ -743,18 +800,34 @@ function ProcessStepCard({
           <div className="text-[11px] text-zinc-600 mb-2">
             These chemicals best match the description of your task. Select any matches, or manually enter details for chemicals not found below.
           </div>
+          {(adding !== null || lastChemicalIncomplete) && (
+            <div className="mb-2 rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-[11px] text-amber-900">
+              {adding !== null
+                ? 'Adding a chemical now. Suggestions are paused until that lookup finishes.'
+                : 'Complete the current chemical details before adding another suggested chemical.'}
+            </div>
+          )}
           <div className="flex flex-wrap gap-1.5">
             {suggestions.map((m) => {
               const key = (m.cas ?? m.name).toLowerCase();
               const loading = adding === key;
+              const disabledReason = adding !== null
+                ? loading
+                  ? 'Adding this chemical from PubChem'
+                  : 'Wait for the current chemical lookup to finish'
+                : lastChemicalIncomplete
+                  ? 'Complete the current chemical details before adding another suggestion'
+                  : m.cas
+                    ? `CAS ${m.cas} — adds with PubChem details`
+                    : undefined;
               return (
                 <button
                   key={(m.cas ?? m.name) + m.matchedTerm}
                   type="button"
                   disabled={adding !== null || lastChemicalIncomplete}
                   onClick={() => addSuggested(m)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white border border-accent-200 text-accent-800 text-xs hover:bg-accent-100 disabled:opacity-50"
-                  title={m.cas ? `CAS ${m.cas} — adds with PubChem details` : undefined}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white border border-accent-200 text-accent-800 text-xs hover:bg-accent-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  title={disabledReason}
                 >
                   {loading ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />}
                   {m.name}
@@ -767,7 +840,7 @@ function ProcessStepCard({
       )}
 
       <div className="border-t border-zinc-100 bg-white px-4 py-3">
-        <div className="flex items-center justify-between mb-2 gap-2">
+        <div className="flex items-center justify-between mb-1.5 gap-2">
           <span className="text-sm font-semibold text-zinc-900">
             Chemicals in this step
           </span>
@@ -855,41 +928,9 @@ function ProcessStepCard({
             ))}
           </div>
         )}
-        <div className="mt-3 flex justify-end border-t border-zinc-100 pt-3">
-          <button
-            type="button"
-            className="btn-primary text-xs !px-3 !py-1.5 shadow-soft disabled:opacity-40"
-            onClick={() => addChemical(step.id)}
-            disabled={lastChemicalIncomplete}
-            title={addChemicalTitle}
-          >
-            <Plus size={12} /> Add chemical
-          </button>
-        </div>
       </div>
 
-      <div className="border-t border-zinc-200 bg-white px-4 py-4">
-        <div className="mb-2 text-sm font-semibold text-zinc-900">Step duration</div>
-        <p className="mb-3 max-w-3xl text-xs leading-5 text-zinc-600">
-          Estimate the time someone could be exposed to the chemicals in this step. Focus on
-          hands-on time near the experiment, transfer, weighing, sampling or cleanup. Do not include
-          unattended waiting time such as refluxing or incubation where nobody is near the process.
-        </p>
-        <div className="max-w-sm">
-          <ChipPickerInput
-            label="Step duration"
-            required
-            invalid={!step.exposureDuration.trim()}
-            value={step.exposureDuration}
-            onChange={(v) => updateStep(step.id, { exposureDuration: v })}
-            options={['<1 min', '5 min', '15 min', '30 min', '1h', '2h', '4h', '8h']}
-            placeholder="e.g. 30 min"
-            gridColumns={4}
-          />
-        </div>
-      </div>
-
-      <div className="border-t border-zinc-200 bg-white px-4 py-4">
+      <div className="border-t border-zinc-200 bg-white px-4 py-3">
         <div className="relative mb-2 flex items-center gap-2">
           <span className="text-sm font-semibold text-zinc-900">
             Controls required for this step
@@ -922,37 +963,39 @@ function ProcessStepCard({
         </div>
 
         <div className="space-y-3">
-          <div>
-            <div className="mb-2 text-xs font-semibold text-zinc-600">
-              Engineering controls<Req />
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+            <div>
+              <div className="mb-1.5 text-xs font-semibold text-zinc-600">
+                Engineering controls<Req />
+              </div>
+              <div className={clsx('flex flex-wrap gap-1.5 rounded-md', controlsMissing.engineering && 'field-missing p-2')}>
+                {ENGINEERING_CONTROLS.map(({ id, label, Icon }) => (
+                  <StepControlToggle
+                    key={id}
+                    active={controls.engineering.includes(id)}
+                    label={label}
+                    Icon={Icon}
+                    onClick={() => toggleControl('engineering', id)}
+                  />
+                ))}
+              </div>
             </div>
-            <div className={clsx('flex flex-wrap gap-1.5 rounded-md', controlsMissing.engineering && 'field-missing p-2')}>
-              {ENGINEERING_CONTROLS.map(({ id, label, Icon }) => (
-                <StepControlToggle
-                  key={id}
-                  active={controls.engineering.includes(id)}
-                  label={label}
-                  Icon={Icon}
-                  onClick={() => toggleControl('engineering', id)}
-                />
-              ))}
-            </div>
-          </div>
 
-          <div>
-            <div className="mb-2 text-xs font-semibold text-zinc-600">
-              PPE<Req />
-            </div>
-            <div className={clsx('flex flex-wrap gap-1.5 rounded-md', controlsMissing.ppe && 'field-missing p-2')}>
-              {PPE_CONTROLS.map(({ id, label, Icon }) => (
-                <StepControlToggle
-                  key={id}
-                  active={controls.ppe.includes(id)}
-                  label={label}
-                  Icon={Icon}
-                  onClick={() => toggleControl('ppe', id)}
-                />
-              ))}
+            <div>
+              <div className="mb-1.5 text-xs font-semibold text-zinc-600">
+                PPE<Req />
+              </div>
+              <div className={clsx('flex flex-wrap gap-1.5 rounded-md', controlsMissing.ppe && 'field-missing p-2')}>
+                {PPE_CONTROLS.map(({ id, label, Icon }) => (
+                  <StepControlToggle
+                    key={id}
+                    active={controls.ppe.includes(id)}
+                    label={label}
+                    Icon={Icon}
+                    onClick={() => toggleControl('ppe', id)}
+                  />
+                ))}
+              </div>
             </div>
           </div>
 
@@ -994,11 +1037,9 @@ function ProcessStepCard({
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-3 border-t border-zinc-100 bg-zinc-50/60 px-4 py-3">
-        <div className={clsx('text-xs', canAddStep ? 'text-zinc-500' : 'text-amber-800')}>
-          {canAddStep
-            ? 'This step is complete enough to add the next one.'
-            : addStepBlocker || 'Complete this step before adding the next one.'}
+      <div className="flex items-center justify-between gap-3 border-t border-zinc-100 bg-zinc-50/60 px-4 py-2">
+        <div className="text-xs text-amber-800">
+          {!canAddStep && (addStepBlocker || 'Complete this step before adding the next one.')}
         </div>
         <button
           type="button"
@@ -1350,6 +1391,9 @@ function ChemicalRow({
         const formValue = simplifiedForm(c.form);
         return (
         <div className="border-t border-zinc-100 px-4 py-3 bg-white">
+          <div className="mb-2 text-[11px] text-zinc-500">
+            All fields marked <span className="text-red-600">*</span> are required.
+          </div>
           {error && <div className="text-xs text-red-600 mb-2">{error}</div>}
           {matchWarning && (
             <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5 mb-2">
@@ -1357,7 +1401,7 @@ function ChemicalRow({
             </div>
           )}
 
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
             <div>
               <span className="field-label">Chemical name<Req /></span>
               <ChemicalAutocomplete
@@ -1467,7 +1511,7 @@ function ChemicalRow({
             )}
 
             <label>
-              <span className="field-label">Quantity</span>
+              <span className="field-label">Quantity<Req /></span>
               <QuantityInput
                 value={c.quantity}
                 form={formValue}
@@ -1477,7 +1521,7 @@ function ChemicalRow({
             </label>
 
             <div>
-              <span className="field-label">Exposure routes</span>
+              <span className="field-label">Exposure routes<Req /></span>
               <div className={clsx('flex min-h-[42px] flex-wrap items-center gap-1 rounded-md border border-zinc-200 bg-white px-2 py-1.5 shadow-soft', miss.routes && 'field-missing')}>
                 {ROUTES.map(({ key, label }) => {
                   const on = c.exposureRoutes[key];
@@ -1485,24 +1529,28 @@ function ChemicalRow({
                     <button
                       key={key}
                       type="button"
-                      onClick={() => onChange({ exposureRoutes: { ...c.exposureRoutes, [key]: !on } })}
+                      onClick={() => onChange({ exposureRoutes: toggledExposureRoutes(c.exposureRoutes, key) })}
                       className={
                         'px-2.5 py-0.5 rounded-full text-xs border transition ' +
                         (on
                           ? 'bg-accent-100 border-accent-300 text-accent-900'
-                          : 'bg-white border-zinc-200 text-zinc-600 hover:bg-accent-50 hover:border-accent-200')
+                          : miss.routes
+                            ? 'bg-white border-amber-300 text-zinc-700 hover:bg-accent-50 hover:border-accent-200'
+                            : 'bg-white border-zinc-200 text-zinc-600 hover:bg-accent-50 hover:border-accent-200')
                       }
                     >
                       {label}
                     </button>
                   );
                 })}
+                {miss.routes && (
+                  <span className="ml-1 text-[11px] font-medium text-amber-800">
+                    Select at least one
+                  </span>
+                )}
               </div>
             </div>
 
-          </div>
-
-          <div className="mt-3 grid grid-cols-1 gap-3 border-t border-zinc-100 pt-3 md:grid-cols-2">
             <label>
               <span className="field-label">TWA (8 h)<Req /></span>
               <input
@@ -1523,7 +1571,7 @@ function ChemicalRow({
             </label>
           </div>
 
-          <div className="mt-3 rounded border border-zinc-200 bg-white p-2.5">
+          <div className="mt-2 rounded border border-zinc-200 bg-white p-2.5">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
               <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
                 Hazard data - {c.ghsPictograms.length} pictogram{c.ghsPictograms.length === 1 ? '' : 's'} · {c.hazardStatements.length} H-code{c.hazardStatements.length === 1 ? '' : 's'}
