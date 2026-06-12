@@ -6,9 +6,9 @@ import { useAssessment } from '@/store/assessment';
 import { PageIntro } from '@/components/common/PageIntro';
 import { SectionHeader } from '@/components/common/SectionHeader';
 import { GhsIcon } from '@/components/common/GhsPictograms';
+import { findPeroxideFormer, PEROXIDE_CLASS_SUMMARIES } from '@/services/peroxideFormers';
 import {
   buildCameoPairs,
-  cameoMeta,
   CameoCompatibility,
   CameoPairFinding,
   resolveCameoMatch,
@@ -99,8 +99,8 @@ export function StorageSection() {
       <PageIntro
         body="Review and confirm the suggested storage groups, requirements, and cabinet layout for the chemicals in this assessment."
         steps={[
-          { title: '1. Check each row', body: 'Compare the suggested storage group, guidance and compatibility information with SDS sections 7 and 10.' },
-          { title: '2. Update if needed', body: 'Change the reference record, storage group or requirements where the SDS or local rules require something different.' },
+          { title: '1. Check each row', body: 'For each chemical, compare the suggested storage group and requirements with SDS sections 7 and 10.' },
+          { title: '2. Update if needed', body: 'For each chemical, where the SDS information differs from the suggestions made, update the storage group assignment and/or any recommendations to match the SDS.' },
           { title: '3. Confirm storage', body: 'Tick each chemical once you are satisfied the storage assignment is correct.' },
         ]}
         optionalStep={{
@@ -139,38 +139,7 @@ export function StorageSection() {
         )}
       </div>
 
-      <Panel
-        title="How storage recommendations work"
-        subtitle="Understand what powers the storage group suggestions on this page."
-        icon={<Info size={18} />}
-        collapsible
-        defaultOpen={false}
-      >
-        <div className="space-y-2 text-xs text-zinc-600">
-          <p>
-            The system starts with <strong>GHS hazard data</strong> — hazard statements, pictograms
-            and signal words — from the Safety Data Sheet or <strong>PubChem</strong>. These codes
-            determine core properties (flammable, corrosive, toxic, water-reactive, etc.) for every
-            chemical in the assessment.
-          </p>
-          <p>
-            To refine those classifications, the system also cross-references against the{' '}
-            <strong>CAMEO Chemicals</strong> dataset (NOAA, U.S.), which covers{' '}
-            {cameoMeta.counts.chemicals.toLocaleString()} chemicals grouped into{' '}
-            {cameoMeta.counts.reactiveGroups} reactive groups with over{' '}
-            {cameoMeta.counts.reactivity.toLocaleString()} known chemical-pair reactions. If a
-            match is found, the chemical's reactive group membership is used alongside the GHS data
-            to produce the final storage recommendation.
-          </p>
-          <p className="text-zinc-400">
-            Database: CAMEO Chemicals v{cameoMeta.version}, imported{' '}
-            {cameoMeta.importDate.slice(0, 10)} &middot; Always verify against the Safety Data
-            Sheet.
-          </p>
-        </div>
-      </Panel>
-
-      {storage2.consideredSeparately ? (
+{storage2.consideredSeparately ? (
         <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
           Storage recommendations are not generated in this assessment because chemical storage is recorded as assessed separately.
         </div>
@@ -195,7 +164,93 @@ function uniqueChemicals(chemicals: Substance[]) {
   });
 }
 
-function Panel({ title, subtitle, icon, children, collapsible = false, defaultOpen = true }: { title: string; subtitle: string; icon: React.ReactNode; children: React.ReactNode; collapsible?: boolean; defaultOpen?: boolean }) {
+function PeroxideFormerBadge({ chemical }: { chemical: { cas?: string; name?: string; iupacName?: string; pubchemTitle?: string } }) {
+  // Fixed positioning lets the popover escape the table's overflow-x-auto
+  // clipping; the anchor rect is captured when the badge is clicked.
+  const [anchor, setAnchor] = useState<{ top: number; left: number } | null>(null);
+  const open = anchor !== null;
+  const info = useMemo(() => findPeroxideFormer(chemical), [chemical]);
+  if (!info) return null;
+  const summary = PEROXIDE_CLASS_SUMMARIES[info.class];
+  const setOpen = (next: boolean, rect?: DOMRect) => {
+    if (!next || !rect) { setAnchor(null); return; }
+    setAnchor({ top: rect.bottom + 6, left: Math.max(8, Math.min(rect.left, window.innerWidth - 336)) });
+  };
+  return (
+    <div className="mt-1.5">
+      <button
+        type="button"
+        onClick={(e) => setOpen(!open, e.currentTarget.getBoundingClientRect())}
+        className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-amber-200 bg-amber-50 py-px pl-1 pr-2 text-[10px] font-semibold text-amber-900 shadow-sm transition hover:border-amber-300 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-200"
+        aria-label={`Peroxide former Class ${info.class} - show management guidance`}
+      >
+        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-amber-400/90 text-white">
+          <AlertTriangle size={9} strokeWidth={2.5} />
+        </span>
+        Peroxide former
+        <span className="rounded-full bg-amber-200/80 px-1.5 text-[9px] font-bold uppercase tracking-wide text-amber-900">Class {info.class}</span>
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="fixed z-50 w-80 rounded-lg border border-zinc-200 bg-white p-4 text-left shadow-xl" style={{ top: anchor.top, left: anchor.left }}>
+            <div className="text-xs font-semibold text-zinc-800">{summary.title}</div>
+            <div className="mt-1 text-[11px] font-medium text-zinc-500">{info.label}</div>
+            <p className="mt-2 text-[11px] leading-relaxed text-zinc-600">{summary.body}</p>
+            <p className="mt-2 border-t border-zinc-100 pt-2 text-[11px] leading-relaxed text-zinc-500">
+              Peroxide formation is a storage-lifecycle hazard that GHS classification data does not capture. Record open dates, follow local peroxide testing procedures, and confirm against SDS sections 7 and 10.
+            </p>
+            <p className="mt-1 text-[10px] text-zinc-400">Classification follows the Kansas State University EHS peroxide-former list (Classes A-C).</p>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function ClassificationInfoButton() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+        className="flex h-4 w-4 items-center justify-center rounded-full border border-zinc-300 bg-white text-zinc-500 transition hover:border-accent-400 hover:text-accent-700 focus:outline-none focus:ring-2 focus:ring-accent-100"
+        aria-label="How storage groups are assigned"
+      >
+        <Info size={10} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute left-0 top-6 z-50 w-80 rounded-lg border border-zinc-200 bg-white p-4 shadow-xl">
+            <div className="mb-2 text-xs font-semibold text-zinc-800">How storage groups are assigned</div>
+            <p className="text-[11px] leading-relaxed text-zinc-600">
+              Each chemical is classified using a <strong>priority tier system</strong>. The first matching tier determines the storage group — lower-tier hazards are kept as requirements rather than dropped.
+            </p>
+            <ol className="mt-2 space-y-1 text-[11px] leading-relaxed text-zinc-600 list-decimal list-inside">
+              <li><strong>Reactive isolation</strong> — water-reactive, pyrophoric, explosive → Special Review</li>
+              <li><strong>Compressed gas</strong> — gas form or pressure H-codes → Compressed Gas</li>
+              <li><strong>Oxidiser + flammable</strong> on the same chemical → Special Review</li>
+              <li><strong>Oxidising acid</strong> (e.g. nitric, perchloric) → Oxidizing Acids</li>
+              <li><strong>Oxidiser</strong> → Oxidizers Cabinet</li>
+              <li><strong>Flammable liquid</strong> — GHS codes, flash point or NFPA data → Flammables Cabinet</li>
+              <li><strong>Acid</strong> → Non-Oxidizing Acids</li>
+              <li><strong>Base</strong> — solid or liquid → Corrosives Cabinet</li>
+              <li><strong>Volatile / chlorinated solvent</strong> → Volatile Poisons</li>
+              <li><strong>Toxic</strong> — further split by vapour pressure and form</li>
+              <li><strong>Dry solid, no stronger trigger</strong> → Shelving</li>
+              <li><strong>No data / unresolved corrosive</strong> → Assessor Review</li>
+            </ol>
+            <p className="mt-2 text-[11px] text-zinc-400">Always verify against SDS sections 7 and 10.</p>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function Panel({ title, subtitle, icon, children, collapsible = false, defaultOpen = true, headerExtra }: { title: string; subtitle: string; icon: React.ReactNode; children: React.ReactNode; collapsible?: boolean; defaultOpen?: boolean; headerExtra?: React.ReactNode }) {
   const [open, setOpen] = useState(defaultOpen);
 
   if (!collapsible) {
@@ -203,8 +258,11 @@ function Panel({ title, subtitle, icon, children, collapsible = false, defaultOp
       <div className="rounded-lg border border-zinc-200 bg-white">
         <div className="flex items-start gap-3 border-b border-zinc-100 px-4 py-3">
           <span className="mt-0.5 text-accent-700">{icon}</span>
-          <div>
-            <h3 className="text-sm font-semibold text-zinc-900">{title}</h3>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-zinc-900">{title}</h3>
+              {headerExtra}
+            </div>
             <p className="mt-1 text-xs text-zinc-500">{subtitle}</p>
           </div>
         </div>
@@ -251,7 +309,12 @@ function MatchReviewPanel({
   onUpdateAssignment: (chemicalId: string, patch: Storage2AssignmentEdit) => void;
 }) {
   return (
-    <Panel title="Chemical classification and storage assignment" subtitle="Review GHS hazards, reactive groups, generated storage groups and requirements in one place." icon={<Database size={18} />}>
+    <Panel
+      title="Chemical classification and storage assignment"
+      subtitle="Review GHS hazards, reactive groups, generated storage groups and requirements in one place."
+      icon={<Database size={18} />}
+      headerExtra={<ClassificationInfoButton />}
+    >
       <div className="overflow-x-auto">
         <table className="w-full min-w-[1200px] table-fixed border-collapse text-left text-[11px]">
           <colgroup>
@@ -317,7 +380,7 @@ function ClassificationMatchRow({
   const requirementText = edit?.requirements ?? requirementTextForAssignment(assignment);
 
   return (
-    <tr className={clsx('border-b border-zinc-100 align-top transition', !match.confirmed && 'bg-amber-50/35')}>
+    <tr className={clsx('border-b align-top transition', !match.confirmed ? 'border-red-100 bg-red-50' : 'border-emerald-100 bg-emerald-50/40')}>
       <td className="px-2 py-3">
         <label className={clsx(
           'inline-flex min-h-9 w-full items-center justify-center rounded-md border px-1.5 py-1.5',
@@ -335,6 +398,7 @@ function ClassificationMatchRow({
       <td className="break-words px-2 py-3">
         <div className="font-semibold text-zinc-900">{chemical.name || chemical.cas || 'Unnamed chemical'}</div>
         <div className="mt-1 text-zinc-500">{chemical.cas ? `CAS ${chemical.cas}` : 'No CAS recorded'}</div>
+        <PeroxideFormerBadge chemical={chemical} />
       </td>
       <td className="px-2 py-3">
         <div className="flex flex-wrap gap-1">
@@ -489,7 +553,7 @@ function PairFindingsPanel({ assignments, pairs }: { assignments: Storage20Assig
   const pairsByChemicalKey = useMemo(() => new Map(pairs.map((pair) => [pair.key, pair])), [pairs]);
 
   return (
-    <Panel title="Compatibility matrix (by storage group)" subtitle="Storage-group compatibility based on the supplied cabinet scheme. Hover or focus a cell to see the chemicals in each group and compatibility evidence where available." icon={<AlertTriangle size={18} />} collapsible defaultOpen={false}>
+    <Panel title="Compatibility matrix (by storage group) (Optional)" subtitle="Storage-group compatibility based on the supplied cabinet scheme. Hover or focus a cell to see the chemicals in each group and compatibility evidence where available." icon={<AlertTriangle size={18} />} collapsible defaultOpen={false}>
       <div className="mb-3 flex flex-wrap gap-4 text-xs text-zinc-600">
         <span className="inline-flex items-center gap-1"><CheckCircle2 size={14} className="text-emerald-600" /> Maybe compatible - check SDS</span>
         <span className="inline-flex items-center gap-1"><XCircle size={14} className="text-red-600" /> Not compatible for shared storage</span>
@@ -546,17 +610,19 @@ function PairFindingsPanel({ assignments, pairs }: { assignments: Storage20Assig
                             : <span className="text-base font-bold text-red-600">x</span>
                         )}
                       </button>
-                      <MatrixHoverCard
-                        row={row}
-                        col={col}
-                        compatible={compatible}
-                        rowAssignments={rowAssignments}
-                        colAssignments={colAssignments}
-                        affectedPairs={affectedPairs}
-                        relevantToAssessment={relevantToAssessment}
-                        align={colIndex >= MATRIX_GROUPS.length - 3 ? 'right' : colIndex <= 2 ? 'left' : 'center'}
-                        verticalAlign={rowIndex >= MATRIX_GROUPS.length - 3 ? 'top' : 'bottom'}
-                      />
+                      {!isDiagonal && (
+                        <MatrixHoverCard
+                          row={row}
+                          col={col}
+                          compatible={compatible}
+                          rowAssignments={rowAssignments}
+                          colAssignments={colAssignments}
+                          affectedPairs={affectedPairs}
+                          relevantToAssessment={relevantToAssessment}
+                          align={colIndex >= MATRIX_GROUPS.length - 3 ? 'right' : colIndex <= 2 ? 'left' : 'center'}
+                          verticalAlign={rowIndex >= MATRIX_GROUPS.length - 3 ? 'top' : 'bottom'}
+                        />
+                      )}
                     </td>
                   );
                 })}
@@ -775,7 +841,7 @@ function CabinetSchemePanel({
 
   return (
     <Panel
-      title="Image-based cabinet layout"
+      title="Image-based cabinet layout (Optional)"
       subtitle="Primary placement follows the supplied cabinet scheme and the confirmed storage group assignments."
       icon={<FlaskConical size={18} />}
       collapsible

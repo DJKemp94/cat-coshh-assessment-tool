@@ -1077,8 +1077,8 @@ function ControlRow({
       </div>
       <div className="min-w-0">
         {considerations && considerations.length > 0 && (
-          <details className="group mb-2 rounded-md border border-zinc-200 bg-zinc-50/70 px-2.5 py-1.5">
-            <summary className="cursor-pointer text-xs font-medium text-zinc-600 marker:text-zinc-400">
+          <details className="group mb-2 rounded-md border border-accent-200 bg-accent-50 px-2.5 py-1.5">
+            <summary className="cursor-pointer text-xs font-semibold text-accent-800 marker:text-accent-400">
               {considerationLabel ?? 'Review prompts'}
             </summary>
             <ul className="mt-2 space-y-1 text-xs leading-relaxed text-zinc-600">

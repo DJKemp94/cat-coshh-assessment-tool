@@ -44,8 +44,7 @@ export function SuggestionField({
 }: Props) {
   const chips = toChips(suggestions);
   const isEmpty = value.trim().length === 0;
-  const [forced, setForced] = useState<boolean | null>(null);
-  const showChips = forced ?? isEmpty;
+  const [showChips, setShowChips] = useState(false);
   const missing = required && isEmpty;
 
   return (
@@ -68,7 +67,7 @@ export function SuggestionField({
           {chips.length > 0 && (
             <button
               type="button"
-              onClick={() => setForced(!showChips)}
+              onClick={() => setShowChips(!showChips)}
               className={clsx(
                 'inline-flex items-center justify-between gap-1 text-[11px] px-2.5 py-1 rounded-full border transition whitespace-nowrap shrink-0 w-[8.25rem]',
                 showChips

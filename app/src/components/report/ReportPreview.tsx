@@ -16,6 +16,7 @@ import {
   applyStorage20Edit,
   storage20EvidenceText,
   storage20RequirementsText,
+  storage20PeroxideFormer,
   Storage20Assignment,
   ZONES,
   CABINET_ORDER,
@@ -598,9 +599,13 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
                       ) : (
                         (() => {
                           const assignment = storage20For(assessment, chemical);
+                          const peroxideFormer = storage20PeroxideFormer(assignment);
                           return (
                             <>
                               <strong>{ZONES[assignment.zoneId]?.zoneTitle ?? assignment.zoneId}</strong>
+                              {peroxideFormer && (
+                                <div><strong>Peroxide former (Class {peroxideFormer.class}).</strong> {peroxideFormer.guidance}.</div>
+                              )}
                               <div>{storage20RequirementsText(assignment)}</div>
                               <div className="report-muted">{storage20EvidenceText(assignment)}</div>
                             </>
