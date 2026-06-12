@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import catHead from '@/assets/logo/cat-head.png';
+import labcatLogo from '@/assets/logo/labcat-logo.png';
 import catSitting from '@/assets/logo/cat-sitting.png';
 import pawPng from '@/assets/logo/paw.png';
 
@@ -11,12 +11,12 @@ interface LogoProps {
 export function CatLogo({ size = 28, className }: LogoProps) {
   return (
     <img
-      src={catHead}
+      src={labcatLogo}
       width={size}
       height={size}
       alt="LabCAT logo"
       draggable={false}
-      className={clsx('select-none', className)}
+      className={clsx('select-none object-contain', className)}
     />
   );
 }

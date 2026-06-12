@@ -14,7 +14,6 @@ import { hazardEditSummary } from '@/services/hazardEdits';
 import {
   classifyStorage20,
   applyStorage20Edit,
-  storage20EvidenceText,
   storage20RequirementsText,
   storage20PeroxideFormer,
   Storage20Assignment,
@@ -607,7 +606,6 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
                                 <div><strong>Peroxide former (Class {peroxideFormer.class}).</strong> {peroxideFormer.guidance}.</div>
                               )}
                               <div>{storage20RequirementsText(assignment)}</div>
-                              <div className="report-muted">{storage20EvidenceText(assignment)}</div>
                             </>
                           );
                         })()
