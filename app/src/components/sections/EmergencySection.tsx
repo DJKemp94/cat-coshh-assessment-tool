@@ -21,11 +21,11 @@ const BASE_FIRST_AID_CONSIDERATIONS = [
 ];
 
 const BASE_FIRST_AID_SUGGESTIONS: ChipSuggestion[] = [
-  { text: 'Use SDS Section 4 as the definitive first-aid instruction. Make sure the SDS can be accessed immediately and sent with the casualty if medical treatment is needed.' },
-  { text: 'Eye exposure: flush immediately with gently flowing water for at least 15 minutes, hold eyelids open and remove contact lenses if easy to do without delaying irrigation.' },
-  { text: 'Skin exposure: use the safety shower or running water for at least 15 minutes and remove contaminated clothing, shoes and jewellery while flushing.' },
-  { text: 'Ingestion: rinse the mouth. Do not induce vomiting unless SDS Section 4 or a medical professional explicitly instructs this.' },
-  { text: 'Ensure your own safety, move the person away from exposure if safe, seek urgent first-aid or medical support, and provide the SDS and exposure details.' },
+  { text: 'Treat SDS Section 4 as the definitive first-aid instruction. Keep the SDS immediately accessible and send it with the casualty if medical treatment is needed.' },
+  { text: 'Eye exposure: flush at the eyewash for at least 15 minutes, holding eyelids open. Remove contact lenses if easy to do without delaying irrigation.' },
+  { text: 'Skin exposure: flush with the safety shower or running water for at least 15 minutes. Remove contaminated clothing, shoes and jewellery while flushing.' },
+  { text: 'Ingestion: rinse the mouth. Do not induce vomiting unless SDS Section 4 or a medical professional instructs it.' },
+  { text: 'Make sure you are safe before helping. Move the person away from the exposure, call for first-aid or medical support, and hand over the SDS and exposure details.' },
 ];
 
 const WATER_REACTIVE_FIRST_AID_CODES = ['H260', 'H261'];
@@ -37,9 +37,9 @@ const BASE_SPILL_CONSIDERATIONS = [
 ];
 
 const BASE_SPILL_SUGGESTIONS: ChipSuggestion[] = [
-  { text: 'Small, contained spills may be tackled by trained staff only where the substance is known, suitable PPE and spill materials are available, and the local spill procedure confirms it is safe.' },
-  { text: 'For larger spills, exposure, vapours, dusts, aerosols, fire or reactivity concerns, drain risk, inadequate equipment, or uncertainty, stop work, isolate the area and escalate under the local spill plan.' },
-  { text: 'Follow SDS Section 6 and the local spill response procedure for the detailed clean-up method, compatible absorbents, PPE and waste disposal route.' },
+  { text: 'Only trained staff may clean up spills, and only small, contained spills of a known substance with suitable PPE and spill materials to hand.' },
+  { text: 'For anything larger — or any exposure, vapours, dusts, fire or reactivity risk, drain risk, missing equipment or uncertainty — stop work, isolate the area and escalate under the local spill plan.' },
+  { text: 'Use SDS Section 6 and the local spill procedure for the clean-up method, compatible absorbents, PPE and waste route.' },
 ];
 
 const BASE_FIRE_CONSIDERATIONS = [
@@ -49,10 +49,10 @@ const BASE_FIRE_CONSIDERATIONS = [
 ];
 
 const BASE_FIRE_SUGGESTIONS: ChipSuggestion[] = [
-  { text: 'If fire occurs, raise the alarm, stop work if safe, evacuate by the nearest safe route and follow the local fire/emergency procedure.' },
-  { text: 'Only trained staff may use firefighting equipment, and only for a very small incipient fire where they have a safe escape route and SDS Section 5 confirms the extinguishing media is suitable.' },
-  { text: 'For chemical fire, explosion, reactive material, gas cylinder, toxic smoke, unsuitable extinguishing media, run-off risk or uncertainty, evacuate and escalate to emergency responders.' },
-  { text: 'Provide emergency responders with SDS Section 5, chemical names, quantities, storage location and any incompatible, reactive, oxidising, flammable or pressurised-container hazards.' },
+  { text: 'If fire breaks out: raise the alarm, stop work if safe, and evacuate by the nearest safe route following the local fire procedure.' },
+  { text: 'Use firefighting equipment only if trained, only on a very small early-stage fire, with a clear escape route and media that SDS Section 5 confirms are suitable.' },
+  { text: 'For chemical fire, explosion, reactive material, gas cylinders, toxic smoke or any uncertainty: evacuate and leave it to emergency responders.' },
+  { text: 'Give responders SDS Section 5, the chemical names, quantities, storage location and any reactive, oxidising, flammable or pressurised-container hazards.' },
 ];
 
 const BASE_WASTE_CONSIDERATIONS = [
@@ -67,11 +67,11 @@ const BASE_WASTE_CONSIDERATIONS = [
 ];
 
 const BASE_WASTE_SUGGESTIONS: ChipSuggestion[] = [
-  { text: 'Review the SDS before confirming the waste route, segregation requirements, compatible container and any special disposal precautions for each waste stream.' },
-  { text: 'Collect each waste stream in a clean, intact, leak-tight container that the SDS and local procedure confirm is compatible with the waste.' },
-  { text: 'Keep waste containers closed except when adding waste, store liquid waste in secondary containment, and do not fill liquid waste containers above about three-quarters full.' },
-  { text: 'Label each waste container with the contents, major components, concentration or solvent/water content where relevant, hazards, date and responsible person or laboratory.' },
-  { text: 'Where a container is reused, retain useful original hazard information; where it is repurposed for a different waste, deface obsolete labels before filling.' },
+  { text: 'Confirm the waste route, segregation, compatible container and any special disposal precautions for each waste stream against the SDS before work starts.' },
+  { text: 'Collect each waste stream in a clean, intact, leak-tight container confirmed compatible with the waste.' },
+  { text: 'Keep waste containers closed except when adding waste. Store liquid waste in secondary containment and fill containers to no more than three-quarters.' },
+  { text: 'Label every waste container with the contents, major components, concentration or solvent/water content, hazards, date and the responsible person or laboratory.' },
+  { text: 'When reusing a container, keep the relevant original hazard information; when repurposing one for different waste, deface the old labels before filling.' },
 ];
 
 export function EmergencySection() {
@@ -311,8 +311,8 @@ function EmergencyPromptRow({
         <div className="mt-1 text-xs text-zinc-500">{hint}</div>
       </div>
       <div className="min-w-0">
-        <details className="group mb-2 rounded-md border border-zinc-200 bg-zinc-50/70 px-2.5 py-1.5">
-          <summary className="cursor-pointer text-xs font-medium text-zinc-600 marker:text-zinc-400">
+        <details className="group mb-2 rounded-md border border-accent-200 bg-accent-50 px-2.5 py-1.5">
+          <summary className="cursor-pointer text-xs font-semibold text-accent-800 marker:text-accent-400">
             {considerationLabel}
           </summary>
           <ul className="mt-2 space-y-1 text-xs leading-relaxed text-zinc-600">

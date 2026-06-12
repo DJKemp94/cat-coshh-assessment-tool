@@ -1,5 +1,6 @@
 import { CAMEO_GROUP_TO_CABINET, CameoMatch } from '@/services/cameoStorage';
 import { classifyStorageSignals, isOxidisingAcid, EXPLOSIVE_CODES, FLAMMABLE_CODES, OXIDISING_CODES, WATER_REACTIVE_CODES, PYROPHORIC_CODES, EUH_WATER_REACTIVE_CODES, EUH_ACID_GAS_CODES, EUH_PEROXIDE_CODES, EUH_EXPLOSIVE_VAPOUR_CODES, normalizeHazardCode } from '@/services/storageSignals';
+import { findPeroxideFormer } from '@/services/peroxideFormers';
 
 export type Storage20CabinetId = 'flammables' | 'corrosiveAcids' | 'corrosiveBases' | 'oxidizers' | 'toxins' | 'volatilePoisons' | 'compressedGas' | 'shelving' | 'specialReview' | 'review';
 
@@ -531,7 +532,9 @@ function storageConstraints(match: CameoMatch, signals: { text: string; profileT
   if (/\bazide\b/.test(signals.text)) constraints.push('azide special review - keep from acids, metals and drains');
   if (/\bperchloric acid\b/.test(signals.text)) constraints.push('perchloric acid dedicated storage review');
   if (hasAnyHCode(match, EUH_ACID_GAS_CODES)) constraints.push('hard separate from acids - EUH toxic gas risk');
-  if (/organic peroxide|peroxide-form|peroxidizable/.test(signals.text) || hasGroupName(/peroxides/) || hasAnyHCode(match, EUH_PEROXIDE_CODES)) constraints.push('peroxide/polymerization review');
+  const peroxideFormer = findPeroxideFormer(match.chemical);
+  if (peroxideFormer) constraints.push(peroxideFormer.requirement);
+  else if (/organic peroxide|peroxide-form|peroxidizable/.test(signals.text) || hasGroupName(/peroxides/) || hasAnyHCode(match, EUH_PEROXIDE_CODES)) constraints.push('peroxide/polymerization review');
   if (hasGroupName(/polymerizable/)) constraints.push('polymerization/pressure review');
   if (/sodium metal|potassium metal|lithium metal|metal hydride|hydride\b/.test(signals.text) || hasGroupName(/hydrides|alkali metals/)) constraints.push('reactive metals/hydrides review');
   if (/generate flammable hydrogen|hydrogen gas/i.test(signals.profileText) && /metal|hydride|hydrofluoric|hydrogen fluoride/.test(signals.text)) constraints.push('hydrogen generation risk');
@@ -742,11 +745,21 @@ export function applyStorage20Edit(
   };
 }
 
-/** Collapse requirements and constraints into a concise display string. */
+/**
+ * Collapse requirements and constraints into a concise display string.
+ * Peroxide-former lines are excluded here because report surfaces render
+ * them as a dedicated, untruncatable line via storage20PeroxideFormer.
+ */
 export function storage20RequirementsText(assignment: Storage20Assignment): string {
   return [...assignment.requirements, ...assignment.constraints]
+    .filter((line) => !/peroxide former/i.test(line))
     .slice(0, 4)
     .join('; ') || 'Check SDS sections 7 and 10';
+}
+
+/** Peroxide-former flag for the chemical behind an assignment, for report display. */
+export function storage20PeroxideFormer(assignment: Storage20Assignment) {
+  return findPeroxideFormer(assignment.match.chemical);
 }
 
 export function storage20EvidenceText(assignment: Storage20Assignment): string {

@@ -24,6 +24,7 @@ import {
   applyStorage20Edit,
   storage20EvidenceText,
   storage20RequirementsText,
+  storage20PeroxideFormer,
   STORAGE20_ZONE_LABELS,
 } from '@/services/storage20Classifier';
 import { hazardEditSummary } from '@/services/hazardEdits';
@@ -745,6 +746,11 @@ export async function exportDocx(a: Assessment, options: ReportOptions = fullRep
         const assignment = applyStorage20Edit(automatic, a.storage2.assignmentOverrides?.[chemical.id]);
         const fill = i % 2 === 1 ? ZEBRA : undefined;
         const hazardLines = hazardEditLines(chemical);
+        const peroxideFormer = storage20PeroxideFormer(assignment);
+        const requirementsText = [
+          peroxideFormer ? `PEROXIDE FORMER (CLASS ${peroxideFormer.class}): ${peroxideFormer.guidance}` : undefined,
+          storage20RequirementsText(assignment),
+        ].filter(Boolean).join('\n');
         return new TableRow({
           children: [
             cell(`${chemical.name || DASH}${casLine(chemical) ? `\n${casLine(chemical)}` : ''}`, { bold: true, widthDxa: 1600, fill }),
@@ -754,7 +760,7 @@ export async function exportDocx(a: Assessment, options: ReportOptions = fullRep
               ...hazardLines,
             ].join('\n'), { widthDxa: 1200, fill }),
             cell(STORAGE20_ZONE_LABELS[assignment.zoneId], { widthDxa: 2200, fill }),
-            cell(storage20RequirementsText(assignment), { widthDxa: 2400, fill }),
+            cell(requirementsText, { widthDxa: 2400, fill }),
             cell(storage20EvidenceText(assignment), { widthDxa: 2600, fill }),
           ],
         });
