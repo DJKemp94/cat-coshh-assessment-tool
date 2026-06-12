@@ -1,4 +1,5 @@
 import { Printer } from 'lucide-react';
+import { CatLogo } from '@/components/common/CatLogo';
 import { Assessment, GhsPictogram, RiskScore, riskRating, Substance } from '@/types/assessment';
 import { GhsIcon, GHS_LABELS } from '@/components/common/GhsPictograms';
 import { suggestControls, APPROACH_LABEL } from '@/services/coshhEssentials';
@@ -88,17 +89,15 @@ function chemicalDetailRows(a: Assessment) {
   });
 }
 
-function hCodes(c: Substance) {
-  return c.hazardStatements.map((h) => h.text ? `${h.code} ${h.text}` : h.code).join('; ') || DASH;
-}
-
 function casDisplay(c: Substance) {
   if (c.casNotApplicable) return 'N/A';
   return c.cas || DASH;
 }
 
 function routes(c: Substance) {
-  const selected = Object.entries(c.exposureRoutes).filter(([, on]) => on).map(([route]) => route);
+  const selected = Object.entries(c.exposureRoutes)
+    .filter(([, on]) => on)
+    .map(([route]) => route.charAt(0).toUpperCase() + route.slice(1));
   return selected.length ? selected.join(', ') : DASH;
 }
 
@@ -335,6 +334,8 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
               <h1>{assessment.overview.activityOutline || 'Untitled assessment'}</h1>
               <div className="report-business">{assessment.overview.businessUnit || 'Business unit not set'}</div>
             </div>
+            <div className="flex flex-col items-end gap-3">
+              <CatLogo size={72} />
             <div className="report-meta-strip">
               <InfoGrid rows={[
                 ['Assessor', assessment.overview.assessor],
@@ -342,6 +343,7 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
                 ['Next review', assessment.overview.dateOfNextReview],
               ]} />
               <div className="report-generated">Generated {generated} with LabCAT — COSHH Assessment Tool</div>
+            </div>
             </div>
           </header>
 
@@ -375,7 +377,17 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
             <section className="report-block">
               <SectionTab n={sectionNo++} title="Process Steps & Chemicals" />
               <div className="report-panel">
-                <table className="report-table">
+                <table className="report-table" style={{ tableLayout: 'fixed', width: '100%' }}>
+                  <colgroup>
+                    <col style={{ width: '5%' }} />   {/* Step */}
+                    <col style={{ width: options.process.stepControls ? '25%' : '35%' }} />  {/* Activity */}
+                    <col style={{ width: '6%' }} />   {/* Step duration */}
+                    <col style={{ width: options.process.stepControls ? '17%' : '25%' }} />  {/* Chemicals */}
+                    <col style={{ width: '12%' }} />  {/* GHS summary */}
+                    {options.process.stepControls && <col style={{ width: '12%' }} />}  {/* Engineering */}
+                    {options.process.stepControls && <col style={{ width: '12%' }} />}  {/* PPE */}
+                    {options.process.stepControls && <col style={{ width: '11%' }} />}  {/* Other controls */}
+                  </colgroup>
                   <thead>
                     <tr>
                       <th>Step</th>
@@ -554,7 +566,17 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
         {options.process.include && options.process.chemicalDetails && chemicalDetails.length > 0 && (
           <section className="report-page" id="appendix-a">
             <SectionTab n="A1" title="Appendix A — Chemical Detail" />
-            <table className="report-table report-table-dense">
+            <table className="report-table report-table-dense" style={{ tableLayout: 'fixed', width: '100%' }}>
+              <colgroup>
+                <col style={{ width: '3%' }} />   {/* # */}
+                <col style={{ width: '13%' }} />  {/* Chemical */}
+                <col style={{ width: '10%' }} />  {/* Form / qty */}
+                <col style={{ width: '22%' }} />  {/* Hazard statements */}
+                <col style={{ width: '10%' }} />  {/* WEL */}
+                <col style={{ width: '22%' }} />  {/* Storage */}
+                <col style={{ width: '10%' }} />  {/* Exposure */}
+                {options.process.ghsPictograms && <col style={{ width: '10%' }} />}
+              </colgroup>
               <thead>
                 <tr>
                   <th>#</th>
@@ -571,10 +593,30 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
                 {chemicalDetails.map((chemical, index) => (
                   <tr key={chemical.id}>
                     <td>{index + 1}</td>
-                    <td><strong>{chemical.name || DASH}</strong><div>CAS {casDisplay(chemical)}</div></td>
+                    <td>
+                      <strong>{chemical.name || DASH}</strong>
+                      <div>CAS {casDisplay(chemical)}</div>
+                      {!assessment.storage2.consideredSeparately && (() => {
+                        const pf = storage20PeroxideFormer(storage20For(assessment, chemical));
+                        return pf ? (
+                          <div className="mt-1">
+                            <span className="inline-block text-center rounded-full border border-amber-400 bg-amber-100 px-2 py-0.5 text-[9px] font-bold leading-tight text-amber-950">
+                              Peroxide former — Class {pf.class}
+                            </span>
+                          </div>
+                        ) : null;
+                      })()}
+                    </td>
                     <td><strong>Forms:</strong> {chemical.formSummary}<div><strong>Mass/volume range:</strong> {chemical.quantitySummary}</div></td>
                     <td>
-                      {hCodes(chemical)}
+                      {chemical.hazardStatements.length === 0
+                        ? DASH
+                        : chemical.hazardStatements.map((h, hi) => (
+                            <div key={`${h.code}-${hi}`}>
+                              <strong>{h.code}</strong>
+                              {h.text ? ` ${h.text}` : ''}
+                            </div>
+                          ))}
                       {chemical.hazardEditNotes.length > 0 && (
                         <div className="report-muted">
                           <strong>PubChem hazard data edited by assessor.</strong>
@@ -601,20 +643,21 @@ export function ReportPreview({ assessment, options }: { assessment: Assessment;
                           const peroxideFormer = storage20PeroxideFormer(assignment);
                           return (
                             <>
-                              <strong>{ZONES[assignment.zoneId]?.zoneTitle ?? assignment.zoneId}</strong>
+                              <span className={`inline-block text-center rounded-full border px-2 py-0.5 text-[9px] font-semibold leading-tight ${ZONE_COLORS[assignment.zoneId] ?? 'border-zinc-300 bg-zinc-100 text-zinc-800'}`}>
+                                {ZONES[assignment.zoneId]?.zoneTitle ?? assignment.zoneId}
+                              </span>
                               {peroxideFormer && (
-                                <div><strong>Peroxide former (Class {peroxideFormer.class}).</strong> {peroxideFormer.guidance}.</div>
+                                <div className="mt-1">{peroxideFormer.guidance}.</div>
                               )}
-                              <div>{storage20RequirementsText(assignment)}</div>
+                              <div className="mt-1">{storage20RequirementsText(assignment)}</div>
                             </>
                           );
                         })()
                       )}
                     </td>
                     <td>
-                      {chemical.exposureDuration || DASH}
-                      <div>Frequency: {assessment.overview.activityFrequency || chemical.exposureFrequency || DASH}</div>
-                      <div>{routes(chemical)}</div>
+                      <div><strong>Task completion time:</strong> {chemical.exposureDuration || DASH}</div>
+                      <div><strong>Routes of exposure:</strong> {routes(chemical)}</div>
                     </td>
                     {options.process.ghsPictograms && (
                       <td>

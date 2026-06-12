@@ -59,7 +59,7 @@ export function Sidebar() {
   return (
     <aside className="w-64 shrink-0 border-r border-zinc-200 bg-white flex flex-col h-full">
       <div className="px-5 py-5 flex items-center gap-3 border-b border-zinc-100">
-        <CatLogo size={48} />
+        <CatLogo size={64} />
         <div className="leading-tight">
           <div className="font-semibold text-zinc-900 text-lg">LabCAT</div>
           <div className="text-[10px] uppercase tracking-wider text-zinc-500">
